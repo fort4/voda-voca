@@ -46,7 +46,7 @@ async def signup(db: AsyncSession, password: str, nickname: str) -> User:
             await db.execute(
                 insert(Word),
                 [
-                    {"wordbook_id": wordbook.id, "term": w.term, "meaning": w.meaning, "example": w.example}
+                    {"wordbook_id": wordbook.id, "term": w.term, "meaning": w.meaning, "example": w.example, "example_meaning": w.example_meaning}
                     for w in seed.words
                 ],
             )

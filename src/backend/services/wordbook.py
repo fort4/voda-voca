@@ -104,7 +104,7 @@ async def create_preset_wordbook(db: AsyncSession, user_id: int, key: str) -> Wo
         await db.execute(
             insert(Word),
             [
-                {"wordbook_id": wordbook.id, "term": w.term, "meaning": w.meaning, "example": w.example}
+                {"wordbook_id": wordbook.id, "term": w.term, "meaning": w.meaning, "example": w.example, "example_meaning": w.example_meaning}
                 for w in words
             ],
         )

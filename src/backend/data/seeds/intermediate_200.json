@@ -2,1001 +2,1201 @@
   {
     "term": "achieve",
     "meaning": "성취하다, 달성하다",
-    "example": "She worked hard to achieve her goal."
+    "example": "She worked hard to achieve her goal.",
+    "example_meaning": "그녀는 목표를 이루기 위해 열심히 노력했다."
   },
   {
     "term": "advice",
     "meaning": "조언, 충고",
-    "example": "Thank you for your useful advice."
+    "example": "Thank you for your useful advice.",
+    "example_meaning": "유용한 조언을 주셔서 감사합니다."
   },
   {
     "term": "afford",
     "meaning": "~할 여유가 있다",
-    "example": "We cannot afford a new car this year."
+    "example": "We cannot afford a new car this year.",
+    "example_meaning": "올해는 새 차를 살 여유가 없다."
   },
   {
     "term": "agree",
     "meaning": "동의하다",
-    "example": "I agree with your opinion about the plan."
+    "example": "I agree with your opinion about the plan.",
+    "example_meaning": "계획에 대한 너의 의견에 동의한다."
   },
   {
     "term": "allow",
     "meaning": "허락하다",
-    "example": "The teacher does not allow phones in class."
+    "example": "The teacher does not allow phones in class.",
+    "example_meaning": "선생님은 수업 중 휴대폰 사용을 허락하지 않는다."
   },
   {
     "term": "amount",
     "meaning": "양, 액수",
-    "example": "A large amount of water is needed."
+    "example": "A large amount of water is needed.",
+    "example_meaning": "많은 양의 물이 필요하다."
   },
   {
     "term": "announce",
     "meaning": "발표하다, 알리다",
-    "example": "The school will announce the winners tomorrow."
+    "example": "The school will announce the winners tomorrow.",
+    "example_meaning": "학교는 내일 우승자를 발표할 것이다."
   },
   {
     "term": "anxious",
     "meaning": "걱정하는, 불안한",
-    "example": "I was anxious about the exam results."
+    "example": "I was anxious about the exam results.",
+    "example_meaning": "시험 결과가 걱정되었다."
   },
   {
     "term": "apologize",
     "meaning": "사과하다",
-    "example": "He apologized for being late to the meeting."
+    "example": "He apologized for being late to the meeting.",
+    "example_meaning": "그는 회의에 늦은 것에 대해 사과했다."
   },
   {
     "term": "appear",
     "meaning": "나타나다, ~처럼 보이다",
-    "example": "A rainbow appeared after the storm."
+    "example": "A rainbow appeared after the storm.",
+    "example_meaning": "폭풍이 지나고 무지개가 나타났다."
   },
   {
     "term": "argue",
     "meaning": "논쟁하다, 주장하다",
-    "example": "The two students argued about the answer."
+    "example": "The two students argued about the answer.",
+    "example_meaning": "두 학생은 답에 대해 다투었다."
   },
   {
     "term": "arrange",
     "meaning": "준비하다, 배열하다",
-    "example": "I arranged a meeting for next Tuesday."
+    "example": "I arranged a meeting for next Tuesday.",
+    "example_meaning": "다음 주 화요일에 만남을 주선했다."
   },
   {
     "term": "arrive",
     "meaning": "도착하다",
-    "example": "The train will arrive at platform three."
+    "example": "The train will arrive at platform three.",
+    "example_meaning": "기차는 삼 번 승강장에 도착할 것이다."
   },
   {
     "term": "attach",
     "meaning": "첨부하다, 붙이다",
-    "example": "Please attach the file to your email."
+    "example": "Please attach the file to your email.",
+    "example_meaning": "이메일에 파일을 첨부해 주세요."
   },
   {
     "term": "attempt",
     "meaning": "시도하다, 시도",
-    "example": "She made an attempt to climb the wall."
+    "example": "She made an attempt to climb the wall.",
+    "example_meaning": "그녀는 담을 오르려고 시도했다."
   },
   {
     "term": "attention",
     "meaning": "주의, 관심",
-    "example": "Please pay attention to the teacher."
+    "example": "Please pay attention to the teacher.",
+    "example_meaning": "선생님의 말씀에 주의를 기울이세요."
   },
   {
     "term": "attract",
     "meaning": "끌어들이다, 매혹하다",
-    "example": "The bright lights attract many insects."
+    "example": "The bright lights attract many insects.",
+    "example_meaning": "밝은 불빛은 많은 벌레를 끌어들인다."
   },
   {
     "term": "avoid",
     "meaning": "피하다",
-    "example": "Try to avoid eating late at night."
+    "example": "Try to avoid eating late at night.",
+    "example_meaning": "늦은 밤에 먹는 것은 피하도록 노력하세요."
   },
   {
     "term": "aware",
     "meaning": "알고 있는",
-    "example": "Are you aware of the new rules?"
+    "example": "Are you aware of the new rules?",
+    "example_meaning": "새로운 규칙을 알고 있나요?"
   },
   {
     "term": "believe",
     "meaning": "믿다",
-    "example": "I believe you can finish the project."
+    "example": "I believe you can finish the project.",
+    "example_meaning": "나는 네가 이 프로젝트를 끝낼 수 있다고 믿는다."
   },
   {
     "term": "benefit",
     "meaning": "이익, 혜택",
-    "example": "Regular exercise has many health benefits."
+    "example": "Regular exercise has many health benefits.",
+    "example_meaning": "규칙적인 운동은 건강에 많은 이점이 있다."
   },
   {
     "term": "borrow",
     "meaning": "빌리다",
-    "example": "May I borrow your pen for a minute?"
+    "example": "May I borrow your pen for a minute?",
+    "example_meaning": "잠깐 펜을 빌려도 될까요?"
   },
   {
     "term": "bother",
     "meaning": "귀찮게 하다, 신경 쓰다",
-    "example": "Don't bother to call me; I'll text you."
+    "example": "Don't bother to call me; I'll text you.",
+    "example_meaning": "전화하지 마, 문자 보낼게."
   },
   {
     "term": "broken",
     "meaning": "깨진, 고장 난",
-    "example": "The broken window was replaced yesterday."
+    "example": "The broken window was replaced yesterday.",
+    "example_meaning": "깨진 창문은 어제 교체되었다."
   },
   {
     "term": "calm",
     "meaning": "차분한, 침착한",
-    "example": "Stay calm and take a deep breath."
+    "example": "Stay calm and take a deep breath.",
+    "example_meaning": "침착하게 심호흡을 해 보세요."
   },
   {
     "term": "career",
     "meaning": "직업, 경력",
-    "example": "She chose a career in medicine."
+    "example": "She chose a career in medicine.",
+    "example_meaning": "그녀는 의학 분야의 직업을 선택했다."
   },
   {
     "term": "cause",
     "meaning": "원인, 야기하다",
-    "example": "Heavy rain can cause floods."
+    "example": "Heavy rain can cause floods.",
+    "example_meaning": "폭우는 홍수를 일으킬 수 있다."
   },
   {
     "term": "celebrate",
     "meaning": "축하하다",
-    "example": "We celebrate my grandmother's birthday every year."
+    "example": "We celebrate my grandmother's birthday every year.",
+    "example_meaning": "우리는 매년 할머니의 생신을 축하한다."
   },
   {
     "term": "challenge",
     "meaning": "도전, 어려움",
-    "example": "Climbing this mountain is a real challenge."
+    "example": "Climbing this mountain is a real challenge.",
+    "example_meaning": "이 산을 오르는 것은 정말 도전이다."
   },
   {
     "term": "character",
     "meaning": "성격, 등장인물",
-    "example": "The main character is brave and kind."
+    "example": "The main character is brave and kind.",
+    "example_meaning": "주인공은 용감하고 친절하다."
   },
   {
     "term": "check",
     "meaning": "확인하다",
-    "example": "Please check your answers before you submit."
+    "example": "Please check your answers before you submit.",
+    "example_meaning": "제출하기 전에 답을 확인하세요."
   },
   {
     "term": "choice",
     "meaning": "선택, 선택지",
-    "example": "You have a choice of tea or coffee."
+    "example": "You have a choice of tea or coffee.",
+    "example_meaning": "차와 커피 중에서 고를 수 있다."
   },
   {
     "term": "collect",
     "meaning": "모으다, 수집하다",
-    "example": "He likes to collect old coins."
+    "example": "He likes to collect old coins.",
+    "example_meaning": "그는 오래된 동전을 모으는 것을 좋아한다."
   },
   {
     "term": "comfortable",
     "meaning": "편안한",
-    "example": "This chair is very comfortable to sit on."
+    "example": "This chair is very comfortable to sit on.",
+    "example_meaning": "이 의자는 앉기에 매우 편안하다."
   },
   {
     "term": "community",
     "meaning": "지역 사회, 공동체",
-    "example": "Our community organizes a clean-up day."
+    "example": "Our community organizes a clean-up day.",
+    "example_meaning": "우리 동네에서는 대청소 행사를 연다."
   },
   {
     "term": "compare",
     "meaning": "비교하다",
-    "example": "Compare the two pictures and find the differences."
+    "example": "Compare the two pictures and find the differences.",
+    "example_meaning": "두 그림을 비교해서 차이점을 찾아보세요."
   },
   {
     "term": "complete",
     "meaning": "완료하다, 완전한",
-    "example": "She will complete the course next month."
+    "example": "She will complete the course next month.",
+    "example_meaning": "그녀는 다음 달에 과정을 마칠 것이다."
   },
   {
     "term": "concern",
     "meaning": "걱정, 관심사",
-    "example": "My biggest concern is my health."
+    "example": "My biggest concern is my health.",
+    "example_meaning": "내가 가장 걱정하는 것은 건강이다."
   },
   {
     "term": "confident",
     "meaning": "자신감 있는",
-    "example": "He felt confident before the speech."
+    "example": "He felt confident before the speech.",
+    "example_meaning": "그는 연설 전에 자신감이 있었다."
   },
   {
     "term": "consider",
     "meaning": "고려하다, 여기다",
-    "example": "Please consider all the options carefully."
+    "example": "Please consider all the options carefully.",
+    "example_meaning": "모든 선택지를 신중하게 고려해 주세요."
   },
   {
     "term": "contain",
     "meaning": "포함하다",
-    "example": "This box contains fifty cookies."
+    "example": "This box contains fifty cookies.",
+    "example_meaning": "이 상자에는 쿠키가 쉰 개 들어 있다."
   },
   {
     "term": "continue",
     "meaning": "계속하다",
-    "example": "We will continue the discussion after lunch."
+    "example": "We will continue the discussion after lunch.",
+    "example_meaning": "점심 후에 토론을 계속하겠습니다."
   },
   {
     "term": "control",
     "meaning": "통제하다, 조절하다",
-    "example": "You need to control your temper."
+    "example": "You need to control your temper.",
+    "example_meaning": "너는 성질을 다스릴 필요가 있다."
   },
   {
     "term": "create",
     "meaning": "창조하다, 만들다",
-    "example": "Artists create beautiful things."
+    "example": "Artists create beautiful things.",
+    "example_meaning": "예술가들은 아름다운 것을 창조한다."
   },
   {
     "term": "culture",
     "meaning": "문화",
-    "example": "Each country has its own culture."
+    "example": "Each country has its own culture.",
+    "example_meaning": "나라마다 고유한 문화가 있다."
   },
   {
     "term": "decade",
     "meaning": "십 년",
-    "example": "Prices have risen over the past decade."
+    "example": "Prices have risen over the past decade.",
+    "example_meaning": "지난 십 년 동안 물가가 올랐다."
   },
   {
     "term": "decide",
     "meaning": "결정하다",
-    "example": "I decided to study abroad next year."
+    "example": "I decided to study abroad next year.",
+    "example_meaning": "나는 내년에 해외에서 공부하기로 결심했다."
   },
   {
     "term": "deliver",
     "meaning": "배달하다, 전달하다",
-    "example": "The shop will deliver the food within an hour."
+    "example": "The shop will deliver the food within an hour.",
+    "example_meaning": "가게는 한 시간 안에 음식을 배달할 것이다."
   },
   {
     "term": "depend",
     "meaning": "~에 달려 있다, 의존하다",
-    "example": "Our picnic depends on the weather."
+    "example": "Our picnic depends on the weather.",
+    "example_meaning": "우리 소풍은 날씨에 달려 있다."
   },
   {
     "term": "describe",
     "meaning": "묘사하다",
-    "example": "Describe your favorite place in three sentences."
+    "example": "Describe your favorite place in three sentences.",
+    "example_meaning": "가장 좋아하는 장소를 세 문장으로 묘사해 보세요."
   },
   {
     "term": "develop",
     "meaning": "발달시키다, 개발하다",
-    "example": "Children develop language skills very quickly."
+    "example": "Children develop language skills very quickly.",
+    "example_meaning": "아이들은 언어 능력을 아주 빠르게 발달시킨다."
   },
   {
     "term": "difficult",
     "meaning": "어려운",
-    "example": "This math problem is very difficult."
+    "example": "This math problem is very difficult.",
+    "example_meaning": "이 수학 문제는 매우 어렵다."
   },
   {
     "term": "direction",
     "meaning": "방향, 지시",
-    "example": "Which direction is the train station?"
+    "example": "Which direction is the train station?",
+    "example_meaning": "기차역은 어느 방향인가요?"
   },
   {
     "term": "discover",
     "meaning": "발견하다",
-    "example": "Scientists discovered a new planet."
+    "example": "Scientists discovered a new planet.",
+    "example_meaning": "과학자들이 새로운 행성을 발견했다."
   },
   {
     "term": "discuss",
     "meaning": "토론하다",
-    "example": "Let's discuss the problem in class."
+    "example": "Let's discuss the problem in class.",
+    "example_meaning": "수업 시간에 그 문제를 토론해 봅시다."
   },
   {
     "term": "disease",
     "meaning": "질병",
-    "example": "Doctors are searching for a cure for the disease."
+    "example": "Doctors are searching for a cure for the disease.",
+    "example_meaning": "의사들은 그 질병의 치료법을 찾고 있다."
   },
   {
     "term": "divide",
     "meaning": "나누다",
-    "example": "Divide the cake into eight equal pieces."
+    "example": "Divide the cake into eight equal pieces.",
+    "example_meaning": "케이크를 여덟 조각으로 똑같이 나누세요."
   },
   {
     "term": "effect",
     "meaning": "효과, 영향",
-    "example": "The medicine had a good effect on him."
+    "example": "The medicine had a good effect on him.",
+    "example_meaning": "그 약은 그에게 좋은 효과가 있었다."
   },
   {
     "term": "effort",
     "meaning": "노력",
-    "example": "Learning a language takes a lot of effort."
+    "example": "Learning a language takes a lot of effort.",
+    "example_meaning": "외국어를 배우는 데는 많은 노력이 든다."
   },
   {
     "term": "element",
     "meaning": "요소, 원소",
-    "example": "Water is a chemical compound, not an element."
+    "example": "Water is a chemical compound, not an element.",
+    "example_meaning": "물은 화학 화합물이지 원소가 아니다."
   },
   {
     "term": "encourage",
     "meaning": "격려하다",
-    "example": "My parents always encourage me to try new things."
+    "example": "My parents always encourage me to try new things.",
+    "example_meaning": "부모님은 항상 내가 새로운 것을 시도하도록 격려하신다."
   },
   {
     "term": "environment",
     "meaning": "환경",
-    "example": "We should protect the natural environment."
+    "example": "We should protect the natural environment.",
+    "example_meaning": "우리는 자연환경을 보호해야 한다."
   },
   {
     "term": "establish",
     "meaning": "설립하다, 확립하다",
-    "example": "The company was established in 1990."
+    "example": "The company was established in 1990.",
+    "example_meaning": "그 회사는 1990년에 설립되었다."
   },
   {
     "term": "even",
     "meaning": "심지어, 평평한",
-    "example": "Even the teacher didn't know the answer."
+    "example": "Even the teacher didn't know the answer.",
+    "example_meaning": "선생님조차 그 답을 몰랐다."
   },
   {
     "term": "event",
     "meaning": "행사, 사건",
-    "example": "The school festival is the biggest event of the year."
+    "example": "The school festival is the biggest event of the year.",
+    "example_meaning": "학교 축제는 올해 가장 큰 행사다."
   },
   {
     "term": "eventually",
     "meaning": "결국에는",
-    "example": "Eventually, the rain stopped."
+    "example": "Eventually, the rain stopped.",
+    "example_meaning": "결국 비가 그쳤다."
   },
   {
     "term": "evidence",
     "meaning": "증거",
-    "example": "The police found strong evidence at the scene."
+    "example": "The police found strong evidence at the scene.",
+    "example_meaning": "경찰은 현장에서 확실한 증거를 찾았다."
   },
   {
     "term": "exact",
     "meaning": "정확한",
-    "example": "What is the exact time of the meeting?"
+    "example": "What is the exact time of the meeting?",
+    "example_meaning": "회의가 정확히 몇 시인가요?"
   },
   {
     "term": "examine",
     "meaning": "조사하다, 검사하다",
-    "example": "The doctor will examine your arm."
+    "example": "The doctor will examine your arm.",
+    "example_meaning": "의사가 네 팔을 진찰할 것이다."
   },
   {
     "term": "exchange",
     "meaning": "교환하다",
-    "example": "We exchanged gifts at the party."
+    "example": "We exchanged gifts at the party.",
+    "example_meaning": "우리는 파티에서 선물을 교환했다."
   },
   {
     "term": "excellent",
     "meaning": "훌륭한, 우수한",
-    "example": "Her presentation was excellent."
+    "example": "Her presentation was excellent.",
+    "example_meaning": "그녀의 발표는 훌륭했다."
   },
   {
     "term": "exercise",
     "meaning": "운동, 연습문제",
-    "example": "Regular exercise keeps you healthy."
+    "example": "Regular exercise keeps you healthy.",
+    "example_meaning": "규칙적인 운동은 건강을 지켜 준다."
   },
   {
     "term": "experience",
     "meaning": "경험",
-    "example": "Living abroad was a valuable experience."
+    "example": "Living abroad was a valuable experience.",
+    "example_meaning": "해외에서 산 경험은 소중했다."
   },
   {
     "term": "explain",
     "meaning": "설명하다",
-    "example": "Can you explain how this machine works?"
+    "example": "Can you explain how this machine works?",
+    "example_meaning": "이 기계가 어떻게 작동하는지 설명해 줄래?"
   },
   {
     "term": "express",
     "meaning": "표현하다",
-    "example": "Music is a good way to express feelings."
+    "example": "Music is a good way to express feelings.",
+    "example_meaning": "음악은 감정을 표현하는 좋은 방법이다."
   },
   {
     "term": "fail",
     "meaning": "실패하다",
-    "example": "Don't be afraid to fail; learn from it."
+    "example": "Don't be afraid to fail; learn from it.",
+    "example_meaning": "실패를 두려워하지 마라. 거기서 배우면 된다."
   },
   {
     "term": "familiar",
     "meaning": "익숙한, 잘 아는",
-    "example": "This song sounds familiar to me."
+    "example": "This song sounds familiar to me.",
+    "example_meaning": "이 노래는 나에게 익숙하게 들린다."
   },
   {
     "term": "fashion",
     "meaning": "유행, 패션",
-    "example": "Fashion changes quickly every season."
+    "example": "Fashion changes quickly every season.",
+    "example_meaning": "유행은 계절마다 빠르게 바뀐다."
   },
   {
     "term": "fault",
     "meaning": "잘못, 책임",
-    "example": "It was not your fault that the vase broke."
+    "example": "It was not your fault that the vase broke.",
+    "example_meaning": "꽃병이 깨진 것은 너의 잘못이 아니다."
   },
   {
     "term": "favor",
     "meaning": "호의, 부탁",
-    "example": "Could you do me a favor?"
+    "example": "Could you do me a favor?",
+    "example_meaning": "부탁 하나 들어줄 수 있을까요?"
   },
   {
     "term": "fear",
     "meaning": "두려움",
-    "example": "Fear kept him from speaking in public."
+    "example": "Fear kept him from speaking in public.",
+    "example_meaning": "두려움 때문에 그는 대중 앞에서 말하지 못했다."
   },
   {
     "term": "fellow",
     "meaning": "동료, 같은 처지의",
-    "example": "He is a fellow student in my class."
+    "example": "He is a fellow student in my class.",
+    "example_meaning": "그는 우리 반의 동급생이다."
   },
   {
     "term": "figure",
     "meaning": "숫자, 인물, 형상",
-    "example": "Can you figure out this math problem?"
+    "example": "Can you figure out this math problem?",
+    "example_meaning": "이 수학 문제를 풀 수 있겠니?"
   },
   {
     "term": "final",
     "meaning": "마지막의, 최종의",
-    "example": "The final exam is next Monday."
+    "example": "The final exam is next Monday.",
+    "example_meaning": "기말고사는 다음 주 월요일이다."
   },
   {
     "term": "finance",
     "meaning": "재정, 금융",
-    "example": "She works in finance at a large bank."
+    "example": "She works in finance at a large bank.",
+    "example_meaning": "그녀는 큰 은행에서 금융 업무를 맡고 있다."
   },
   {
     "term": "focus",
     "meaning": "집중하다",
-    "example": "Focus on one task at a time."
+    "example": "Focus on one task at a time.",
+    "example_meaning": "한 번에 한 가지 일에만 집중하세요."
   },
   {
     "term": "force",
     "meaning": "힘, 강요하다",
-    "example": "The strong wind forced the door open."
+    "example": "The strong wind forced the door open.",
+    "example_meaning": "강한 바람이 문을 억지로 열어젖혔다."
   },
   {
     "term": "forever",
     "meaning": "영원히",
-    "example": "I will remember this day forever."
+    "example": "I will remember this day forever.",
+    "example_meaning": "나는 이날을 영원히 기억할 것이다."
   },
   {
     "term": "former",
     "meaning": "이전의",
-    "example": "My former teacher still writes to me."
+    "example": "My former teacher still writes to me.",
+    "example_meaning": "이전 선생님은 아직도 나에게 편지를 보내신다."
   },
   {
     "term": "frequent",
     "meaning": "빈번한",
-    "example": "Frequent breaks help you work better."
+    "example": "Frequent breaks help you work better.",
+    "example_meaning": "자주 쉬면 더 잘 일할 수 있다."
   },
   {
     "term": "fresh",
     "meaning": "신선한",
-    "example": "The bread is fresh from the oven."
+    "example": "The bread is fresh from the oven.",
+    "example_meaning": "빵이 오븐에서 막 나와 신선하다."
   },
   {
     "term": "function",
     "meaning": "기능, 작동하다",
-    "example": "This button's function is to save the file."
+    "example": "This button's function is to save the file.",
+    "example_meaning": "이 버튼의 기능은 파일을 저장하는 것이다."
   },
   {
     "term": "generous",
     "meaning": "관대한, 후한",
-    "example": "She is generous and shares her lunch."
+    "example": "She is generous and shares her lunch.",
+    "example_meaning": "그녀는 관대해서 자신의 점심을 나눈다."
   },
   {
     "term": "genuine",
     "meaning": "진짜의, 진심의",
-    "example": "He gave a genuine smile when he saw us."
+    "example": "He gave a genuine smile when he saw us.",
+    "example_meaning": "그는 우리를 보고 진심 어린 미소를 지었다."
   },
   {
     "term": "globe",
     "meaning": "지구본, 지구",
-    "example": "Spin the globe and find your country."
+    "example": "Spin the globe and find your country.",
+    "example_meaning": "지구본을 돌려서 네 나라를 찾아보아라."
   },
   {
     "term": "guarantee",
     "meaning": "보장하다, 보증",
-    "example": "I can guarantee the work will be done on time."
+    "example": "I can guarantee the work will be done on time.",
+    "example_meaning": "나는 그 일을 제때 끝낸다고 장담할 수 있다."
   },
   {
     "term": "guess",
     "meaning": "추측하다",
-    "example": "Can you guess how old my dog is?"
+    "example": "Can you guess how old my dog is?",
+    "example_meaning": "우리 개가 몇 살인지 맞혀 볼래?"
   },
   {
     "term": "habit",
     "meaning": "습관",
-    "example": "Reading before bed is a good habit."
+    "example": "Reading before bed is a good habit.",
+    "example_meaning": "자기 전에 책을 읽는 것은 좋은 습관이다."
   },
   {
     "term": "handle",
     "meaning": "다루다, 손잡이",
-    "example": "She can handle difficult situations calmly."
+    "example": "She can handle difficult situations calmly.",
+    "example_meaning": "그녀는 어려운 상황도 침착하게 처리할 수 있다."
   },
   {
     "term": "harm",
     "meaning": "해치다, 해",
-    "example": "Smoking can harm your lungs."
+    "example": "Smoking can harm your lungs.",
+    "example_meaning": "흡연은 폐에 해를 끼칠 수 있다."
   },
   {
     "term": "hunt",
     "meaning": "사냥하다, 찾다",
-    "example": "Lions hunt zebras on the plains."
+    "example": "Lions hunt zebras on the plains.",
+    "example_meaning": "사자들은 평원에서 얼룩말을 사냥한다."
   },
   {
     "term": "imagine",
     "meaning": "상상하다",
-    "example": "Imagine living on the moon."
+    "example": "Imagine living on the moon.",
+    "example_meaning": "달에서 사는 것을 상상해 보아라."
   },
   {
     "term": "improve",
     "meaning": "향상시키다",
-    "example": "Practice will help you improve your writing."
+    "example": "Practice will help you improve your writing.",
+    "example_meaning": "연습하면 글쓰기 실력이 나아질 것이다."
   },
   {
     "term": "include",
     "meaning": "포함하다",
-    "example": "The price includes breakfast and lunch."
+    "example": "The price includes breakfast and lunch.",
+    "example_meaning": "가격에는 아침과 점심이 포함되어 있다."
   },
   {
     "term": "increase",
     "meaning": "증가하다, 늘리다",
-    "example": "The number of visitors increased this year."
+    "example": "The number of visitors increased this year.",
+    "example_meaning": "올해 방문객 수가 늘었다."
   },
   {
     "term": "independent",
     "meaning": "독립적인",
-    "example": "At eighteen, many people become independent."
+    "example": "At eighteen, many people become independent.",
+    "example_meaning": "열여덟 살이 되면 많은 사람이 독립한다."
   },
   {
     "term": "industry",
     "meaning": "산업",
-    "example": "The car industry employs many workers."
+    "example": "The car industry employs many workers.",
+    "example_meaning": "자동차 산업은 많은 노동자를 고용한다."
   },
   {
     "term": "influence",
     "meaning": "영향, 영향을 주다",
-    "example": "Parents have a strong influence on children."
+    "example": "Parents have a strong influence on children.",
+    "example_meaning": "부모는 아이들에게 강한 영향을 준다."
   },
   {
     "term": "information",
     "meaning": "정보",
-    "example": "You can find more information on the website."
+    "example": "You can find more information on the website.",
+    "example_meaning": "웹사이트에서 더 많은 정보를 찾을 수 있다."
   },
   {
     "term": "injure",
     "meaning": "다치게 하다",
-    "example": "He was injured while playing soccer."
+    "example": "He was injured while playing soccer.",
+    "example_meaning": "그는 축구를 하다가 다쳤다."
   },
   {
     "term": "insist",
     "meaning": "주장하다, 고집하다",
-    "example": "She insisted that she was right."
+    "example": "She insisted that she was right.",
+    "example_meaning": "그녀는 자신이 옳다고 주장했다."
   },
   {
     "term": "instead",
     "meaning": "대신에",
-    "example": "Let's walk instead of taking the bus."
+    "example": "Let's walk instead of taking the bus.",
+    "example_meaning": "버스 대신 걸어가자."
   },
   {
     "term": "interest",
     "meaning": "흥미, 관심",
-    "example": "She has a strong interest in science."
+    "example": "She has a strong interest in science.",
+    "example_meaning": "그녀는 과학에 강한 관심이 있다."
   },
   {
     "term": "invent",
     "meaning": "발명하다",
-    "example": "Who invented the telephone?"
+    "example": "Who invented the telephone?",
+    "example_meaning": "누가 전화기를 발명했을까?"
   },
   {
     "term": "involve",
     "meaning": "포함하다, 관련시키다",
-    "example": "The project will involve the whole class."
+    "example": "The project will involve the whole class.",
+    "example_meaning": "그 프로젝트에는 반 전체가 참여하게 된다."
   },
   {
     "term": "island",
     "meaning": "섬",
-    "example": "We took a boat to the small island."
+    "example": "We took a boat to the small island.",
+    "example_meaning": "우리는 배를 타고 작은 섬에 갔다."
   },
   {
     "term": "journey",
     "meaning": "여행, 여정",
-    "example": "The journey to the mountains took five hours."
+    "example": "The journey to the mountains took five hours.",
+    "example_meaning": "산까지 가는 여정은 다섯 시간이 걸렸다."
   },
   {
     "term": "judge",
     "meaning": "판단하다, 심판",
-    "example": "Don't judge people by their looks."
+    "example": "Don't judge people by their looks.",
+    "example_meaning": "사람을 외모로 판단하지 마라."
   },
   {
     "term": "knowledge",
     "meaning": "지식",
-    "example": "Reading builds knowledge and vocabulary."
+    "example": "Reading builds knowledge and vocabulary.",
+    "example_meaning": "독서는 지식과 어휘력을 키워 준다."
   },
   {
     "term": "language",
     "meaning": "언어",
-    "example": "English is an international language."
+    "example": "English is an international language.",
+    "example_meaning": "영어는 국제적인 언어다."
   },
   {
     "term": "lecture",
     "meaning": "강의",
-    "example": "The professor gave an interesting lecture."
+    "example": "The professor gave an interesting lecture.",
+    "example_meaning": "교수님은 흥미로운 강의를 하셨다."
   },
   {
     "term": "limit",
     "meaning": "제한, 한계",
-    "example": "There is a speed limit on this road."
+    "example": "There is a speed limit on this road.",
+    "example_meaning": "이 도로에는 속도 제한이 있다."
   },
   {
     "term": "local",
     "meaning": "지역의, 현지의",
-    "example": "Let's eat at a local restaurant."
+    "example": "Let's eat at a local restaurant.",
+    "example_meaning": "현지 식당에서 먹어 보자."
   },
   {
     "term": "maintain",
     "meaning": "유지하다",
-    "example": "It is important to maintain a healthy diet."
+    "example": "It is important to maintain a healthy diet.",
+    "example_meaning": "건강한 식단을 유지하는 것이 중요하다."
   },
   {
     "term": "manage",
     "meaning": "관리하다, 해내다",
-    "example": "She can manage a team of ten people."
+    "example": "She can manage a team of ten people.",
+    "example_meaning": "그녀는 열 명의 팀을 관리할 수 있다."
   },
   {
     "term": "manner",
     "meaning": "방식, 예절",
-    "example": "He has very good table manners."
+    "example": "He has very good table manners.",
+    "example_meaning": "그는 식사 예절이 매우 바르다."
   },
   {
     "term": "material",
     "meaning": "재료, 물질",
-    "example": "Wood is a natural building material."
+    "example": "Wood is a natural building material.",
+    "example_meaning": "나무는 천연 건축 자재다."
   },
   {
     "term": "measure",
     "meaning": "재다, 측정하다",
-    "example": "Measure the length of the table."
+    "example": "Measure the length of the table.",
+    "example_meaning": "탁자의 길이를 재 보아라."
   },
   {
     "term": "medicine",
     "meaning": "약, 의학",
-    "example": "Take this medicine twice a day."
+    "example": "Take this medicine twice a day.",
+    "example_meaning": "이 약을 하루에 두 번 먹어라."
   },
   {
     "term": "memory",
     "meaning": "기억, 추억",
-    "example": "I have a happy memory of our trip."
+    "example": "I have a happy memory of our trip.",
+    "example_meaning": "우리 여행에 대한 행복한 기억이 있다."
   },
   {
     "term": "mention",
     "meaning": "언급하다",
-    "example": "She didn't mention the price in her email."
+    "example": "She didn't mention the price in her email.",
+    "example_meaning": "그녀는 이메일에서 가격을 언급하지 않았다."
   },
   {
     "term": "method",
     "meaning": "방법",
-    "example": "This is a simple method for cooking rice."
+    "example": "This is a simple method for cooking rice.",
+    "example_meaning": "이것은 밥을 짓는 간단한 방법이다."
   },
   {
     "term": "miss",
     "meaning": "놓치다, 그리워하다",
-    "example": "I will miss you when you move away."
+    "example": "I will miss you when you move away.",
+    "example_meaning": "네가 이사 가면 보고 싶을 거야."
   },
   {
     "term": "moment",
     "meaning": "순간",
-    "example": "Wait a moment, I'm almost ready."
+    "example": "Wait a moment, I'm almost ready.",
+    "example_meaning": "잠깐만 기다려, 거의 준비됐어."
   },
   {
     "term": "mood",
     "meaning": "기분",
-    "example": "Music can change your mood quickly."
+    "example": "Music can change your mood quickly.",
+    "example_meaning": "음악은 기분을 빠르게 바꿀 수 있다."
   },
   {
     "term": "mostly",
     "meaning": "대부분",
-    "example": "The students are mostly from the city."
+    "example": "The students are mostly from the city.",
+    "example_meaning": "학생들은 대부분 도시에서 왔다."
   },
   {
     "term": "motivate",
     "meaning": "동기를 부여하다",
-    "example": "A good coach can motivate the whole team."
+    "example": "A good coach can motivate the whole team.",
+    "example_meaning": "좋은 코치는 팀 전체의 의욕을 북돋울 수 있다."
   },
   {
     "term": "museum",
     "meaning": "박물관",
-    "example": "We visited a science museum last weekend."
+    "example": "We visited a science museum last weekend.",
+    "example_meaning": "지난 주말에 과학 박물관에 갔다."
   },
   {
     "term": "nature",
     "meaning": "자연",
-    "example": "I love spending time in nature."
+    "example": "I love spending time in nature.",
+    "example_meaning": "나는 자연 속에서 시간을 보내는 것을 좋아한다."
   },
   {
     "term": "necessary",
     "meaning": "필요한",
-    "example": "A warm coat is necessary in winter."
+    "example": "A warm coat is necessary in winter.",
+    "example_meaning": "겨울에는 따뜻한 외투가 꼭 필요하다."
   },
   {
     "term": "neighbor",
     "meaning": "이웃",
-    "example": "Our neighbor grows beautiful roses."
+    "example": "Our neighbor grows beautiful roses.",
+    "example_meaning": "이웃집은 아름다운 장미를 키운다."
   },
   {
     "term": "normal",
     "meaning": "보통의, 정상의",
-    "example": "It is normal to feel nervous before a test."
+    "example": "It is normal to feel nervous before a test.",
+    "example_meaning": "시험 전에 긴장하는 것은 자연스럽다."
   },
   {
     "term": "notice",
     "meaning": "알아차리다, 공고",
-    "example": "Did you notice the new sign on the door?"
+    "example": "Did you notice the new sign on the door?",
+    "example_meaning": "문에 붙은 새 안내문을 봤니?"
   },
   {
     "term": "obey",
     "meaning": "복종하다, 따르다",
-    "example": "Children should obey the safety rules."
+    "example": "Children should obey the safety rules.",
+    "example_meaning": "아이들은 안전 규칙을 지켜야 한다."
   },
   {
     "term": "object",
     "meaning": "물건, 반대하다",
-    "example": "What is the object in the box?"
+    "example": "What is the object in the box?",
+    "example_meaning": "상자 안에 있는 물건은 무엇인가요?"
   },
   {
     "term": "obtain",
     "meaning": "얻다, 획득하다",
-    "example": "You must obtain permission before you enter."
+    "example": "You must obtain permission before you enter.",
+    "example_meaning": "들어가기 전에 허락을 받아야 한다."
   },
   {
     "term": "occur",
     "meaning": "일어나다, 발생하다",
-    "example": "Earthquakes occur more often in some regions."
+    "example": "Earthquakes occur more often in some regions.",
+    "example_meaning": "어떤 지역에서는 지진이 더 자주 일어난다."
   },
   {
     "term": "offer",
     "meaning": "제안하다, 제공하다",
-    "example": "She offered to help me with my homework."
+    "example": "She offered to help me with my homework.",
+    "example_meaning": "그녀는 나의 숙제를 도와주겠다고 제안했다."
   },
   {
     "term": "operate",
     "meaning": "작동하다, 운영하다",
-    "example": "How do you operate this machine?"
+    "example": "How do you operate this machine?",
+    "example_meaning": "이 기계는 어떻게 작동시키나요?"
   },
   {
     "term": "opportunity",
     "meaning": "기회",
-    "example": "This job is a great opportunity to learn."
+    "example": "This job is a great opportunity to learn.",
+    "example_meaning": "이 일은 배울 수 있는 좋은 기회다."
   },
   {
     "term": "option",
     "meaning": "선택지, 선택권",
-    "example": "We have two options for dinner."
+    "example": "We have two options for dinner.",
+    "example_meaning": "저녁 메뉴는 두 가지 선택지가 있다."
   },
   {
     "term": "order",
     "meaning": "순서, 주문하다",
-    "example": "Please put the books in alphabetical order."
+    "example": "Please put the books in alphabetical order.",
+    "example_meaning": "책을 가나다순으로 정리해 주세요."
   },
   {
     "term": "organize",
     "meaning": "조직하다, 정리하다",
-    "example": "Let's organize the party for Friday."
+    "example": "Let's organize the party for Friday.",
+    "example_meaning": "금요일 파티를 준비하자."
   },
   {
     "term": "original",
     "meaning": "원래의, 독창적인",
-    "example": "The original painting is in the museum."
+    "example": "The original painting is in the museum.",
+    "example_meaning": "원본 그림은 박물관에 있다."
   },
   {
     "term": "owner",
     "meaning": "주인, 소유자",
-    "example": "The owner of the shop is very friendly."
+    "example": "The owner of the shop is very friendly.",
+    "example_meaning": "가게 주인은 아주 친절하다."
   },
   {
     "term": "patient",
     "meaning": "참을성 있는, 환자",
-    "example": "The teacher was patient with the young students."
+    "example": "The teacher was patient with the young students.",
+    "example_meaning": "선생님은 어린 학생들에게 참을성이 많았다."
   },
   {
     "term": "peaceful",
     "meaning": "평화로운",
-    "example": "The village is peaceful in the early morning."
+    "example": "The village is peaceful in the early morning.",
+    "example_meaning": "이른 아침의 마을은 평화롭다."
   },
   {
     "term": "perform",
     "meaning": "공연하다, 수행하다",
-    "example": "The band will perform at the festival tonight."
+    "example": "The band will perform at the festival tonight.",
+    "example_meaning": "밴드가 오늘 밤 축제에서 공연한다."
   },
   {
     "term": "period",
     "meaning": "기간, 시기",
-    "example": "The rainy period lasts about a month."
+    "example": "The rainy period lasts about a month.",
+    "example_meaning": "장마는 약 한 달 동안 계속된다."
   },
   {
     "term": "permit",
     "meaning": "허가하다",
-    "example": "The sign says that parking is not permitted here."
+    "example": "The sign says that parking is not permitted here.",
+    "example_meaning": "이곳에 주차하는 것은 허용되지 않는다는 표지판이 있다."
   },
   {
     "term": "persuade",
     "meaning": "설득하다",
-    "example": "I persuaded my friend to join the club."
+    "example": "I persuaded my friend to join the club.",
+    "example_meaning": "나는 친구를 설득해 동아리에 함께 가입했다."
   },
   {
     "term": "photograph",
     "meaning": "사진",
-    "example": "This photograph was taken in Paris."
+    "example": "This photograph was taken in Paris.",
+    "example_meaning": "이 사진은 파리에서 찍은 것이다."
   },
   {
     "term": "plenty",
     "meaning": "충분한 양",
-    "example": "There is plenty of food for everyone."
+    "example": "There is plenty of food for everyone.",
+    "example_meaning": "모두가 먹기에 음식이 충분히 있다."
   },
   {
     "term": "poverty",
     "meaning": "가난, 빈곤",
-    "example": "Many charities work to fight poverty."
+    "example": "Many charities work to fight poverty.",
+    "example_meaning": "많은 자선 단체가 가난을 줄이기 위해 활동한다."
   },
   {
     "term": "powerful",
     "meaning": "강력한",
-    "example": "The storm was powerful enough to break trees."
+    "example": "The storm was powerful enough to break trees.",
+    "example_meaning": "폭풍은 나무를 부러뜨릴 만큼 강력했다."
   },
   {
     "term": "practice",
     "meaning": "연습하다, 관행",
-    "example": "Practice speaking English every day."
+    "example": "Practice speaking English every day.",
+    "example_meaning": "매일 영어로 말하는 연습을 하라."
   },
   {
     "term": "prefer",
     "meaning": "선호하다",
-    "example": "I prefer tea to coffee."
+    "example": "I prefer tea to coffee.",
+    "example_meaning": "나는 커피보다 차를 더 좋아한다."
   },
   {
     "term": "prepare",
     "meaning": "준비하다",
-    "example": "We need to prepare dinner before the guests arrive."
+    "example": "We need to prepare dinner before the guests arrive.",
+    "example_meaning": "손님이 도착하기 전에 저녁을 준비해야 한다."
   },
   {
     "term": "pressure",
     "meaning": "압력, 압박",
-    "example": "She felt pressure to finish the report on time."
+    "example": "She felt pressure to finish the report on time.",
+    "example_meaning": "그녀는 보고서를 제시간에 끝내야 한다는 압박을 느꼈다."
   },
   {
     "term": "prevent",
     "meaning": "막다, 예방하다",
-    "example": "Washing your hands can prevent illness."
+    "example": "Washing your hands can prevent illness.",
+    "example_meaning": "손을 씻는 것은 질병을 예방할 수 있다."
   },
   {
     "term": "private",
     "meaning": "개인의, 사적인",
-    "example": "Please keep this information private."
+    "example": "Please keep this information private.",
+    "example_meaning": "이 정보는 비밀로 해 주세요."
   },
   {
     "term": "professional",
     "meaning": "전문적인, 전문가",
-    "example": "The doctor gave a professional opinion."
+    "example": "The doctor gave a professional opinion.",
+    "example_meaning": "의사는 전문가다운 의견을 주었다."
   },
   {
     "term": "progress",
     "meaning": "진전, 진행",
-    "example": "We made good progress on the project today."
+    "example": "We made good progress on the project today.",
+    "example_meaning": "오늘 프로젝트에서 상당한 진전을 이루었다."
   },
   {
     "term": "promise",
     "meaning": "약속하다, 약속",
-    "example": "I promise to return the book tomorrow."
+    "example": "I promise to return the book tomorrow.",
+    "example_meaning": "내일 책을 돌려주겠다고 약속한다."
   },
   {
     "term": "property",
     "meaning": "재산, 특성",
-    "example": "The house is my property."
+    "example": "The house is my property.",
+    "example_meaning": "이 집은 내 소유물이다."
   },
   {
     "term": "protect",
     "meaning": "보호하다",
-    "example": "A helmet protects your head when you ride a bike."
+    "example": "A helmet protects your head when you ride a bike.",
+    "example_meaning": "자전거를 탈 때 헬멧이 머리를 보호해 준다."
   },
   {
     "term": "provide",
     "meaning": "제공하다",
-    "example": "The hotel provides free breakfast."
+    "example": "The hotel provides free breakfast.",
+    "example_meaning": "그 호텔은 무료 아침 식사를 제공한다."
   },
   {
     "term": "publish",
     "meaning": "출판하다",
-    "example": "She will publish her first novel next year."
+    "example": "She will publish her first novel next year.",
+    "example_meaning": "그녀는 내년에 첫 소설을 출간할 것이다."
   },
   {
     "term": "purpose",
     "meaning": "목적",
-    "example": "What is the purpose of this meeting?"
+    "example": "What is the purpose of this meeting?",
+    "example_meaning": "이 회의의 목적은 무엇인가?"
   },
   {
     "term": "quality",
     "meaning": "품질, 질",
-    "example": "This jacket is of high quality."
+    "example": "This jacket is of high quality.",
+    "example_meaning": "이 재킷은 품질이 좋다."
   },
   {
     "term": "realize",
     "meaning": "깨닫다, 알아차리다",
-    "example": "I suddenly realized that I had lost my wallet."
+    "example": "I suddenly realized that I had lost my wallet.",
+    "example_meaning": "나는 지갑을 잃어버렸다는 것을 문득 깨달았다."
   },
   {
     "term": "recent",
     "meaning": "최근의",
-    "example": "Have you seen his recent photos?"
+    "example": "Have you seen his recent photos?",
+    "example_meaning": "그의 최근 사진을 봤니?"
   },
   {
     "term": "recognize",
     "meaning": "알아보다, 인정하다",
-    "example": "I recognize that song from the radio."
+    "example": "I recognize that song from the radio.",
+    "example_meaning": "라디오에서 나온 그 노래를 알아듣겠다."
   },
   {
     "term": "recommend",
     "meaning": "추천하다",
-    "example": "I recommend this book to all students."
+    "example": "I recommend this book to all students.",
+    "example_meaning": "이 책을 모든 학생에게 추천한다."
   },
   {
     "term": "reduce",
     "meaning": "줄이다",
-    "example": "Turn off the lights to reduce energy use."
+    "example": "Turn off the lights to reduce energy use.",
+    "example_meaning": "에너지를 줄이려면 불을 끄세요."
   },
   {
     "term": "reflect",
     "meaning": "반사하다, 되돌아보다",
-    "example": "The lake reflects the mountains beautifully."
+    "example": "The lake reflects the mountains beautifully.",
+    "example_meaning": "호수에 산이 아름답게 비친다."
   },
   {
     "term": "refuse",
     "meaning": "거절하다",
-    "example": "She refused the invitation politely."
+    "example": "She refused the invitation politely.",
+    "example_meaning": "그녀는 초대를 정중하게 거절했다."
   },
   {
     "term": "regret",
     "meaning": "후회하다",
-    "example": "I regret not studying harder for the test."
+    "example": "I regret not studying harder for the test.",
+    "example_meaning": "시험 공부를 더 열심히 하지 않은 것이 후회된다."
   },
   {
     "term": "relationship",
     "meaning": "관계",
-    "example": "Good communication is key to a strong relationship."
+    "example": "Good communication is key to a strong relationship.",
+    "example_meaning": "좋은 소통은 튼튼한 관계의 핵심이다."
   },
   {
     "term": "relax",
     "meaning": "쉬다, 긴장을 풀다",
-    "example": "I like to relax with a book on Sundays."
+    "example": "I like to relax with a book on Sundays.",
+    "example_meaning": "일요일마다 책을 보며 쉬는 것을 좋아한다."
   },
   {
     "term": "release",
     "meaning": "풀어 주다, 출시하다",
-    "example": "The company will release the new game next month."
+    "example": "The company will release the new game next month.",
+    "example_meaning": "회사는 다음 달에 새 게임을 출시할 것이다."
   },
   {
     "term": "rely",
     "meaning": "의존하다",
-    "example": "You can rely on me to help you."
+    "example": "You can rely on me to help you.",
+    "example_meaning": "도움이 필요하면 나를 믿고 의지해도 된다."
   },
   {
     "term": "remind",
     "meaning": "상기시키다",
-    "example": "Please remind me to call my mother."
+    "example": "Please remind me to call my mother.",
+    "example_meaning": "엄마에게 전화하라고 나에게 상기시켜 주세요."
   },
   {
     "term": "remove",
     "meaning": "제거하다",
-    "example": "Remove your shoes before you enter the house."
+    "example": "Remove your shoes before you enter the house.",
+    "example_meaning": "집에 들어가기 전에 신발을 벗으세요."
   },
   {
     "term": "repair",
     "meaning": "수리하다",
-    "example": "The mechanic will repair my bicycle today."
+    "example": "The mechanic will repair my bicycle today.",
+    "example_meaning": "정비사가 오늘 내 자전거를 수리할 것이다."
   },
   {
     "term": "repeat",
     "meaning": "반복하다",
-    "example": "Please repeat the question, I didn't hear it."
+    "example": "Please repeat the question, I didn't hear it.",
+    "example_meaning": "질문을 다시 말해 주세요, 못 들었어요."
   },
   {
     "term": "replace",
     "meaning": "교체하다",
-    "example": "We need to replace the broken lamp."
+    "example": "We need to replace the broken lamp.",
+    "example_meaning": "고장 난 램프를 바꿔야 한다."
   },
   {
     "term": "represent",
     "meaning": "대표하다, 나타내다",
-    "example": "The flag represents our country."
+    "example": "The flag represents our country.",
+    "example_meaning": "그 깃발은 우리나라를 상징한다."
   },
   {
     "term": "require",
     "meaning": "요구하다, 필요로 하다",
-    "example": "This job requires good communication skills."
+    "example": "This job requires good communication skills.",
+    "example_meaning": "이 일에는 좋은 의사소통 능력이 필요하다."
   },
   {
     "term": "research",
     "meaning": "연구, 조사",
-    "example": "Scientists do research to discover new facts."
+    "example": "Scientists do research to discover new facts.",
+    "example_meaning": "과학자들은 새로운 사실을 발견하려고 연구한다."
   }
 ]
