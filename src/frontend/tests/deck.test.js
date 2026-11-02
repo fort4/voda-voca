@@ -79,3 +79,38 @@ test("shuffled 는 원본 배열을 바꾸지 않는다", () => {
   assert.deepEqual(original, [1, 2, 3, 4]);
   assert.equal(out.length, 4);
 });
+
+test("셔플을 켜도 진행도(위치)는 그대로이고, 이미 본 카드와 현재 카드는 바뀌지 않는다", () => {
+  const deck = createDeck(CARDS, { rng: seeded([0.3, 0.7, 0.2, 0.9, 0.5]) });
+  deck.next();
+  deck.next(); // 위치 2 (세 번째 카드 'c')
+  const seen = [deck.current(), CARDS[0], CARDS[1]];
+  deck.setShuffle(true);
+  assert.equal(deck.position, 2, "진행도 2 (3/5) 유지");
+  assert.equal(deck.current(), "c", "현재 카드 유지");
+  assert.deepEqual(seen.slice(1).sort(), ["a", "b"], "앞쪽에서 이미 본 카드는 그대로");
+});
+
+test("셔플을 켜면 아직 보지 않은 카드만 섞이고, 넘기면 남은 카드 중에서 나온다", () => {
+  const deck = createDeck(CARDS);
+  deck.next();
+  deck.setShuffle(true);
+  const after = [deck.current()];
+  while (deck.next()) after.push(deck.current());
+  assert.equal(after[0], "b", "현재 카드는 그대로");
+  assert.deepEqual(after.slice().sort(), ["b", "c", "d", "e"], "남은 카드 전부가 나온다");
+  assert.equal(deck.position, CARDS.length - 1);
+});
+
+test("셔플을 끄면 아직 보지 않은 카드가 원래 순서(오름차순)로 돌아온다", () => {
+  const deck = createDeck(CARDS, { shuffle: true, rng: seeded([0.9, 0.1, 0.4, 0.6, 0.2]) });
+  const firstViewed = deck.current();
+  deck.next();
+  const current = deck.current();
+  deck.setShuffle(false);
+  assert.equal(deck.current(), current, "보던 카드는 그대로");
+  const rest = [];
+  while (deck.next()) rest.push(deck.current());
+  const expected = CARDS.filter((c) => c !== firstViewed && c !== current);
+  assert.deepEqual(rest, expected, "이미 본 두 카드를 뺀 나머지가 원래 순서로 나온다");
+});

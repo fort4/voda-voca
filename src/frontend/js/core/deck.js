@@ -73,14 +73,17 @@ export function createDeck(cards, { shuffle = false, rng = Math.random } = {}) {
       return cards.length > 0 && position === cards.length - 1;
     },
     /**
-     * 셔플을 켜거나 끈다. 지금 보고 있던 카드는 그대로 보여 준다.
+     * 셔플을 켜거나 끈다. 이미 본 카드(앞쪽)와 지금 카드는 그대로 두고, 아직 보지 않은 카드만 다시 섞거나 원래 순서로 되돌린다.
+     * 그래서 진행도(위치)는 바뀌지 않고, 셔플 후 넘기면 남은 카드가 무작위로 나온다.
      * @param {boolean} on
      */
     setShuffle(on) {
+      if (cards.length === 0) return;
+      const visited = order.slice(0, position);
       const current = order[position];
-      order = cards.map((_, i) => i);
-      if (on) order = shuffled(order, rng);
-      position = Math.max(0, order.indexOf(current));
+      const unseen = order.slice(position + 1);
+      const rest = on ? shuffled(unseen, rng) : unseen.slice().sort((a, b) => a - b);
+      order = [...visited, current, ...rest];
       flipped = false;
     },
   };
