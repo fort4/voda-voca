@@ -332,6 +332,23 @@ html.dark .level-tag--user { background: #27272a; color: #d4d4d8; }
   .progress-fill, .weekly-chart .chart-bar { transition: none; }
 }
 
+/* ---------- 퀴즈 문항 수 선택 (다크 모드 토큰 사용) ---------- */
+.count-choice {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  color: var(--text-2);
+  font-weight: 600;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+.count-choice:hover { border-color: var(--accent); }
+.count-choice.is-selected {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.count-choice:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 /* ---------- 다크 테마 (v1.1 Phase 1): <html class="dark"> 일 때만 적용 ----------
  * 토큰 변수를 바꾸고, 뷰가 쓰는 Tailwind 유틸리티 색을 같은 톤으로 덮어쓴다.
  * 색 값은 Zinc 계열(배경 950/900, 보더 800, 본문 100, 보조 400)을 기준으로 한다. */

@@ -107,14 +107,19 @@ export function quizView(root, ctx) {
     const banner = alertBox();
     const startBtn = button({ full: true, disabled: true, onClick: () => start() }, "퀴즈 시작");
     const countInfo = h("p", { class: "text-sm text-zinc-600" }, "단어 수를 확인하는 중…");
-    const radios = QUIZ_COUNT_CHOICES.map((n) =>
+    /** 선택 표시는 CSS 클래스(is-selected)로만 바꾼다. 다크 모드 토큰을 따르게 하기 위해서다. */
+    const choices = QUIZ_COUNT_CHOICES.map((n) =>
       h(
         "label",
-        { class: "flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl border border-zinc-300 bg-white px-3 font-semibold has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50" },
-        h("input", { type: "radio", name: "quiz-count", value: String(n), class: "sr-only", checked: n === chosen, onchange: () => { chosen = n; updateInfo(); } }),
+        { class: "count-choice flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl px-3", dataset: { count: String(n) } },
+        h("input", { type: "radio", name: "quiz-count", value: String(n), class: "sr-only", checked: n === chosen, onchange: () => { chosen = n; paintChoices(); updateInfo(); } }),
         `${n}문항`,
       ),
     );
+    function paintChoices() {
+      for (const label of choices) label.classList.toggle("is-selected", Number(label.dataset.count) === chosen);
+    }
+    paintChoices();
 
     function updateInfo() {
       if (!count.loaded) return;
@@ -136,7 +141,7 @@ export function quizView(root, ctx) {
           button({ variant: "ghost", onClick: () => c.navigate(BACK_PATH(source)) }, icon("arrow-left"), h("span", { class: "sr-only" }, "돌아가기")),
           h("h1", { class: "text-xl font-bold" }, title),
         ),
-        h("div", { class: "space-y-2" }, h("p", { class: "text-sm font-medium text-zinc-700" }, "문항 수"), h("div", { class: "flex gap-2" }, radios)),
+        h("div", { class: "space-y-2" }, h("p", { class: "text-sm font-medium text-zinc-700" }, "문항 수"), h("div", { class: "flex gap-2" }, choices)),
         countInfo,
         banner.el,
         startBtn,
