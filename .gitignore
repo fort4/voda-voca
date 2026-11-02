@@ -1,0 +1,15 @@
+# 환경 변수 실파일 (비밀번호 포함) - 커밋 금지, .env.example 만 커밋
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
