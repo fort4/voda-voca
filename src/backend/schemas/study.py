@@ -58,11 +58,16 @@ class QuizCreate(BaseModel):
 
 
 class QuizQuestionOut(BaseModel):
-    """클라이언트에 보내는 문항. 정답 인덱스는 포함하지 않는다."""
+    """문항. 정답 인덱스와 해설용 예문을 포함한다 (즉각 피드백, 요구사항 2026-11-02).
+
+    정답을 미리 알려 주므로 이 응답만으로 채점 결과를 숨길 수는 없다. 제출 API 는 기록을 남기는 역할을 계속 맡는다.
+    """
 
     question_id: int
     term: str = Field(description="문제로 보여 줄 표제어")
     choices: list[str] = Field(min_length=QUIZ_CHOICE_COUNT, max_length=QUIZ_CHOICE_COUNT)
+    correct_index: int = Field(ge=0, lt=QUIZ_CHOICE_COUNT, description="정답 선지 번호 (0~3)")
+    example: str | None = Field(default=None, description="해설용 예문 (없으면 null)")
 
 
 class QuizSessionOut(BaseModel):

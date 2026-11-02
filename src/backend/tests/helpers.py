@@ -8,6 +8,10 @@ import httpx
 from backend.core.deps import SESSION_COOKIE_NAME
 
 PASSWORD = "correct-horse-1"
+
+# 가입하면 자동으로 생기는 기본 단어장 3종 (초/중/고 200제). 목록 개수 검증에 쓴다.
+DEFAULT_WORDBOOK_NAMES = ("초급 필수 영단어 200", "중급 핵심 영단어 200", "고급 심화 영단어 200")
+DEFAULT_WORDBOOK_COUNT = len(DEFAULT_WORDBOOK_NAMES)
 TEST_NICKNAME_PREFIX = "tvoda-"
 
 

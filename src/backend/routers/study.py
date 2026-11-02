@@ -119,6 +119,8 @@ async def create_quiz_session(
                 question_id=question["question_id"],
                 term=question["term"],
                 choices=question["choices"],
+                correct_index=question["correct_index"],
+                example=question.get("example"),
             )
             for question in session.questions
         ],

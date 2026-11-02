@@ -12,7 +12,7 @@ from sqlalchemy import func, select
 from backend.db.session import get_session_factory
 from backend.main import app
 from backend.models import Bookmark, StudyLog, User, Word, Wordbook
-from backend.tests.helpers import auth_headers, signup_and_login
+from backend.tests.helpers import DEFAULT_WORDBOOK_COUNT, DEFAULT_WORDBOOK_NAMES, auth_headers, signup_and_login
 
 
 @pytest_asyncio.fixture
@@ -92,7 +92,8 @@ async def test_list_is_ordered_by_most_recently_updated(client: httpx.AsyncClien
     await create(client, token, "셋째")
 
     names = [i["name"] for i in (await client.get("/api/wordbooks", headers=auth_headers(token))).json()["items"]]
-    assert names == ["셋째", "둘째", "첫째"]
+    assert names[:3] == ["셋째", "둘째", "첫째"]
+    assert set(names[3:]) == set(DEFAULT_WORDBOOK_NAMES), "기본 단어장은 가입 시각 기준으로 뒤에 온다"
 
     await asyncio.sleep(0.01)
     rename = await client.patch(
@@ -100,14 +101,17 @@ async def test_list_is_ordered_by_most_recently_updated(client: httpx.AsyncClien
     )
     assert rename.status_code == 200
     names = [i["name"] for i in (await client.get("/api/wordbooks", headers=auth_headers(token))).json()["items"]]
-    assert names == ["첫째-수정", "셋째", "둘째"]
+    assert names[:3] == ["첫째-수정", "셋째", "둘째"]
 
 
 @pytest.mark.asyncio
 async def test_list_default_page_size_is_20(client: httpx.AsyncClient) -> None:
+    """가입 직후에는 기본 단어장 3종만 있다. 기본 페이지 크기는 20이다."""
     _, token = await signup_and_login(client)
     body = (await client.get("/api/wordbooks", headers=auth_headers(token))).json()
-    assert body == {"items": [], "total": 0, "page": 1, "size": 20}
+    assert body["total"] == DEFAULT_WORDBOOK_COUNT
+    assert body["page"] == 1 and body["size"] == 20
+    assert {i["name"] for i in body["items"]} == set(DEFAULT_WORDBOOK_NAMES)
 
 
 @pytest.mark.asyncio
@@ -119,17 +123,18 @@ async def test_list_pagination_boundaries(client: httpx.AsyncClient) -> None:
     def get(params: dict) -> httpx.Response:
         return client.get("/api/wordbooks", params=params, headers=auth_headers(token))
 
+    total = 3 + DEFAULT_WORDBOOK_COUNT
     page1 = (await get({"page": 1, "size": 2})).json()
-    assert len(page1["items"]) == 2 and page1["total"] == 3
+    assert len(page1["items"]) == 2 and page1["total"] == total
 
-    page2 = (await get({"page": 2, "size": 2})).json()
-    assert len(page2["items"]) == 1 and page2["total"] == 3
+    page3 = (await get({"page": 3, "size": 2})).json()
+    assert len(page3["items"]) == 2 and page3["total"] == total
 
-    beyond = (await get({"page": 3, "size": 2})).json()
-    assert beyond["items"] == [] and beyond["total"] == 3
+    beyond = (await get({"page": 4, "size": 2})).json()
+    assert beyond["items"] == [] and beyond["total"] == total
 
     everything = (await get({"page": 1, "size": 100})).json()
-    assert len(everything["items"]) == 3
+    assert len(everything["items"]) == total
 
 
 @pytest.mark.asyncio
@@ -147,7 +152,9 @@ async def test_list_shows_only_own_wordbooks(client: httpx.AsyncClient) -> None:
     await create(client, token_a, "A의 단어장")
     await create(client, token_b, "B의 단어장")
     items = (await client.get("/api/wordbooks", headers=auth_headers(token_a))).json()["items"]
-    assert [i["name"] for i in items] == ["A의 단어장"]
+    names = {i["name"] for i in items}
+    assert "A의 단어장" in names and "B의 단어장" not in names
+    assert names == {"A의 단어장", *DEFAULT_WORDBOOK_NAMES}
 
 
 # --- 상세, 수정, 삭제 및 소유권 격리 (REQ-003, REQ-006, REQ-007) ---

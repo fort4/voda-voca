@@ -176,16 +176,23 @@ async def test_flashcards_shuffle_returns_the_same_set(client: httpx.AsyncClient
 
 
 @pytest.mark.asyncio
-async def test_quiz_fails_when_no_distinct_distractors_exist(client: httpx.AsyncClient) -> None:
-    """뜻이 모두 같으면 오답 보기를 만들 수 없으므로 출제를 거부한다 (400)."""
+async def test_quiz_fills_distractors_from_the_whole_pool_when_wordbook_meanings_are_identical(
+    client: httpx.AsyncClient,
+) -> None:
+    """원천 단어장의 뜻이 모두 같아도, 사용자 전체 단어(기본 단어장 포함)에서 오답을 채운다."""
     _, token = await signup_and_login(client)
     wb = await make_wordbook(client, token)
     for i in range(4):
         await make_word(client, token, wb, f"same{i}", "똑같은뜻")
 
-    response = await create_quiz(client, token, {"wordbook_id": wb})
-    assert response.status_code == 400
-    assert "오답 보기" in response.json()["detail"]
+    response = await create_quiz(client, token, {"wordbook_id": wb, "count": 4})
+    assert response.status_code == 201, response.text
+    body = response.json()
+    session = await load_session(body["session_id"])
+    for stored, shown in zip(session.questions, body["questions"], strict=True):
+        assert len(set(shown["choices"])) == 4
+        assert shown["choices"][stored["correct_index"]] == "똑같은뜻"
+        assert all(c != "똑같은뜻" for i, c in enumerate(shown["choices"]) if i != stored["correct_index"])
 
 
 @pytest.mark.asyncio
@@ -214,22 +221,25 @@ async def test_quiz_count_is_min_of_request_and_available(client: httpx.AsyncCli
 
 
 @pytest.mark.asyncio
-async def test_quiz_response_hides_answer_and_choices_are_valid(client: httpx.AsyncClient) -> None:
+async def test_quiz_response_carries_answer_key_and_example_for_instant_feedback(client: httpx.AsyncClient) -> None:
+    """즉각 피드백: 문항마다 정답 인덱스와 해설 예문을 준다. 값은 저장된 세션과 같아야 한다."""
     _, token = await signup_and_login(client)
     wb = await make_wordbook(client, token)
     words = await make_words(client, token, wb, 5)
+    for word_id in words:
+        await client.patch(f"/api/wordbooks/{wb}/words/{word_id}", json={"example": f"Example of {words[word_id]}."}, headers=auth_headers(token))
 
     response = await create_quiz(client, token, {"wordbook_id": wb})
     body = response.json()
     assert "expires_at" in body and body["expires_at"].endswith("Z")
-    for question in body["questions"]:
-        assert "correct_index" not in question
-        assert len(question["choices"]) == 4
-        assert len(set(question["choices"])) == 4
-
     session = await load_session(body["session_id"])
     for stored, shown in zip(session.questions, body["questions"], strict=True):
-        assert shown["choices"][stored["correct_index"]] == words[stored["word_id"]]
+        assert len(shown["choices"]) == 4
+        assert len(set(shown["choices"])) == 4
+        assert shown["correct_index"] == stored["correct_index"]
+        assert 0 <= shown["correct_index"] <= 3
+        assert shown["choices"][shown["correct_index"]] == words[stored["word_id"]]
+        assert shown["example"] == f"Example of {words[stored['word_id']]}."
 
 
 @pytest.mark.asyncio

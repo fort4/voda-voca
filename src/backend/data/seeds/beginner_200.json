@@ -1,0 +1,1002 @@
+[
+  {
+    "term": "apple",
+    "meaning": "사과",
+    "example": "I eat an apple every morning."
+  },
+  {
+    "term": "book",
+    "meaning": "책",
+    "example": "She is reading an interesting book."
+  },
+  {
+    "term": "cat",
+    "meaning": "고양이",
+    "example": "The cat sleeps on the sofa all day."
+  },
+  {
+    "term": "dog",
+    "meaning": "개",
+    "example": "My dog likes to run in the park."
+  },
+  {
+    "term": "school",
+    "meaning": "학교",
+    "example": "We walk to school together every day."
+  },
+  {
+    "term": "friend",
+    "meaning": "친구",
+    "example": "She is my best friend from high school."
+  },
+  {
+    "term": "family",
+    "meaning": "가족",
+    "example": "My family eats dinner together on Sundays."
+  },
+  {
+    "term": "water",
+    "meaning": "물",
+    "example": "Please drink a glass of water."
+  },
+  {
+    "term": "food",
+    "meaning": "음식",
+    "example": "This food tastes really good."
+  },
+  {
+    "term": "happy",
+    "meaning": "행복한, 기쁜",
+    "example": "The children were happy at the party."
+  },
+  {
+    "term": "big",
+    "meaning": "큰",
+    "example": "That house is much bigger than mine."
+  },
+  {
+    "term": "small",
+    "meaning": "작은",
+    "example": "The small bird sat on the branch."
+  },
+  {
+    "term": "run",
+    "meaning": "달리다",
+    "example": "I run for thirty minutes before breakfast."
+  },
+  {
+    "term": "eat",
+    "meaning": "먹다",
+    "example": "We eat lunch at twelve o'clock."
+  },
+  {
+    "term": "drink",
+    "meaning": "마시다",
+    "example": "Let's drink some tea while we talk."
+  },
+  {
+    "term": "sleep",
+    "meaning": "자다",
+    "example": "Babies sleep for many hours each day."
+  },
+  {
+    "term": "play",
+    "meaning": "놀다, 경기하다",
+    "example": "The kids play soccer after school."
+  },
+  {
+    "term": "morning",
+    "meaning": "아침",
+    "example": "I feel fresh in the morning."
+  },
+  {
+    "term": "night",
+    "meaning": "밤",
+    "example": "The stars shine brightly at night."
+  },
+  {
+    "term": "today",
+    "meaning": "오늘",
+    "example": "Today is the first day of spring."
+  },
+  {
+    "term": "tomorrow",
+    "meaning": "내일",
+    "example": "We will visit the museum tomorrow."
+  },
+  {
+    "term": "yesterday",
+    "meaning": "어제",
+    "example": "Yesterday it rained all afternoon."
+  },
+  {
+    "term": "week",
+    "meaning": "주, 일주일",
+    "example": "I have three classes every week."
+  },
+  {
+    "term": "month",
+    "meaning": "달, 월",
+    "example": "The next holiday is in one month."
+  },
+  {
+    "term": "year",
+    "meaning": "해, 년",
+    "example": "We moved to this city last year."
+  },
+  {
+    "term": "time",
+    "meaning": "시간",
+    "example": "What time does the train leave?"
+  },
+  {
+    "term": "day",
+    "meaning": "하루, 날",
+    "example": "Have a nice day at work."
+  },
+  {
+    "term": "hour",
+    "meaning": "시간(60분)",
+    "example": "The movie lasts about two hours."
+  },
+  {
+    "term": "minute",
+    "meaning": "분",
+    "example": "Wait a minute, please."
+  },
+  {
+    "term": "second",
+    "meaning": "초",
+    "example": "Count to ten, one second at a time."
+  },
+  {
+    "term": "monday",
+    "meaning": "월요일",
+    "example": "The meeting is on Monday morning."
+  },
+  {
+    "term": "color",
+    "meaning": "색, 색깔",
+    "example": "My favorite color is blue."
+  },
+  {
+    "term": "red",
+    "meaning": "빨간색",
+    "example": "She wore a red dress to the wedding."
+  },
+  {
+    "term": "blue",
+    "meaning": "파란색",
+    "example": "The sky is blue on a clear day."
+  },
+  {
+    "term": "green",
+    "meaning": "초록색",
+    "example": "The leaves turn green in spring."
+  },
+  {
+    "term": "white",
+    "meaning": "흰색",
+    "example": "The snow covered the field in white."
+  },
+  {
+    "term": "black",
+    "meaning": "검은색",
+    "example": "He drinks his coffee black."
+  },
+  {
+    "term": "yellow",
+    "meaning": "노란색",
+    "example": "The sunflowers are bright yellow."
+  },
+  {
+    "term": "house",
+    "meaning": "집",
+    "example": "Our house has a small garden."
+  },
+  {
+    "term": "room",
+    "meaning": "방",
+    "example": "My room is on the second floor."
+  },
+  {
+    "term": "door",
+    "meaning": "문",
+    "example": "Please close the door when you leave."
+  },
+  {
+    "term": "window",
+    "meaning": "창문",
+    "example": "Open the window to let in fresh air."
+  },
+  {
+    "term": "table",
+    "meaning": "탁자, 테이블",
+    "example": "We set the table for six people."
+  },
+  {
+    "term": "chair",
+    "meaning": "의자",
+    "example": "Please sit on that chair."
+  },
+  {
+    "term": "bed",
+    "meaning": "침대",
+    "example": "I make my bed every morning."
+  },
+  {
+    "term": "car",
+    "meaning": "자동차",
+    "example": "My father drives a red car."
+  },
+  {
+    "term": "bus",
+    "meaning": "버스",
+    "example": "The bus arrives every ten minutes."
+  },
+  {
+    "term": "train",
+    "meaning": "기차",
+    "example": "The train goes to Busan at noon."
+  },
+  {
+    "term": "bike",
+    "meaning": "자전거",
+    "example": "I ride my bike to the library."
+  },
+  {
+    "term": "road",
+    "meaning": "도로, 길",
+    "example": "The road is closed for repairs."
+  },
+  {
+    "term": "city",
+    "meaning": "도시",
+    "example": "Seoul is a very large city."
+  },
+  {
+    "term": "village",
+    "meaning": "마을",
+    "example": "The village is quiet in winter."
+  },
+  {
+    "term": "country",
+    "meaning": "나라, 시골",
+    "example": "Which country do you want to visit?"
+  },
+  {
+    "term": "park",
+    "meaning": "공원",
+    "example": "We had a picnic in the park."
+  },
+  {
+    "term": "shop",
+    "meaning": "가게",
+    "example": "The shop opens at nine o'clock."
+  },
+  {
+    "term": "market",
+    "meaning": "시장",
+    "example": "We buy fresh vegetables at the market."
+  },
+  {
+    "term": "hospital",
+    "meaning": "병원",
+    "example": "My aunt works at a hospital downtown."
+  },
+  {
+    "term": "doctor",
+    "meaning": "의사",
+    "example": "The doctor said I need more rest."
+  },
+  {
+    "term": "teacher",
+    "meaning": "선생님",
+    "example": "My teacher explains math very clearly."
+  },
+  {
+    "term": "student",
+    "meaning": "학생",
+    "example": "Each student received a new notebook."
+  },
+  {
+    "term": "mother",
+    "meaning": "어머니",
+    "example": "My mother makes the best soup."
+  },
+  {
+    "term": "father",
+    "meaning": "아버지",
+    "example": "My father reads the newspaper every morning."
+  },
+  {
+    "term": "brother",
+    "meaning": "남자 형제",
+    "example": "My brother plays the guitar."
+  },
+  {
+    "term": "sister",
+    "meaning": "여자 형제",
+    "example": "My sister is taller than me."
+  },
+  {
+    "term": "baby",
+    "meaning": "아기",
+    "example": "The baby smiled at her parents."
+  },
+  {
+    "term": "child",
+    "meaning": "아이",
+    "example": "Every child needs love and care."
+  },
+  {
+    "term": "man",
+    "meaning": "남자, 사람",
+    "example": "The man is waiting at the bus stop."
+  },
+  {
+    "term": "woman",
+    "meaning": "여자",
+    "example": "The woman bought three apples."
+  },
+  {
+    "term": "boy",
+    "meaning": "소년",
+    "example": "The boy kicked the ball over the fence."
+  },
+  {
+    "term": "girl",
+    "meaning": "소녀",
+    "example": "The girl is drawing a picture of a horse."
+  },
+  {
+    "term": "name",
+    "meaning": "이름",
+    "example": "What is your name?"
+  },
+  {
+    "term": "hello",
+    "meaning": "안녕하세요",
+    "example": "Hello, nice to meet you."
+  },
+  {
+    "term": "goodbye",
+    "meaning": "안녕히 가세요",
+    "example": "Goodbye, see you tomorrow!"
+  },
+  {
+    "term": "thank",
+    "meaning": "감사하다",
+    "example": "I want to thank you for your help."
+  },
+  {
+    "term": "please",
+    "meaning": "제발, 부디",
+    "example": "Please help me with my homework."
+  },
+  {
+    "term": "sorry",
+    "meaning": "미안한",
+    "example": "I am sorry for being late."
+  },
+  {
+    "term": "yes",
+    "meaning": "네, 예",
+    "example": "Yes, I would love some tea."
+  },
+  {
+    "term": "no",
+    "meaning": "아니요",
+    "example": "No, I don't want any more cake."
+  },
+  {
+    "term": "good",
+    "meaning": "좋은",
+    "example": "This is a good book for beginners."
+  },
+  {
+    "term": "bad",
+    "meaning": "나쁜",
+    "example": "Eating too much sugar is bad for you."
+  },
+  {
+    "term": "new",
+    "meaning": "새로운",
+    "example": "She bought a new pair of shoes."
+  },
+  {
+    "term": "old",
+    "meaning": "오래된, 나이 든",
+    "example": "That old tree is over a hundred years old."
+  },
+  {
+    "term": "hot",
+    "meaning": "뜨거운, 더운",
+    "example": "The soup is too hot to eat now."
+  },
+  {
+    "term": "cold",
+    "meaning": "차가운, 추운",
+    "example": "It is very cold in January."
+  },
+  {
+    "term": "fast",
+    "meaning": "빠른",
+    "example": "The cheetah is the fastest land animal."
+  },
+  {
+    "term": "slow",
+    "meaning": "느린",
+    "example": "The old man walks slowly to the store."
+  },
+  {
+    "term": "tall",
+    "meaning": "키가 큰",
+    "example": "My uncle is very tall."
+  },
+  {
+    "term": "short",
+    "meaning": "키가 작은, 짧은",
+    "example": "The story was short but interesting."
+  },
+  {
+    "term": "long",
+    "meaning": "긴",
+    "example": "The river is very long."
+  },
+  {
+    "term": "easy",
+    "meaning": "쉬운",
+    "example": "This puzzle is easy to solve."
+  },
+  {
+    "term": "hard",
+    "meaning": "어려운, 단단한",
+    "example": "Learning a new language is hard work."
+  },
+  {
+    "term": "right",
+    "meaning": "옳은, 오른쪽의",
+    "example": "Turn right at the next corner."
+  },
+  {
+    "term": "left",
+    "meaning": "왼쪽의",
+    "example": "Keep to the left when you drive in London."
+  },
+  {
+    "term": "open",
+    "meaning": "열다, 열린",
+    "example": "The store is open until nine."
+  },
+  {
+    "term": "close",
+    "meaning": "닫다",
+    "example": "Please close the gate behind you."
+  },
+  {
+    "term": "start",
+    "meaning": "시작하다",
+    "example": "Let's start the lesson now."
+  },
+  {
+    "term": "stop",
+    "meaning": "멈추다",
+    "example": "The bus stops in front of the school."
+  },
+  {
+    "term": "come",
+    "meaning": "오다",
+    "example": "Come to my house after school."
+  },
+  {
+    "term": "go",
+    "meaning": "가다",
+    "example": "We go to the beach every summer."
+  },
+  {
+    "term": "walk",
+    "meaning": "걷다",
+    "example": "I walk my dog in the evening."
+  },
+  {
+    "term": "jump",
+    "meaning": "뛰다, 점프하다",
+    "example": "The frog can jump very far."
+  },
+  {
+    "term": "swim",
+    "meaning": "수영하다",
+    "example": "I learned to swim when I was seven."
+  },
+  {
+    "term": "read",
+    "meaning": "읽다",
+    "example": "I read a short story before bed."
+  },
+  {
+    "term": "write",
+    "meaning": "쓰다",
+    "example": "Please write your name on the paper."
+  },
+  {
+    "term": "listen",
+    "meaning": "듣다",
+    "example": "Listen carefully to the teacher."
+  },
+  {
+    "term": "speak",
+    "meaning": "말하다",
+    "example": "She can speak three languages."
+  },
+  {
+    "term": "say",
+    "meaning": "말하다",
+    "example": "What did you say to him?"
+  },
+  {
+    "term": "ask",
+    "meaning": "묻다, 부탁하다",
+    "example": "You can ask me any question."
+  },
+  {
+    "term": "answer",
+    "meaning": "대답하다, 대답",
+    "example": "Please answer the question in English."
+  },
+  {
+    "term": "learn",
+    "meaning": "배우다",
+    "example": "I want to learn how to cook."
+  },
+  {
+    "term": "teach",
+    "meaning": "가르치다",
+    "example": "My grandmother teaches me to knit."
+  },
+  {
+    "term": "know",
+    "meaning": "알다",
+    "example": "I know where the library is."
+  },
+  {
+    "term": "think",
+    "meaning": "생각하다",
+    "example": "I think it will rain tonight."
+  },
+  {
+    "term": "see",
+    "meaning": "보다",
+    "example": "Can you see the mountain from here?"
+  },
+  {
+    "term": "look",
+    "meaning": "보다, 바라보다",
+    "example": "Look at that beautiful rainbow!"
+  },
+  {
+    "term": "watch",
+    "meaning": "지켜보다, 시청하다",
+    "example": "We watch a movie on Friday nights."
+  },
+  {
+    "term": "hear",
+    "meaning": "듣다, 들리다",
+    "example": "I can hear the birds singing."
+  },
+  {
+    "term": "make",
+    "meaning": "만들다",
+    "example": "We make pancakes on Sunday mornings."
+  },
+  {
+    "term": "take",
+    "meaning": "가져가다, 취하다",
+    "example": "Please take your umbrella with you."
+  },
+  {
+    "term": "give",
+    "meaning": "주다",
+    "example": "He will give me a birthday present."
+  },
+  {
+    "term": "buy",
+    "meaning": "사다",
+    "example": "I want to buy a new backpack."
+  },
+  {
+    "term": "sell",
+    "meaning": "팔다",
+    "example": "The farmer sells fresh eggs."
+  },
+  {
+    "term": "pay",
+    "meaning": "지불하다",
+    "example": "How much do I have to pay?"
+  },
+  {
+    "term": "cook",
+    "meaning": "요리하다",
+    "example": "My dad likes to cook on weekends."
+  },
+  {
+    "term": "wash",
+    "meaning": "씻다",
+    "example": "Wash your hands before you eat."
+  },
+  {
+    "term": "clean",
+    "meaning": "깨끗한, 청소하다",
+    "example": "Please clean your room today."
+  },
+  {
+    "term": "sit",
+    "meaning": "앉다",
+    "example": "Please sit down and relax."
+  },
+  {
+    "term": "stand",
+    "meaning": "서다",
+    "example": "Everyone stands up when the teacher comes in."
+  },
+  {
+    "term": "sing",
+    "meaning": "노래하다",
+    "example": "The children sing together in class."
+  },
+  {
+    "term": "dance",
+    "meaning": "춤추다",
+    "example": "They dance at every family party."
+  },
+  {
+    "term": "draw",
+    "meaning": "그리다",
+    "example": "I like to draw pictures of animals."
+  },
+  {
+    "term": "paint",
+    "meaning": "그림을 그리다, 페인트",
+    "example": "She paints beautiful landscapes."
+  },
+  {
+    "term": "game",
+    "meaning": "게임, 경기",
+    "example": "Let's play a game of chess."
+  },
+  {
+    "term": "ball",
+    "meaning": "공",
+    "example": "Throw me the ball, please."
+  },
+  {
+    "term": "toy",
+    "meaning": "장난감",
+    "example": "The little boy loves his new toy."
+  },
+  {
+    "term": "money",
+    "meaning": "돈",
+    "example": "I saved some money for a bicycle."
+  },
+  {
+    "term": "price",
+    "meaning": "가격",
+    "example": "What is the price of this shirt?"
+  },
+  {
+    "term": "cheap",
+    "meaning": "싼",
+    "example": "This restaurant is cheap and tasty."
+  },
+  {
+    "term": "expensive",
+    "meaning": "비싼",
+    "example": "Those shoes are too expensive for me."
+  },
+  {
+    "term": "bread",
+    "meaning": "빵",
+    "example": "We had fresh bread for breakfast."
+  },
+  {
+    "term": "milk",
+    "meaning": "우유",
+    "example": "Children should drink milk every day."
+  },
+  {
+    "term": "egg",
+    "meaning": "달걀",
+    "example": "I cooked two eggs for lunch."
+  },
+  {
+    "term": "rice",
+    "meaning": "쌀, 밥",
+    "example": "We eat rice with almost every meal."
+  },
+  {
+    "term": "meat",
+    "meaning": "고기",
+    "example": "I don't eat much meat."
+  },
+  {
+    "term": "fish",
+    "meaning": "물고기, 생선",
+    "example": "The fish swam quickly in the pond."
+  },
+  {
+    "term": "fruit",
+    "meaning": "과일",
+    "example": "Eat more fruit and vegetables."
+  },
+  {
+    "term": "vegetable",
+    "meaning": "채소",
+    "example": "Carrots and spinach are healthy vegetables."
+  },
+  {
+    "term": "sugar",
+    "meaning": "설탕",
+    "example": "Please add a spoon of sugar to my tea."
+  },
+  {
+    "term": "salt",
+    "meaning": "소금",
+    "example": "This soup needs a little more salt."
+  },
+  {
+    "term": "lunch",
+    "meaning": "점심",
+    "example": "We have lunch at school at noon."
+  },
+  {
+    "term": "dinner",
+    "meaning": "저녁 식사",
+    "example": "Dinner is ready, so please come to the table."
+  },
+  {
+    "term": "breakfast",
+    "meaning": "아침 식사",
+    "example": "I always have breakfast before school."
+  },
+  {
+    "term": "hungry",
+    "meaning": "배고픈",
+    "example": "I am so hungry after the soccer game."
+  },
+  {
+    "term": "thirsty",
+    "meaning": "목마른",
+    "example": "It is hot today, and I feel thirsty."
+  },
+  {
+    "term": "tired",
+    "meaning": "피곤한",
+    "example": "I am tired after a long day at work."
+  },
+  {
+    "term": "sad",
+    "meaning": "슬픈",
+    "example": "The movie was sad, and she cried."
+  },
+  {
+    "term": "angry",
+    "meaning": "화난",
+    "example": "My brother was angry about the broken vase."
+  },
+  {
+    "term": "afraid",
+    "meaning": "두려운",
+    "example": "Don't be afraid of the dark."
+  },
+  {
+    "term": "beautiful",
+    "meaning": "아름다운",
+    "example": "The garden is beautiful in spring."
+  },
+  {
+    "term": "ugly",
+    "meaning": "못생긴, 추한",
+    "example": "The old building looks ugly today."
+  },
+  {
+    "term": "clever",
+    "meaning": "영리한",
+    "example": "The clever fox found a way out."
+  },
+  {
+    "term": "kind",
+    "meaning": "친절한",
+    "example": "My neighbor is very kind to children."
+  },
+  {
+    "term": "strong",
+    "meaning": "강한",
+    "example": "The strong wind knocked down a tree."
+  },
+  {
+    "term": "weak",
+    "meaning": "약한",
+    "example": "I felt weak after the long illness."
+  },
+  {
+    "term": "rich",
+    "meaning": "부유한",
+    "example": "The rich man built a large hospital."
+  },
+  {
+    "term": "poor",
+    "meaning": "가난한",
+    "example": "The poor family shared everything they had."
+  },
+  {
+    "term": "busy",
+    "meaning": "바쁜",
+    "example": "I am too busy to see a movie this week."
+  },
+  {
+    "term": "lazy",
+    "meaning": "게으른",
+    "example": "Don't be lazy; clean your room now."
+  },
+  {
+    "term": "same",
+    "meaning": "같은",
+    "example": "We wear the same school uniform."
+  },
+  {
+    "term": "different",
+    "meaning": "다른",
+    "example": "Each person has different ideas."
+  },
+  {
+    "term": "many",
+    "meaning": "많은",
+    "example": "There are many birds in this forest."
+  },
+  {
+    "term": "few",
+    "meaning": "적은",
+    "example": "Only a few people came to the party."
+  },
+  {
+    "term": "all",
+    "meaning": "모든, 전부",
+    "example": "All students must wear a name tag."
+  },
+  {
+    "term": "some",
+    "meaning": "약간의, 몇몇",
+    "example": "I need some paper for my project."
+  },
+  {
+    "term": "every",
+    "meaning": "모든, 매~",
+    "example": "I brush my teeth every night."
+  },
+  {
+    "term": "much",
+    "meaning": "많은 (불가산)",
+    "example": "There isn't much time left."
+  },
+  {
+    "term": "enough",
+    "meaning": "충분한",
+    "example": "Do we have enough chairs for everyone?"
+  },
+  {
+    "term": "always",
+    "meaning": "항상",
+    "example": "She always arrives early for class."
+  },
+  {
+    "term": "never",
+    "meaning": "결코 ~ 않다",
+    "example": "I never eat fast food on weekdays."
+  },
+  {
+    "term": "often",
+    "meaning": "자주",
+    "example": "We often go hiking in the mountains."
+  },
+  {
+    "term": "sometimes",
+    "meaning": "가끔",
+    "example": "Sometimes I walk to work."
+  },
+  {
+    "term": "here",
+    "meaning": "여기에",
+    "example": "Please sit here next to me."
+  },
+  {
+    "term": "there",
+    "meaning": "저기에",
+    "example": "The museum is over there."
+  },
+  {
+    "term": "inside",
+    "meaning": "안에",
+    "example": "It is warm inside the house."
+  },
+  {
+    "term": "outside",
+    "meaning": "밖에",
+    "example": "Let's play outside before dinner."
+  },
+  {
+    "term": "under",
+    "meaning": "~ 아래에",
+    "example": "The cat hid under the bed."
+  },
+  {
+    "term": "over",
+    "meaning": "~ 위에",
+    "example": "A bird flew over the river."
+  },
+  {
+    "term": "near",
+    "meaning": "가까이에",
+    "example": "The bank is near the train station."
+  },
+  {
+    "term": "far",
+    "meaning": "멀리",
+    "example": "The school is not far from my house."
+  },
+  {
+    "term": "with",
+    "meaning": "~와 함께",
+    "example": "I went to the zoo with my friends."
+  },
+  {
+    "term": "without",
+    "meaning": "~ 없이",
+    "example": "I can't live without music."
+  },
+  {
+    "term": "and",
+    "meaning": "그리고",
+    "example": "I like apples and bananas."
+  },
+  {
+    "term": "but",
+    "meaning": "하지만",
+    "example": "I wanted to go, but it was raining."
+  },
+  {
+    "term": "because",
+    "meaning": "~ 때문에",
+    "example": "I stayed home because I was sick."
+  },
+  {
+    "term": "if",
+    "meaning": "만약 ~라면",
+    "example": "If it rains, we will stay inside."
+  },
+  {
+    "term": "when",
+    "meaning": "~할 때",
+    "example": "Call me when you arrive."
+  },
+  {
+    "term": "where",
+    "meaning": "어디에",
+    "example": "Where is the nearest bank?"
+  },
+  {
+    "term": "what",
+    "meaning": "무엇",
+    "example": "What time is it now?"
+  },
+  {
+    "term": "who",
+    "meaning": "누구",
+    "example": "Who is that tall man?"
+  },
+  {
+    "term": "why",
+    "meaning": "왜",
+    "example": "Why are you so happy today?"
+  }
+]

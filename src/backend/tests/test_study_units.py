@@ -14,7 +14,7 @@ from backend.services.study import QuizAnswerError
 
 def _word(word_id: int, wordbook_id: int, meaning: str) -> SimpleNamespace:
     """서비스가 쓰는 속성(id, wordbook_id, term, meaning)만 가진 가짜 단어."""
-    return SimpleNamespace(id=word_id, wordbook_id=wordbook_id, term=f"t{word_id}", meaning=meaning)
+    return SimpleNamespace(id=word_id, wordbook_id=wordbook_id, term=f"t{word_id}", meaning=meaning, example=None)
 
 
 # --- 오답 선지 구성 (REQ-014, 결정 3) ---

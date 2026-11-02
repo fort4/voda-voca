@@ -14,10 +14,11 @@ from backend.core.deps import SESSION_COOKIE_NAME
 from backend.db.session import get_session_factory
 from backend.main import app
 from backend.models import AuthSession, Bookmark, QuizSession, StudyLog, User, Word, Wordbook
+from backend.services.seed import default_wordbooks
 from backend.models.base import utcnow
 from backend.models.quiz_session import QUIZ_SOURCE_BOOKMARKS
 from backend.services.session import new_token, token_digest
-from backend.tests.helpers import PASSWORD, auth_headers, signup_and_login, unique_nickname
+from backend.tests.helpers import DEFAULT_WORDBOOK_COUNT, PASSWORD, auth_headers, signup_and_login, unique_nickname
 
 TTL_SECONDS = 14 * 24 * 60 * 60
 
@@ -331,7 +332,7 @@ async def test_delete_me_removes_account_and_all_related_rows(client: httpx.Asyn
             )
         )
         await session.commit()
-    assert await count_rows(Wordbook, Wordbook.user_id == user_id) == 1
+    assert await count_rows(Wordbook, Wordbook.user_id == user_id) == DEFAULT_WORDBOOK_COUNT + 1
     assert await count_rows(StudyLog, StudyLog.user_id == user_id) == 1
 
     response = await client.delete("/api/auth/me", headers=auth_headers(token))
@@ -374,3 +375,51 @@ async def test_delete_me_does_not_touch_other_users(client: httpx.AsyncClient) -
     assert other.status_code == 200
     assert other.json()["nickname"] == nick_b
     assert await count_rows(User, User.nickname == nick_b) == 1
+
+
+# --- 가입 시 기본 단어장 3종 자동 제공 (초/중/고 200제, 단일 트랜잭션) ---
+
+
+@pytest.mark.asyncio
+async def test_signup_creates_three_owned_default_wordbooks_with_200_words_each(client: httpx.AsyncClient) -> None:
+    nickname, token = await signup_and_login(client)
+    user_id = await user_id_of(nickname)
+
+    async with get_session_factory()() as session:
+        books = (
+            await session.execute(select(Wordbook).where(Wordbook.user_id == user_id).order_by(Wordbook.id))
+        ).scalars().all()
+        assert [b.name for b in books] == [b.name for b in default_wordbooks()]
+        for book, seed in zip(books, default_wordbooks(), strict=True):
+            count = (await session.execute(select(func.count()).select_from(Word).where(Word.wordbook_id == book.id))).scalar_one()
+            assert count == len(seed.words) == 200
+        sample = (
+            await session.execute(select(Word).where(Word.wordbook_id == books[0].id).order_by(Word.term).limit(1))
+        ).scalar_one()
+        assert sample.meaning and sample.example, "뜻과 예문이 함께 복사된다"
+
+
+@pytest.mark.asyncio
+async def test_default_wordbooks_belong_only_to_their_owner(client: httpx.AsyncClient) -> None:
+    """기본 단어장도 사용자 격리를 따른다. 다른 사용자는 다른 사람의 기본 단어장을 볼 수 없다."""
+    owner, owner_token = await signup_and_login(client)
+    _, other_token = await signup_and_login(client)
+    owner_id = await user_id_of(owner)
+    listing = (await client.get("/api/wordbooks", headers=auth_headers(owner_token))).json()
+    book_id = next(i["id"] for i in listing["items"] if i["name"].startswith("초급"))
+
+    as_other = await client.get(f"/api/wordbooks/{book_id}", headers=auth_headers(other_token))
+    assert as_other.status_code == 404
+    assert await count_rows(Wordbook, Wordbook.user_id == owner_id) == 3
+
+
+@pytest.mark.asyncio
+async def test_duplicate_nickname_signup_leaves_no_extra_wordbooks(client: httpx.AsyncClient) -> None:
+    """닉네임 중복으로 실패한 가입은 단어장도 남기지 않는다 (단일 트랜잭션, All-or-Nothing)."""
+    nickname, _ = await signup_and_login(client)
+    wordbooks_before = await count_rows(Wordbook)
+    words_before = await count_rows(Word)
+    response = await client.post("/api/auth/signup", json={"nickname": nickname, "password": PASSWORD})
+    assert response.status_code == 409
+    assert await count_rows(Wordbook) == wordbooks_before
+    assert await count_rows(Word) == words_before

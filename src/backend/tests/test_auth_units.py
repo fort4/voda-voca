@@ -69,6 +69,12 @@ async def test_signup_reraises_unexpected_integrity_error() -> None:
         def add(self, _obj: object) -> None:
             pass
 
+        async def flush(self) -> None:
+            pass
+
+        async def execute(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
         async def commit(self) -> None:
             raise IntegrityError("INSERT", {}, _FakeOrig("Check constraint violated"))
 
