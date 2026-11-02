@@ -274,12 +274,12 @@ async def test_unauthenticated_requests_are_401(client: httpx.AsyncClient) -> No
 
 @pytest.mark.asyncio
 async def test_delete_cascades_words_bookmarks_and_study_logs(client: httpx.AsyncClient) -> None:
-    email, token = await signup_and_login(client)
+    nickname, token = await signup_and_login(client)
     created = await create(client, token, "연쇄 삭제 대상")
     wordbook_id = created["id"]
 
     async with get_session_factory()() as session:
-        user_id = (await session.execute(select(User.id).where(User.email == email))).scalar_one()
+        user_id = (await session.execute(select(User.id).where(User.nickname == nickname))).scalar_one()
         word = Word(wordbook_id=wordbook_id, term="apple", meaning="사과")
         session.add(word)
         await session.flush()

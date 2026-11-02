@@ -12,8 +12,8 @@ from backend.core.rate_limit import login_rate_limiter
 from backend.db.session import dispose_engine, get_session_factory
 from backend.models import User
 
-# 테스트 계정 이메일 패턴. 정리(cleanup) 시 이 패턴만 지운다.
-TEST_EMAIL_LIKE = "tvoda-%@example.com"
+# 테스트 계정 닉네임 패턴. 정리(cleanup) 시 이 패턴만 지운다.
+TEST_NICKNAME_LIKE = "tvoda-%"
 
 
 @pytest_asyncio.fixture(autouse=True)
@@ -55,5 +55,5 @@ async def _cleanup_test_users() -> AsyncIterator[None]:
 
 async def _delete_test_users() -> None:
     async with get_session_factory()() as session:
-        await session.execute(delete(User).where(User.email.like(TEST_EMAIL_LIKE)))
+        await session.execute(delete(User).where(User.nickname.like(TEST_NICKNAME_LIKE)))
         await session.commit()

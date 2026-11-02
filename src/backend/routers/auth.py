@@ -1,4 +1,4 @@
-# 2026-11-02 - voda-voca - 인증 라우터: 가입, 로그인(세션 쿠키, 무차별 대입 방어 REQ-121), 로그아웃, 내 정보 (REQ-001, REQ-002)
+# 2026-11-02 - voda-voca - 인증 라우터: 가입, 로그인(세션 쿠키, 무차별 대입 방어 REQ-121), 로그아웃, 내 정보, 회원 탈퇴 (REQ-001, REQ-002)
 # 파일 위치: src/backend/routers/auth.py
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -18,13 +18,13 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 LOGIN_RATE_LIMITED_DETAIL = "로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요."
 
 
-def _login_keys(request: Request, email: str) -> tuple[str, str]:
-    """로그인 집계 키: (IP 키, 계정 키). 계정은 가입 때와 같은 방식으로 정규화한다.
+def _login_keys(request: Request, nickname: str) -> tuple[str, str]:
+    """로그인 집계 키: (IP 키, 계정 키). 계정 키는 닉네임 기준이다 (회원 체계 단순화 후).
 
     X-Forwarded-For 는 신뢰하지 않는다. 역방향 프록시 뒤에서는 프록시 IP로 집계된다.
     """
     client_ip = request.client.host if request.client else "unknown"
-    return f"ip:{client_ip}", f"acct:{email.strip().lower()}"
+    return f"ip:{client_ip}", f"acct:{nickname.strip().lower()}"
 
 
 def _cookie_options() -> dict[str, object]:
@@ -43,11 +43,11 @@ async def signup(
     db: AsyncSession = Depends(get_db_session),
 ) -> User:
     try:
-        return await auth_service.signup(db, body.email, body.password, body.nickname)
-    except auth_service.EmailAlreadyExistsError as exc:
+        return await auth_service.signup(db, body.password, body.nickname)
+    except auth_service.NicknameAlreadyExistsError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="이미 사용 중인 이메일입니다.",
+            detail="이미 사용 중인 닉네임입니다.",
         ) from exc
 
 
@@ -62,7 +62,7 @@ async def login(
 
     차단 판정은 DB 조회 전에 한다. 차단된 요청은 실패로 집계하지 않는다.
     """
-    ip_key, account_key = _login_keys(request, body.email)
+    ip_key, account_key = _login_keys(request, body.nickname)
     retry_after = login_rate_limiter.retry_after([ip_key, account_key])
     if retry_after is not None:
         raise HTTPException(
@@ -72,7 +72,7 @@ async def login(
         )
 
     try:
-        user = await auth_service.authenticate(db, body.email, body.password)
+        user = await auth_service.authenticate(db, body.nickname, body.password)
     except auth_service.InvalidCredentialsError as exc:
         login_rate_limiter.record_failure([ip_key, account_key])
         raise HTTPException(
@@ -108,3 +108,17 @@ async def logout(
 @router.get("/me", response_model=UserOut)
 async def me(user: User = Depends(get_current_user)) -> User:
     return user
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_me(
+    response: Response,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
+) -> None:
+    """회원 탈퇴. 계정과 연관 데이터(단어장, 단어, 북마크, 학습 이력, 세션)를 모두 지우고 쿠키를 만료시킨다.
+
+    인증되지 않은 요청은 get_current_user 가 401 로 막는다. 탈퇴 후 같은 쿠키로는 접근할 수 없다.
+    """
+    await auth_service.delete_account(db, user.id)
+    response.delete_cookie(key=SESSION_COOKIE_NAME, **_cookie_options())

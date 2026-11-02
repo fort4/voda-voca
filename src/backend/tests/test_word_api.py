@@ -243,11 +243,11 @@ async def test_selective_prefix_search_uses_unique_index(client: httpx.AsyncClie
     실제 실행과 같은 바인딩 파라미터로 EXPLAIN 한다. literal 로 렌더링하면 % 가 이중 이스케이프되어 실행 계획이 달라진다.
     넓은 접두사(예: 33% 매칭)에서는 옵티마이저가 전체 스캔을 고를 수 있으므로 여기서는 단언하지 않는다 (REQ-103).
     """
-    email, token = await signup_and_login(client)
+    nickname, token = await signup_and_login(client)
     wb = await make_wordbook(client, token)
 
     async with get_session_factory()() as session:
-        user_id = (await session.execute(select(User.id).where(User.email == email))).scalar_one()
+        user_id = (await session.execute(select(User.id).where(User.nickname == nickname))).scalar_one()
         session.add_all(
             [Word(wordbook_id=wb, term=f"word{i:04d}", meaning="뜻") for i in range(300)]
         )
@@ -417,12 +417,12 @@ async def test_unauthenticated_word_requests_are_401(client: httpx.AsyncClient) 
 
 @pytest.mark.asyncio
 async def test_deleting_word_cascades_bookmarks_and_study_logs(client: httpx.AsyncClient) -> None:
-    email, token = await signup_and_login(client)
+    nickname, token = await signup_and_login(client)
     wb = await make_wordbook(client, token)
     word = await make_word(client, token, wb, "apple")
 
     async with get_session_factory()() as session:
-        user_id = (await session.execute(select(User.id).where(User.email == email))).scalar_one()
+        user_id = (await session.execute(select(User.id).where(User.nickname == nickname))).scalar_one()
         session.add(Bookmark(user_id=user_id, word_id=word["id"]))
         session.add(StudyLog(user_id=user_id, word_id=word["id"], is_correct=False))
         await session.commit()

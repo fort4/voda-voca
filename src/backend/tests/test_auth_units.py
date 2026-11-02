@@ -57,7 +57,7 @@ def test_token_digest_is_sha256_of_token() -> None:
 
 @pytest.mark.asyncio
 async def test_signup_reraises_unexpected_integrity_error() -> None:
-    """이메일 중복이 아닌 무결성 오류는 EmailAlreadyExists 로 바꾸지 않고 그대로 전파한다."""
+    """닉네임 중복이 아닌 무결성 오류는 NicknameAlreadyExists 로 바꾸지 않고 그대로 전파한다."""
     from sqlalchemy.exc import IntegrityError
 
     from backend.services.auth import signup
@@ -76,4 +76,4 @@ async def test_signup_reraises_unexpected_integrity_error() -> None:
             pass
 
     with pytest.raises(IntegrityError):
-        await signup(_FakeDB(), "tvoda-x@example.com", "password-1", "닉네임")  # type: ignore[arg-type]
+        await signup(_FakeDB(), "password-1", "닉네임")  # type: ignore[arg-type]
