@@ -539,6 +539,7 @@ async def test_bulk_conflict_with_existing_word_is_409_and_rolls_back_everything
     response = await bulk(client, token, wb, _bulk_body("banana", "cherry", "Apple"))
     assert response.status_code == 409, response.text
     assert "전체 등록을 취소" in response.json()["detail"]
+    assert response.json()["conflict_term"] == "Apple"  # 요청한 표제어 그대로
 
     page = await search(client, token, wb)
     assert page["total"] == 1
@@ -579,3 +580,16 @@ async def test_bulk_into_other_users_wordbook_is_404(client: httpx.AsyncClient) 
 async def test_bulk_requires_login(client: httpx.AsyncClient) -> None:
     response = await client.post("/api/wordbooks/1/words/bulk", json=_bulk_body("apple"))
     assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_bulk_409_names_the_first_conflicting_requested_term(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
+    wb = await make_wordbook(client, token)
+    await make_word(client, token, wb, "pear")
+    await make_word(client, token, wb, "plum")
+
+    response = await bulk(client, token, wb, _bulk_body("kiwi", "plum", "pear"))
+    assert response.status_code == 409
+    assert response.json()["conflict_term"] == "plum"  # 요청 순서상 먼저 겹친 표제어
+    assert set(response.json()) == {"detail", "conflict_term"}

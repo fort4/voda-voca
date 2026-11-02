@@ -159,3 +159,10 @@ class WordBulkOut(BaseModel):
 
     items: list[WordOut]
     count: int
+
+
+class WordBulkConflictOut(BaseModel):
+    """일괄 등록 409 응답 본문. conflict_term 은 기존 단어와 겹친 요청 표제어다 (찾지 못하면 null)."""
+
+    detail: str
+    conflict_term: str | None

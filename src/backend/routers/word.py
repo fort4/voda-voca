@@ -2,6 +2,7 @@
 # 파일 위치: src/backend/routers/word.py
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.deps import get_current_user
@@ -9,6 +10,7 @@ from backend.db.session import get_db_session
 from backend.models import User, Word
 from backend.schemas.word import (
     SEARCH_MAX_CHARS,
+    WordBulkConflictOut,
     WordBulkCreate,
     WordBulkOut,
     WordCreate,
@@ -33,10 +35,7 @@ TERM_TAKEN = HTTPException(
     status_code=status.HTTP_409_CONFLICT,
     detail="같은 단어장에 이미 있는 표제어입니다.",
 )
-BULK_TERM_TAKEN = HTTPException(
-    status_code=status.HTTP_409_CONFLICT,
-    detail="같은 단어장에 이미 있는 표제어가 포함되어 있어 전체 등록을 취소했습니다.",
-)
+BULK_TERM_TAKEN_DETAIL = "같은 단어장에 이미 있는 표제어가 포함되어 있어 전체 등록을 취소했습니다."
 
 PAGE_SIZE_DEFAULT = 20
 PAGE_SIZE_MAX = 100
@@ -65,7 +64,12 @@ async def create_word(
     return _to_out(word, bookmarked=False)
 
 
-@router.post("/bulk", status_code=status.HTTP_201_CREATED, response_model=WordBulkOut)
+@router.post(
+    "/bulk",
+    status_code=status.HTTP_201_CREATED,
+    response_model=WordBulkOut,
+    responses={409: {"model": WordBulkConflictOut, "description": "기존 단어와 표제어 충돌 (전체 취소)"}},
+)
 async def bulk_create_words(
     wordbook_id: int,
     body: WordBulkCreate,
@@ -83,7 +87,12 @@ async def bulk_create_words(
     except WordbookNotFoundError as exc:
         raise WORDBOOK_NOT_FOUND from exc
     except word_service.WordTermTakenError as exc:
-        raise BULK_TERM_TAKEN from exc
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content=WordBulkConflictOut(
+                detail=BULK_TERM_TAKEN_DETAIL, conflict_term=exc.conflict_term
+            ).model_dump(),
+        )
     return WordBulkOut(items=[_to_out(word, bookmarked=False) for word in words], count=len(words))
 
 

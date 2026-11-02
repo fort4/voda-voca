@@ -18,7 +18,14 @@ class WordNotFoundError(Exception):
 
 
 class WordTermTakenError(Exception):
-    """같은 단어장 안에 같은 표제어가 이미 있다 (uk_words_wordbook_term)."""
+    """같은 단어장 안에 같은 표제어가 이미 있다 (uk_words_wordbook_term).
+
+    conflict_term 은 일괄 등록에서 충돌을 일으킨 요청 표제어다. 단건 등록에서는 None 이다.
+    """
+
+    def __init__(self, conflict_term: str | None = None) -> None:
+        super().__init__(conflict_term)
+        self.conflict_term = conflict_term
 
 
 def escape_like(text: str) -> str:
@@ -113,6 +120,24 @@ async def create_word(
     return word
 
 
+async def _find_conflicting_term(
+    db: AsyncSession, wordbook_id: int, items: list[WordCreate]
+) -> str | None:
+    """요청 항목 중 기존 단어와 표제어가 같은 첫 항목의 표제어를 돌려준다.
+
+    DB 콜레이션으로 비교하므로 제약과 같은 기준이다. 오류 경로에서만 실행된다.
+    """
+    for item in items:
+        found = await db.execute(
+            select(Word.id)
+            .where(Word.wordbook_id == wordbook_id, Word.term == item.term)
+            .limit(1)
+        )
+        if found.scalar_one_or_none() is not None:
+            return item.term
+    return None
+
+
 async def bulk_create_words(
     db: AsyncSession, user_id: int, wordbook_id: int, items: list[WordCreate]
 ) -> list[Word]:
@@ -129,7 +154,11 @@ async def bulk_create_words(
         for item in items
     ]
     db.add_all(words)
-    await _commit_checking_term(db)
+    try:
+        await _commit_checking_term(db)
+    except WordTermTakenError as exc:
+        # 롤백된 뒤라 DB 에는 기존 단어만 남아 있다. 요청 항목 중 기존 단어와 같은 표제어를 찾는다.
+        raise WordTermTakenError(await _find_conflicting_term(db, wordbook_id, items)) from exc
 
     ids = [word.id for word in words]
     result = await db.execute(select(Word).where(Word.id.in_(ids)).order_by(Word.id))
