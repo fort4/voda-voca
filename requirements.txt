@@ -10,3 +10,4 @@ pydantic==2.14.2
 pydantic-settings==2.16.2
 email-validator==2.3.0
 bcrypt==5.0.0
+cryptography==50.0.2  # asyncmy 가 MySQL 8 기본 인증(caching_sha2_password)에 필요
