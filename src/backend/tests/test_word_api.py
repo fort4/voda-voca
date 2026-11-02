@@ -70,7 +70,8 @@ async def test_create_word_returns_201_with_fields(client: httpx.AsyncClient) ->
     )
     assert response.status_code == 201
     body = response.json()
-    assert set(body) == {"id", "wordbook_id", "term", "meaning", "example", "created_at", "updated_at"}
+    assert set(body) == {"id", "wordbook_id", "term", "meaning", "example", "created_at", "updated_at", "bookmarked"}
+    assert body["bookmarked"] is False
     assert (body["wordbook_id"], body["term"], body["meaning"], body["example"]) == (wb, "apple", "사과", "An apple.")
     assert body["created_at"].endswith("Z")
 
@@ -246,13 +247,14 @@ async def test_selective_prefix_search_uses_unique_index(client: httpx.AsyncClie
     wb = await make_wordbook(client, token)
 
     async with get_session_factory()() as session:
+        user_id = (await session.execute(select(User.id).where(User.email == email))).scalar_one()
         session.add_all(
             [Word(wordbook_id=wb, term=f"word{i:04d}", meaning="뜻") for i in range(300)]
         )
         await session.commit()
         await session.execute(text("ANALYZE TABLE words"))
 
-        compiled = _list_query(wb, "word0001").compile(dialect=mysql.dialect())
+        compiled = _list_query(wb, "word0001", user_id).compile(dialect=mysql.dialect())
         names = list(compiled.positiontup)
         named_sql = str(compiled)
         for name in names:
@@ -262,10 +264,11 @@ async def test_selective_prefix_search_uses_unique_index(client: httpx.AsyncClie
             await session.execute(text("EXPLAIN " + named_sql), params)
         ).mappings().all()
 
-    assert len(rows) == 1
-    assert rows[0]["key"] == "uk_words_wordbook_term", dict(rows[0])
-    assert rows[0]["type"] == "range", dict(rows[0])
-    assert "filesort" not in (rows[0]["Extra"] or "").lower(), dict(rows[0])
+    # 조인이 늘었으므로 실행 계획은 여러 행이다. 구동 테이블(words)의 행을 본다.
+    words_row = next(r for r in rows if r["table"] == "words")
+    assert words_row["key"] == "uk_words_wordbook_term", dict(words_row)
+    assert words_row["type"] == "range", dict(words_row)
+    assert "filesort" not in (words_row["Extra"] or "").lower(), dict(words_row)
 
 
 # --- 조회, 수정, 삭제 (REQ-010, REQ-011) ---

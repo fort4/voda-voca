@@ -1,11 +1,11 @@
-# 2026-11-02 - voda-voca - 단어 서비스: 소속/소유권 검증, CRUD, 표제어 접두사 검색 (REQ-008~011, REQ-009, REQ-105, REQ-113)
+# 2026-11-02 - voda-voca - 단어 서비스: 소속/소유권 검증, CRUD, 표제어 접두사 검색, 북마크 플래그 (REQ-008~011, REQ-009, REQ-105, REQ-113)
 # 파일 위치: src/backend/services/word.py
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, and_, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import Word
+from backend.models import Bookmark, Word
 from backend.schemas.word import WordCreate, WordUpdate
 from backend.services.wordbook import get_owned_wordbook
 
@@ -34,18 +34,31 @@ def escape_like(text: str) -> str:
     )
 
 
-def _list_query(wordbook_id: int, prefix: str | None) -> Select:
-    """목록 조회 쿼리. 접두사가 있으면 term LIKE 'prefix%' 조건을 붙인다.
-
-    조건 컬럼(wordbook_id, term)과 정렬 키(term, id)가 uk_words_wordbook_term 인덱스와 일치하므로
-    filesort 없이 인덱스 순서대로 읽는다 (REQ-103).
-    """
-    statement = select(Word).where(Word.wordbook_id == wordbook_id)
+def _list_conditions(wordbook_id: int, prefix: str | None) -> list:
+    """단어장 범위와 표제어 접두사 조건. 접두사가 없으면 단어장 조건만 남는다."""
+    conditions = [Word.wordbook_id == wordbook_id]
     if prefix:
-        statement = statement.where(
-            Word.term.like(escape_like(prefix) + "%", escape=LIKE_ESCAPE_CHAR)
+        conditions.append(Word.term.like(escape_like(prefix) + "%", escape=LIKE_ESCAPE_CHAR))
+    return conditions
+
+
+def _list_query(wordbook_id: int, prefix: str | None, user_id: int) -> Select:
+    """목록 쿼리: 단어 + 요청 사용자의 북마크 여부(LEFT JOIN).
+
+    북마크 조인 조건에 user_id 를 넣어, 다른 사용자의 북마크가 플래그에 섞이지 않게 한다.
+    (user_id, word_id) 는 UNIQUE 이므로 한 단어에 조인되는 북마크 행은 최대 한 개다. 중복 행이 생기지 않는다.
+    정렬 키(term, id)는 uk_words_wordbook_term 인덱스와 맞는다 (REQ-103).
+    """
+    bookmarked = Bookmark.id.is_not(None).label("bookmarked")
+    return (
+        select(Word, bookmarked)
+        .outerjoin(
+            Bookmark,
+            and_(Bookmark.word_id == Word.id, Bookmark.user_id == user_id),
         )
-    return statement.order_by(Word.term.asc(), Word.id.asc())
+        .where(*_list_conditions(wordbook_id, prefix))
+        .order_by(Word.term.asc(), Word.id.asc())
+    )
 
 
 async def get_owned_word(
@@ -64,6 +77,13 @@ async def get_owned_word(
     if word is None:
         raise WordNotFoundError
     return word
+
+
+async def is_bookmarked(db: AsyncSession, user_id: int, word_id: int) -> bool:
+    result = await db.execute(
+        select(Bookmark.id).where(Bookmark.user_id == user_id, Bookmark.word_id == word_id)
+    )
+    return result.scalar_one_or_none() is not None
 
 
 async def _commit_checking_term(db: AsyncSession) -> None:
@@ -100,35 +120,41 @@ async def list_words(
     prefix: str | None,
     page: int,
     size: int,
-) -> tuple[list[Word], int]:
-    """표제어 접두사로 검색한 단어 한 페이지와 전체 개수를 반환한다.
+) -> tuple[list[tuple[Word, bool]], int]:
+    """표제어 접두사로 검색한 단어 한 페이지(단어, 북마크 여부)와 전체 개수를 반환한다.
 
     prefix 는 앞뒤 공백을 제거한 값이다. 비어 있으면 전체 목록을 반환한다.
     """
     await get_owned_wordbook(db, user_id, wordbook_id)
     cleaned = prefix.strip() if prefix else None
 
-    base = _list_query(wordbook_id, cleaned)
     total = (
-        await db.execute(select(func.count()).select_from(base.order_by(None).subquery()))
+        await db.execute(
+            select(func.count()).select_from(Word).where(*_list_conditions(wordbook_id, cleaned))
+        )
     ).scalar_one()
-    result = await db.execute(base.offset((page - 1) * size).limit(size))
-    return list(result.scalars().all()), total
+    result = await db.execute(
+        _list_query(wordbook_id, cleaned, user_id).offset((page - 1) * size).limit(size)
+    )
+    return [(word, bool(flag)) for word, flag in result.all()], total
 
 
-async def get_word(db: AsyncSession, user_id: int, wordbook_id: int, word_id: int) -> Word:
-    return await get_owned_word(db, user_id, wordbook_id, word_id)
+async def get_word(
+    db: AsyncSession, user_id: int, wordbook_id: int, word_id: int
+) -> tuple[Word, bool]:
+    word = await get_owned_word(db, user_id, wordbook_id, word_id)
+    return word, await is_bookmarked(db, user_id, word_id)
 
 
 async def update_word(
     db: AsyncSession, user_id: int, wordbook_id: int, word_id: int, data: WordUpdate
-) -> Word:
+) -> tuple[Word, bool]:
     """요청에 포함된 필드만 수정한다. 값이 같으면 UPDATE 가 나가지 않아 updated_at 도 그대로다."""
     word = await get_owned_word(db, user_id, wordbook_id, word_id)
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(word, field, value)
     await _commit_checking_term(db)
-    return word
+    return word, await is_bookmarked(db, user_id, word_id)
 
 
 async def delete_word(db: AsyncSession, user_id: int, wordbook_id: int, word_id: int) -> None:

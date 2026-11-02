@@ -94,6 +94,8 @@ class WordOut(BaseModel):
     example: str | None
     created_at: datetime
     updated_at: datetime
+    # 요청 사용자가 이 단어를 북마크했는지 여부 (단어 목록/상세 응답에서 채운다)
+    bookmarked: bool = False
 
     @field_serializer("created_at", "updated_at")
     def _serialize_utc(self, value: datetime) -> str:
