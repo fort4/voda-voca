@@ -8,8 +8,26 @@ import { createDeck } from "../core/deck.js";
 import { classifyGesture } from "../core/gesture.js";
 import { button, clear, h, icon, notice, refreshIcons, skeleton } from "../core/dom.js";
 import { parseStudySource, sourceFlashcardQuery } from "../lib/study-source.js";
+import { speak } from "../core/tts.js";
+import { isButtonTarget, modalIsOpen, shortcutsBlocked } from "../core/shortcuts.js";
 
 export const FLASHCARD_LIMIT = 500;
+
+function speakerButton(text, label, extraClass = "") {
+  return h(
+    "button",
+    {
+      type: "button",
+      class: `press focus-ring inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-zinc-500 hover:bg-indigo-50 hover:text-indigo-600 ${extraClass}`,
+      "aria-label": label,
+      onclick: (e) => {
+        e.stopPropagation();
+        speak(text);
+      },
+    },
+    icon("volume-2", "h-5 w-5"),
+  );
+}
 
 /**
  * @param {HTMLElement} root
@@ -35,14 +53,22 @@ export function flashcardsView(root, { query, navigate }) {
   }
 
   /** 키보드 넘김. 입력 칸과 버튼에 포커스가 있으면 건드리지 않는다. */
+  /** 단축키: ←/→ 이동, Space·Enter 뒤집기(버튼 포커스일 때는 브라우저 클릭에 맡김), S 셔플. 입력 칸과 모달에서는 무시. */
   function onKey(event) {
-    const tag = /** @type {HTMLElement} */ (event.target).tagName;
-    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "BUTTON") return;
-    if (event.key === "ArrowRight") move("next");
-    else if (event.key === "ArrowLeft") move("prev");
-    else if (event.key === " " || event.key === "Enter") {
+    if (shortcutsBlocked({ target: event.target, modalOpen: modalIsOpen() })) return;
+    const key = event.key;
+    if (key === "ArrowRight") {
+      event.preventDefault();
+      move("next");
+    } else if (key === "ArrowLeft") {
+      event.preventDefault();
+      move("prev");
+    } else if ((key === " " || key === "Enter") && !isButtonTarget(event.target)) {
       event.preventDefault();
       flip();
+    } else if (key.toLowerCase() === "s" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      event.preventDefault();
+      if (state.status === "ok" && !state.done) setShuffle(!state.shuffle);
     }
   }
   document.addEventListener("keydown", onKey);
@@ -196,12 +222,24 @@ export function flashcardsView(root, { query, navigate }) {
           "div",
           { class: "flip-face" },
           h("span", { class: "break-words text-4xl font-bold text-zinc-900" }, card.term),
+          h(
+            "span",
+            { class: "absolute right-3 top-3", onpointerdown: (e) => e.stopPropagation(), onpointerup: (e) => e.stopPropagation() },
+            speakerButton(card.term, `${card.term} 발음 듣기`),
+          ),
         ),
         h(
           "div",
           { class: "flip-face flip-back" },
           h("span", { class: "break-words text-2xl font-semibold text-zinc-900" }, card.meaning),
           card.example ? h("span", { class: "break-words text-base text-zinc-600" }, card.example) : null,
+          card.example
+            ? h(
+                "span",
+                { class: "absolute right-3 top-3", onpointerdown: (e) => e.stopPropagation(), onpointerup: (e) => e.stopPropagation() },
+                speakerButton(card.example, "예문 발음 듣기"),
+              )
+            : null,
         ),
       ),
     );

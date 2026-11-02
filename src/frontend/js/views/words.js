@@ -9,6 +9,7 @@ import { button, clear, h, icon, notice, refreshIcons, skeleton } from "../core/
 import { INPUT_CLASS } from "../core/form.js";
 import { createSearch } from "../core/search.js";
 import { confirmDialog, toast } from "../core/toast.js";
+import { speak } from "../core/tts.js";
 import { openBulkImport } from "./bulk-import.js";
 import { openWordForm } from "./word-form.js";
 
@@ -196,6 +197,19 @@ export function wordsView(root, { params, navigate }) {
         h("span", { class: "text-lg font-semibold text-zinc-900 break-words" }, word.term),
         h("span", { class: "text-sm text-zinc-700 break-words" }, word.meaning),
         word.example ? h("span", { class: "text-sm text-zinc-500 break-words line-clamp-2" }, word.example) : null,
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "press focus-ring flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center self-center rounded-xl text-zinc-400 hover:bg-indigo-50 hover:text-indigo-600",
+          "aria-label": `${word.term} 발음 듣기`,
+          onclick: (e) => {
+            e.stopPropagation();
+            speak(word.term);
+          },
+        },
+        icon("volume-2", "h-5 w-5"),
       ),
       h(
         "button",

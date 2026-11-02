@@ -15,6 +15,16 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.5/dist/sweetalert2.all.min.js"></script>
     <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
     <link rel="stylesheet" href="css/app.css" />
+    <!-- 첫 화면이 밝게 번쩍이지 않도록, 테마 클래스는 본문을 그리기 전에 붙인다 (저장값 > 시스템 설정). core/theme.js 와 같은 규칙 -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("voda.theme");
+          var dark = stored === "dark" || (stored !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          if (dark) document.documentElement.classList.add("dark");
+        } catch (e) { /* 저장소나 matchMedia 를 쓸 수 없으면 라이트로 둔다 */ }
+      })();
+    </script>
   </head>
   <body class="min-h-dvh bg-zinc-50 text-base text-zinc-900 antialiased">
     <header class="app-header sticky top-0 z-30">
@@ -25,7 +35,12 @@
           </span>
           <span class="text-[17px] font-bold tracking-tight text-zinc-900">보다보카</span>
         </a>
-        <div id="userbar" class="flex items-center gap-1"></div>
+        <div class="flex items-center gap-1">
+          <button id="theme-toggle" type="button" class="press focus-ring inline-flex h-11 w-11 items-center justify-center rounded-xl text-zinc-600 hover:bg-zinc-100" aria-label="다크 모드 전환" aria-pressed="false">
+            <i data-lucide="moon" class="h-5 w-5" aria-hidden="true"></i>
+          </button>
+          <div id="userbar" class="flex items-center gap-1"></div>
+        </div>
       </div>
     </header>
 

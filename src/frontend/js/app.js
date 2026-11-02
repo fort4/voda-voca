@@ -10,6 +10,7 @@ import { createRouter, parseHash, safeNext } from "./core/router.js";
 import { getUser, setUser } from "./core/state.js";
 import { confirmDialog, toast } from "./core/toast.js";
 import { loginView } from "./views/login.js";
+import { createThemeManager } from "./core/theme.js";
 import { signupView } from "./views/signup.js";
 import { wordbooksView } from "./views/wordbooks.js";
 import { wordsView } from "./views/words.js";
@@ -225,8 +226,33 @@ function watchIcons() {
   observer.observe(document.body, { childList: true, subtree: true });
 }
 
+/**
+ * 테마 초기화: 관리자 생성(저장값 > 시스템 설정), 전환 버튼 아이콘과 클릭 연결.
+ * 첫 페이지 깜빡임은 index.html 의 인라인 스크립트가 막고, 여기서는 버튼 상태를 맞춘다.
+ */
+function initTheme() {
+  const manager = createThemeManager();
+  const toggleBtn = document.getElementById("theme-toggle");
+  const paint = () => {
+    const dark = manager.current() === "dark";
+    if (toggleBtn) {
+      toggleBtn.setAttribute("aria-pressed", String(dark));
+      toggleBtn.setAttribute("aria-label", dark ? "라이트 모드로 전환" : "다크 모드로 전환");
+      toggleBtn.replaceChildren(h("i", { "data-lucide": dark ? "sun" : "moon", class: "h-5 w-5", "aria-hidden": "true" }));
+      refreshIcons();
+    }
+  };
+  toggleBtn?.addEventListener("click", () => {
+    manager.toggle();
+    paint();
+  });
+  paint();
+  return manager;
+}
+
 async function boot() {
   setUnauthorizedHandler(onSessionExpired);
+  initTheme();
   watchIcons();
   try {
     setUser(await api("/auth/me", { skipAuthRedirect: true }));

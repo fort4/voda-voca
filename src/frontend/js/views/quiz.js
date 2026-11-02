@@ -7,6 +7,8 @@ import { api, apiResponse, ApiError } from "../core/api.js";
 import { appendNodes, button, clear, h, icon, notice, refreshIcons, skeleton } from "../core/dom.js";
 import { alertBox } from "../core/form.js";
 import { createQuizFlow, stageSlots } from "../core/quiz-flow.js";
+import { speak } from "../core/tts.js";
+import { isButtonTarget, modalIsOpen, shortcutsBlocked } from "../core/shortcuts.js";
 import { deriveQuizItems } from "../core/quiz-state.js";
 import { loadQuizResult, saveQuizResult } from "../core/result-cache.js";
 import { computeClockOffset, formatClock, isWarning, remainingMs } from "../core/timer.js";
@@ -22,6 +24,22 @@ import {
 
 export const QUIZ_COUNT_CHOICES = [5, 10, 20];
 
+function speakerButton(text, label, extraClass = "") {
+  return h(
+    "button",
+    {
+      type: "button",
+      class: `press focus-ring inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-zinc-500 hover:bg-indigo-50 hover:text-indigo-600 ${extraClass}`,
+      "aria-label": label,
+      onclick: (e) => {
+        e.stopPropagation();
+        speak(text);
+      },
+    },
+    icon("volume-2", "h-5 w-5"),
+  );
+}
+
 /**
  * @param {HTMLElement} root
  * @param {{query: Record<string, string>, navigate: (path: string, query?: object) => void, replace: (path: string, query?: object) => void}} ctx
@@ -30,6 +48,7 @@ export const QUIZ_COUNT_CHOICES = [5, 10, 20];
 export function quizView(root, ctx) {
   const { query } = ctx;
   let stopTimerFn = null; // 진행 중인 세션의 타이머 정리 함수
+  let removeKeysFn = null; // 진행 중인 세션의 단축키 리스너 정리 함수
   const body = h("div", { class: "space-y-4" });
   root.append(body);
 
@@ -50,7 +69,10 @@ export function quizView(root, ctx) {
       renderSetup(source, ctx);
     }
   }
-  return () => stopTimerFn?.();
+  return () => {
+    stopTimerFn?.();
+    removeKeysFn?.();
+  };
 
   /**
    * 출제 전 화면: 원천 단어 수를 먼저 세고, 4개 미만이면 시작 버튼을 막는다 (400 을 기다리지 않는다).
@@ -244,7 +266,12 @@ export function quizView(root, ctx) {
       appendNodes(
         stage,
         h("p", { class: "text-sm font-medium text-zinc-500" }, `${flow.index + 1} / ${flow.total}번 문항`),
-        h("p", { class: "surface rise-in break-words p-6 text-center text-3xl font-bold tracking-tight text-zinc-900" }, question.term),
+        h(
+          "div",
+          { class: "surface rise-in relative flex items-center justify-center px-14 py-6" },
+          h("p", { class: "break-words text-center text-3xl font-bold tracking-tight text-zinc-900" }, question.term),
+          h("span", { class: "absolute right-2 top-1/2 -translate-y-1/2" }, speakerButton(question.term, `${question.term} 발음 듣기`)),
+        ),
         h(
           "div",
           { class: "grid gap-2.5", role: "group", "aria-label": "뜻 고르기" },
@@ -260,6 +287,30 @@ export function quizView(root, ctx) {
       );
       paintProgress();
       refreshIcons();
+    }
+
+    /**
+     * 단축키: 1~4 는 미선택 문항의 보기를 바로 고른다. Enter·Space 는 해설이 열린 뒤 다음 문항(또는 최종 결과)을 실행한다.
+     * 버튼에 포커스가 있으면 Enter·Space 는 브라우저 클릭에 맡긴다. 입력 칸과 모달에서는 무시한다.
+     */
+    function onKey(event) {
+      if (shortcutsBlocked({ target: event.target, modalOpen: modalIsOpen() })) return;
+      if (view.expired || view.submitting) return;
+      const question = flow.current();
+      const feedback = flow.feedbackFor(question.question_id);
+      if (/^[1-4]$/.test(event.key)) {
+        if (feedback) return;
+        const choice = Number(event.key) - 1;
+        if (choice < question.choices.length && flow.choose(choice)) {
+          event.preventDefault();
+          render();
+        }
+        return;
+      }
+      if ((event.key === "Enter" || event.key === " ") && feedback && !isButtonTarget(event.target)) {
+        event.preventDefault();
+        advance();
+      }
     }
 
     /** 해설의 다음 버튼. 마지막이면 최종 제출 (기록 저장 후 결과 화면). */
@@ -327,6 +378,8 @@ export function quizView(root, ctx) {
     paintTimer();
     render();
     view.timerId = setInterval(tick, 1000);
+    document.addEventListener("keydown", onKey);
+    removeKeysFn = () => document.removeEventListener("keydown", onKey);
   }
 
   /**
