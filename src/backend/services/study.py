@@ -336,9 +336,9 @@ async def submit_quiz(
 
 
 async def list_study_logs(db: AsyncSession, user_id: int, limit: int) -> list[tuple]:
-    """본인의 최근 학습 이력을 최신순으로 반환한다. 각 행은 (word_id, term, is_correct, created_at)."""
+    """본인의 최근 학습 이력을 최신순으로 반환한다. 각 행은 (word_id, wordbook_id, term, is_correct, created_at)."""
     result = await db.execute(
-        select(StudyLog.word_id, Word.term, StudyLog.is_correct, StudyLog.created_at)
+        select(StudyLog.word_id, Word.wordbook_id, Word.term, StudyLog.is_correct, StudyLog.created_at)
         .join(Word, Word.id == StudyLog.word_id)
         .where(StudyLog.user_id == user_id)
         .order_by(StudyLog.created_at.desc(), StudyLog.id.desc())

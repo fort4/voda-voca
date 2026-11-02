@@ -173,10 +173,11 @@ async def list_study_logs(
         items=[
             StudyLogOut(
                 word_id=word_id,
+                wordbook_id=wordbook_id,
                 term=term,
                 is_correct=is_correct,
                 created_at=created_at,
             )
-            for word_id, term, is_correct, created_at in rows
+            for word_id, wordbook_id, term, is_correct, created_at in rows
         ]
     )

@@ -494,6 +494,7 @@ async def test_logs_are_newest_first_and_limited(client: httpx.AsyncClient) -> N
     assert stamps == sorted(stamps, reverse=True)
     assert all(item["created_at"].endswith("Z") for item in items)
     assert all(item["is_correct"] is True for item in items)
+    assert all(item["wordbook_id"] == wb for item in items)  # 진행률 계산이 단어장을 알아야 한다
 
 
 @pytest.mark.asyncio

@@ -116,6 +116,7 @@ class QuizResultOut(BaseModel):
 
 class StudyLogOut(BaseModel):
     word_id: int
+    wordbook_id: int = Field(description="단어가 속한 단어장 ID (진행률 계산용)")
     term: str
     is_correct: bool
     created_at: datetime
