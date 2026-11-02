@@ -73,6 +73,7 @@ class WordbookOut(BaseModel):
     id: int
     name: str
     description: str | None
+    word_count: int = Field(default=0, ge=0, description="이 단어장에 속한 단어 수 (목록은 한 번의 집계 쿼리로 채운다)")
     created_at: datetime
     updated_at: datetime
 

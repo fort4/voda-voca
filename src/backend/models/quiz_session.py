@@ -11,6 +11,7 @@ from backend.models.base import TABLE_OPTIONS, UTC_NOW_DEFAULT, Base
 
 QUIZ_SOURCE_WORDBOOK = "wordbook"
 QUIZ_SOURCE_BOOKMARKS = "bookmarks"
+QUIZ_SOURCE_WRONG = "wrong"
 
 
 class QuizSession(Base):
@@ -26,7 +27,7 @@ class QuizSession(Base):
     __tablename__ = "quiz_sessions"
     __table_args__ = (
         CheckConstraint(
-            "source IN ('wordbook', 'bookmarks')",
+            "source IN ('wordbook', 'bookmarks', 'wrong')",
             name="ck_quiz_sessions_source",
         ),
         Index("idx_quiz_sessions_user", "user_id"),

@@ -104,6 +104,7 @@ async def create_quiz_session(
             wordbook_id=body.wordbook_id,
             bookmarks=body.bookmarks,
             count=body.count,
+            wrong_only=body.wrong_only,
             now=_now(),
         )
     except WordbookNotFoundError as exc:

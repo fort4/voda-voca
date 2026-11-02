@@ -9,12 +9,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import Bookmark, QuizSession, StudyLog, Word, Wordbook
-from backend.models.quiz_session import QUIZ_SOURCE_BOOKMARKS, QUIZ_SOURCE_WORDBOOK
+from backend.models.quiz_session import QUIZ_SOURCE_BOOKMARKS, QUIZ_SOURCE_WORDBOOK, QUIZ_SOURCE_WRONG
 from backend.schemas.study import QUIZ_CHOICE_COUNT, QuizAnswer, QuizResultOut, WrongItem
 from backend.services.wordbook import get_owned_wordbook
 
 QUIZ_TTL = timedelta(minutes=30)
 QUIZ_MIN_SOURCE_WORDS = 4  # 출제 원천 최소 단어 수 (REQ-014, REQ-019)
+WRONG_REVIEW_WINDOW = 100  # 오답 복습은 최근 학습 기록 100건에서 고른다 (이력 API 의 최대 건수와 같다)
 DISTRACTOR_COUNT = QUIZ_CHOICE_COUNT - 1  # 오답 3개 + 정답 1개 = 4지선다
 
 FK_STUDY_LOG_WORD = "fk_study_logs_word"
@@ -151,6 +152,17 @@ def _build_question(
     }
 
 
+async def _recent_wrong_word_ids(db: AsyncSession, user_id: int) -> set[int]:
+    """최근 학습 기록 WRONG_REVIEW_WINDOW 건 중 틀린 답이 있었던 단어 ID 의 집합 (고유)."""
+    rows = await db.execute(
+        select(StudyLog.word_id, StudyLog.is_correct)
+        .where(StudyLog.user_id == user_id)
+        .order_by(StudyLog.created_at.desc(), StudyLog.id.desc())
+        .limit(WRONG_REVIEW_WINDOW)
+    )
+    return {word_id for word_id, is_correct in rows.all() if not is_correct}
+
+
 async def create_quiz(
     db: AsyncSession,
     user_id: int,
@@ -159,6 +171,7 @@ async def create_quiz(
     count: int,
     now: datetime,
     rng: random.Random | None = None,
+    wrong_only: bool = False,
 ) -> QuizSession:
     """퀴즈 세션을 만든다. 문항 수는 min(요청 count, 출제 가능한 단어 수)다.
 
@@ -171,7 +184,15 @@ async def create_quiz(
         await get_owned_wordbook(db, user_id, wordbook_id)
 
     user_words = await _all_user_words(db, user_id)
-    if wordbook_id is not None:
+    if wrong_only:
+        source = QUIZ_SOURCE_WRONG
+        wrong_ids = await _recent_wrong_word_ids(db, user_id)
+        candidates = [w for w in user_words if w.id in wrong_ids]
+        if len(candidates) < QUIZ_MIN_SOURCE_WORDS:
+            raise QuizSourceTooSmallError(
+                f"복습 가능한 오답 단어가 4개 미만입니다 (현재 {len(candidates)}개)"
+            )
+    elif wordbook_id is not None:
         source = QUIZ_SOURCE_WORDBOOK
         candidates = [w for w in user_words if w.wordbook_id == wordbook_id]
     else:

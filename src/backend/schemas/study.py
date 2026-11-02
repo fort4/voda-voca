@@ -39,10 +39,11 @@ class FlashcardPage(BaseModel):
 
 
 class QuizCreate(BaseModel):
-    """출제 원천은 단어장 하나 또는 본인 북마크 중 정확히 하나여야 한다."""
+    """출제 원천은 단어장, 북마크, 오답 복습 중 정확히 하나여야 한다."""
 
-    wordbook_id: int | None = Field(default=None, description="출제할 단어장 ID")
+    wordbook_id: int | None = Field(default=None, description="출제할 단어장 ID (wordbook_id 가 있으면 단어장 퀴즈)")
     bookmarks: bool = Field(default=False, description="true 면 본인 북마크 단어로 출제")
+    wrong_only: bool = Field(default=False, description="true 면 최근 학습 기록(100건)에서 틀린 단어로 출제 (오답 복습)")
     count: int = Field(
         default=QUIZ_COUNT_DEFAULT,
         ge=1,
@@ -52,8 +53,9 @@ class QuizCreate(BaseModel):
 
     @model_validator(mode="after")
     def _exactly_one_source(self) -> Self:
-        if (self.wordbook_id is None) == (not self.bookmarks):
-            raise ValueError("wordbook_id 또는 bookmarks=true 중 하나만 지정해야 합니다.")
+        chosen = [self.wordbook_id is not None, self.bookmarks, self.wrong_only]
+        if sum(chosen) != 1:
+            raise ValueError("wordbook_id, bookmarks=true, wrong_only=true 중 하나만 지정해야 합니다.")
         return self
 
 

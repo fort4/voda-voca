@@ -1,12 +1,13 @@
 # 2026-11-02 - voda-voca - 단어장 서비스: 소유권 검증, CRUD, 페이징 (REQ-003~007, REQ-105, REQ-106)
 # 파일 위치: src/backend/services/wordbook.py
 
-from sqlalchemy import func, select
+from sqlalchemy import func, insert, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import Wordbook
+from backend.models import Word, Wordbook
 from backend.schemas.wordbook import WordbookCreate, WordbookUpdate
+from backend.services.seed import load_preset
 
 UNIQUE_NAME_CONSTRAINT = "uk_wordbooks_user_name"
 
@@ -57,11 +58,19 @@ async def create_wordbook(db: AsyncSession, user_id: int, data: WordbookCreate) 
     return wordbook
 
 
+async def count_words(db: AsyncSession, wordbook_id: int) -> int:
+    """단어장 하나의 단어 수. 단건 응답(상세·수정)에 쓴다. 목록은 list_wordbooks 가 한 번에 센다."""
+    return (
+        await db.execute(select(func.count(Word.id)).where(Word.wordbook_id == wordbook_id))
+    ).scalar_one()
+
+
 async def list_wordbooks(
     db: AsyncSession, user_id: int, page: int, size: int
-) -> tuple[list[Wordbook], int]:
+) -> tuple[list[tuple[Wordbook, int]], int]:
     """본인 단어장을 최근 수정순으로 한 페이지 반환하고, 전체 개수도 함께 반환한다 (REQ-005).
 
+    각 단어장의 단어 수는 words 와 LEFT JOIN 한 GROUP BY 한 번으로 센다 (N+1 방지). 단어가 없으면 0 이다.
     정렬 키 뒤에 id 를 붙여 수정 시각이 같은 행의 순서도 항상 같게 한다.
     """
     total = (
@@ -71,13 +80,42 @@ async def list_wordbooks(
     ).scalar_one()
 
     result = await db.execute(
-        select(Wordbook)
+        select(Wordbook, func.count(Word.id))
+        .outerjoin(Word, Word.wordbook_id == Wordbook.id)
         .where(Wordbook.user_id == user_id)
+        .group_by(Wordbook.id)
         .order_by(Wordbook.updated_at.desc(), Wordbook.id.desc())
         .offset((page - 1) * size)
         .limit(size)
     )
-    return list(result.scalars().all()), total
+    return [(wordbook, count) for wordbook, count in result.all()], total
+
+
+async def create_preset_wordbook(db: AsyncSession, user_id: int, key: str) -> Wordbook:
+    """추천 프리셋 단어장을 만든다. 단어장과 단어 1,000건을 한 트랜잭션으로 넣는다 (All-or-Nothing).
+
+    데이터 파일이 없으면 SeedDataMissingError, 같은 이름의 단어장이 있으면 WordbookNameTakenError.
+    """
+    name, words = load_preset(key)
+    wordbook = Wordbook(user_id=user_id, name=name)
+    db.add(wordbook)
+    try:
+        await db.flush()
+        await db.execute(
+            insert(Word),
+            [
+                {"wordbook_id": wordbook.id, "term": w.term, "meaning": w.meaning, "example": w.example}
+                for w in words
+            ],
+        )
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        if UNIQUE_NAME_CONSTRAINT in str(exc.orig):
+            raise WordbookNameTakenError from exc
+        raise
+    await db.refresh(wordbook)
+    return wordbook
 
 
 async def update_wordbook(
