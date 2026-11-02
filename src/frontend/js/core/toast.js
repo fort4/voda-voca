@@ -4,7 +4,7 @@
  */
 
 /**
- * 하단 토스트. 자동으로 사라진다.
+ * 상단 토스트. 1.2초 뒤 자동으로 사라진다. 시간 진행 막대는 보이지 않는다.
  * @param {string} title
  * @param {"success"|"error"|"info"|"warning"} [icon]
  */
@@ -12,9 +12,12 @@ export function toast(title, icon = "success") {
   if (!globalThis.Swal) return;
   globalThis.Swal.fire({
     toast: true,
-    position: "bottom",
+    position: "top",
     showConfirmButton: false,
-    timer: 2800,
+    timer: 1200,
+    timerProgressBar: false,
+    // 앱 토큰(radius, 그림자, 다크모드)에 맞춘 스타일은 css/app.css 의 .voda-toast 에서 정의한다.
+    customClass: { container: "voda-toast-container", popup: "voda-toast" },
     icon,
     title,
   });

@@ -431,3 +431,39 @@ html.dark .swal2-title,
 html.dark .swal2-html-container {
   color: #fafafa;
 }
+
+/* 상단 토스트: 상단바(h-14 = 3.5rem) 바로 아래에 살짝 간격을 두고 띄운다 (SweetAlert2 기본 top:0 을 덮어씀). 카드와 같은 모서리·보더·그림자를 쓴다. 시간 진행 막대는 두지 않는다 */
+body.swal2-toast-shown .swal2-container.swal2-top.voda-toast-container {
+  inset: calc(3.5rem + 0.5rem) auto auto 50%;
+  height: auto;
+}
+.swal2-popup.voda-toast {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-raised);
+  padding: 0.75rem 1rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  animation: toast-rise 260ms var(--ease-out) both;
+}
+.swal2-popup.voda-toast .swal2-title {
+  margin: 0 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text);
+}
+html.dark .swal2-popup.voda-toast {
+  background: #18181b;
+  border-color: #3f3f46;
+  color: #fafafa;
+}
+html.dark .swal2-popup.voda-toast .swal2-title { color: #fafafa; }
+@keyframes toast-rise {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .swal2-popup.voda-toast { animation: none; }
+}
