@@ -42,3 +42,32 @@ export function formatRetry(seconds) {
 export function utf8ByteLength(text) {
   return new TextEncoder().encode(text).length;
 }
+
+const KST_PARTS = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Seoul",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+/**
+ * UTC 시각을 한국 날짜 키(YYYY-MM-DD)로 바꾼다. 날짜 묶음에 쓴다.
+ * @param {string} iso
+ * @returns {string} 잘못된 값이면 빈 문자열
+ */
+export function kstDateKey(iso) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return KST_PARTS.format(date);
+}
+
+/**
+ * 한국 시각의 시:분 (HH:mm).
+ * @param {string} iso
+ * @returns {string}
+ */
+export function kstTime(iso) {
+  const full = formatKst(iso);
+  const match = /(\d{2}:\d{2})$/.exec(full);
+  return match ? match[1] : "";
+}

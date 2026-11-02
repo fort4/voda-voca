@@ -12,9 +12,52 @@ import { loginView } from "./views/login.js";
 import { signupView } from "./views/signup.js";
 import { wordbooksView } from "./views/wordbooks.js";
 import { wordsView } from "./views/words.js";
+import { flashcardsView } from "./views/flashcards.js";
+import { quizView } from "./views/quiz.js";
+import { bookmarksView } from "./views/bookmarks.js";
+import { historyView } from "./views/history.js";
+import { clearQuizResults } from "./core/result-cache.js";
 
 const root = /** @type {HTMLElement} */ (document.getElementById("app"));
 const userbar = /** @type {HTMLElement} */ (document.getElementById("userbar"));
+const tabbar = /** @type {HTMLElement} */ (document.getElementById("tabbar"));
+
+const TABS = [
+  { href: "#/wordbooks", label: "단어장", iconName: "book-open", prefix: "/wordbooks" },
+  { href: "#/bookmarks", label: "북마크", iconName: "star", prefix: "/bookmarks" },
+  { href: "#/history", label: "이력", iconName: "history", prefix: "/history" },
+];
+
+/** 하단 탭바: 로그인 상태에서만 보이고, 현재 경로에 해당하는 탭을 표시한다 (2단계 네비게이션). */
+function renderTabbar() {
+  clear(tabbar);
+  if (!getUser()) {
+    tabbar.hidden = true;
+    return;
+  }
+  tabbar.hidden = false;
+  const current = parseHash(location.hash).path;
+  tabbar.append(
+    h(
+      "div",
+      { class: "mx-auto grid max-w-screen-md grid-cols-3" },
+      TABS.map((tab) => {
+        const active = current === tab.prefix || current.startsWith(`${tab.prefix}/`);
+        return h(
+          "a",
+          {
+            href: tab.href,
+            class: `flex min-h-[56px] flex-col items-center justify-center gap-1 text-xs font-semibold ${active ? "text-blue-700" : "text-slate-500"}`,
+            "aria-current": active ? "page" : null,
+          },
+          icon(tab.iconName, "h-5 w-5"),
+          tab.label,
+        );
+      }),
+    ),
+  );
+  refreshIcons();
+}
 
 /** 상단바: 로그인 상태에 따라 닉네임과 로그아웃, 또는 로그인 링크를 보인다. */
 function renderUserbar() {
@@ -37,7 +80,9 @@ async function logout() {
     // 세션이 이미 없어도 로컬 상태는 지운다
   }
   setUser(null);
+  clearQuizResults(globalThis.sessionStorage);
   renderUserbar();
+  renderTabbar();
   router.navigate("/login");
 }
 
@@ -58,6 +103,10 @@ const routes = [
   { pattern: "/signup", access: "guest", view: signupView },
   { pattern: "/wordbooks", access: "user", view: wordbooksView },
   { pattern: "/wordbooks/:id", access: "user", view: wordsView },
+  { pattern: "/study/flashcards", access: "user", view: flashcardsView },
+  { pattern: "/study/quiz", access: "user", view: quizView },
+  { pattern: "/bookmarks", access: "user", view: bookmarksView },
+  { pattern: "/history", access: "user", view: historyView },
 ];
 
 const router = createRouter({
@@ -114,7 +163,8 @@ async function boot() {
   }
   renderUserbar();
   router.start();
-  window.addEventListener("hashchange", renderUserbar);
+  renderTabbar();
+  window.addEventListener("hashchange", () => { renderUserbar(); renderTabbar(); });
 }
 
 boot();

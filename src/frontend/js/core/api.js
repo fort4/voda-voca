@@ -119,17 +119,32 @@ export function defaultMessage(status) {
 }
 
 /**
- * 공통 API 호출.
- * - credentials: 'include' 로 세션 쿠키를 보낸다.
- * - 204 는 null, 그 밖의 성공은 JSON 을 반환한다.
+ * 공통 API 호출. 성공하면 본문(JSON)만, 헤더가 필요하면 apiResponse 를 쓴다.
+ * @param {string} path
+ * @param {ApiOptions} [options]
+ * @returns {Promise<any>}
+ */
+export async function api(path, options = {}) {
+  const { data } = await apiResponse(path, options);
+  return data;
+}
+
+/**
+ * @typedef {{method?: string, query?: Record<string, unknown>, body?: unknown, signal?: AbortSignal, timeoutMs?: number, skipAuthRedirect?: boolean, fetchImpl?: typeof fetch}} ApiOptions
+ */
+
+/**
+ * 공통 API 호출 (헤더 포함). 서버 Date 헤더로 시계 차이를 구할 때 쓴다 (세션 타이머).
+ * - credentials: 'include' 로 쿠키를 보낸다.
+ * - 204 는 data 가 null 이다.
  * - 401 은 unauthorizedHandler 를 호출한 뒤 ApiError 를 던진다 (skipAuthRedirect 가 없을 때만).
  * - 호출자가 signal 로 취소하면 AbortError 를 그대로 던진다. 시간 초과는 ApiError(status 0) 이다.
  *
  * @param {string} path /api 뒤의 경로 (예: "/wordbooks")
- * @param {{method?: string, query?: Record<string, unknown>, body?: unknown, signal?: AbortSignal, timeoutMs?: number, skipAuthRedirect?: boolean, fetchImpl?: typeof fetch}} [options]
- * @returns {Promise<any>}
+ * @param {ApiOptions} [options]
+ * @returns {Promise<{data: any, headers: Headers, status: number}>}
  */
-export async function api(path, options = {}) {
+export async function apiResponse(path, options = {}) {
   const {
     method = "GET",
     query,
@@ -165,12 +180,12 @@ export async function api(path, options = {}) {
     clearTimeout(timer);
   }
 
-  if (response.status === 204) return null;
+  if (response.status === 204) return { data: null, headers: response.headers, status: 204 };
 
   const isJson = (response.headers.get("Content-Type") || "").includes("application/json");
   const payload = isJson ? await safeJson(response) : null;
 
-  if (response.ok) return payload;
+  if (response.ok) return { data: payload, headers: response.headers, status: response.status };
 
   const error = toApiError(response.status, response.headers, payload);
   if (response.status === 401 && !skipAuthRedirect) unauthorizedHandler();

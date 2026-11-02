@@ -104,7 +104,13 @@ export function wordsView(root, { params, navigate }) {
       button({ variant: "secondary", onClick: () => openBulkImport({ wordbookId, onDone: refresh }) }, icon("upload"), h("span", { class: "hidden sm:inline" }, "일괄 등록")),
       button({ onClick: () => openWordForm({ wordbookId, onChanged: refresh }) }, icon("plus"), h("span", { class: "hidden sm:inline" }, "단어 추가")),
     ),
-    h("div", { class: "relative mb-4" }, input, h("div", { class: "absolute right-1 top-1" }, clearBtn)),
+    h("div", { class: "relative mb-3" }, input, h("div", { class: "absolute right-1 top-1" }, clearBtn)),
+    h(
+      "div",
+      { class: "mb-4 grid grid-cols-2 gap-2" },
+      button({ variant: "secondary", onClick: () => navigate("/study/flashcards", { wordbook_id: String(wordbookId) }) }, icon("layers"), "플래시카드"),
+      button({ variant: "secondary", onClick: () => navigate("/study/quiz", { wordbook_id: String(wordbookId) }) }, icon("list-checks"), "퀴즈"),
+    ),
     listEl,
     h("div", { class: "mt-4" }, moreBtn),
   );

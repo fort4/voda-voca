@@ -71,3 +71,15 @@ textarea {
   opacity: 0.55;
 }
 
+
+/* 플래시카드 앞·뒤 면 (3단계): 뒷면은 미리 뒤집어 두고, 뒤집기 시 카드 전체가 180도 돈다 */
+.flip-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.flip-face.flip-back {
+  transform: rotateY(180deg);
+}
+.flip-scene .flip-card {
+  min-height: 260px;
+}
