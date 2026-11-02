@@ -5,6 +5,7 @@
 from backend.models.base import Base
 from backend.models.bookmark import Bookmark
 from backend.models.session import AuthSession
+from backend.models.quiz_session import QuizSession
 from backend.models.study_log import StudyLog
 from backend.models.user import User
 from backend.models.word import Word
@@ -14,6 +15,7 @@ __all__ = [
     "AuthSession",
     "Base",
     "Bookmark",
+    "QuizSession",
     "StudyLog",
     "User",
     "Word",

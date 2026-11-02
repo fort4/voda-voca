@@ -14,6 +14,7 @@ from backend.routers.auth import router as auth_router
 from backend.routers.wordbook import router as wordbook_router
 from backend.routers.word import router as word_router
 from backend.routers.bookmark import router as bookmark_router
+from backend.routers.study import router as study_router
 
 
 @asynccontextmanager
@@ -28,6 +29,7 @@ app.include_router(auth_router)
 app.include_router(wordbook_router)
 app.include_router(word_router)
 app.include_router(bookmark_router)
+app.include_router(study_router)
 
 
 @app.get("/health")
