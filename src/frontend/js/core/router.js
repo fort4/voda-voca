@@ -65,7 +65,7 @@ export function safeNext(value, fallback = "/wordbooks") {
  * 라우터를 만든다. 경로가 바뀔 때마다 이전 화면의 정리 함수를 부르고 새 화면을 그린다.
  * @param {{routes: Route[], root: HTMLElement, getUser: () => unknown, onNotFound?: () => void}} opts
  */
-export function createRouter({ routes, root, getUser, onNotFound }) {
+export function createRouter({ routes, root, getUser, onNotFound, afterRender = () => {} }) {
   let cleanup = null;
 
   /** @param {string} path @param {Record<string, string>} query */
@@ -112,6 +112,7 @@ export function createRouter({ routes, root, getUser, onNotFound }) {
     }
     const result = route.view(root, { params, query, path, navigate, replace });
     if (typeof result === "function") cleanup = result;
+    afterRender();
   }
 
   function start() {

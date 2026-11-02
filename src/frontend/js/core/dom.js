@@ -54,9 +54,17 @@ export function icon(name, cls = "h-5 w-5") {
   return h("i", { "data-lucide": name, class: cls, "aria-hidden": "true" });
 }
 
-/** 현재 DOM 의 data-lucide 요소를 SVG 로 바꾼다. Lucide 가 로드되지 않았으면 아무 일도 하지 않는다. */
+/**
+ * 아이콘 자리표시자(<i data-lucide="…">)를 SVG 로 바꾼다.
+ * 화면과 모달이 새로 그려질 때마다 호출한다 (라우터 afterRender, 모달 didOpen).
+ * Lucide 가 로드되지 않았으면 아무 일도 하지 않는다. 예외를 던지지 않는다.
+ * @returns {boolean} 실제로 변환을 시도했는지
+ */
 export function refreshIcons() {
-  if (globalThis.lucide?.createIcons) globalThis.lucide.createIcons();
+  const lib = globalThis.lucide;
+  if (!lib || typeof lib.createIcons !== "function") return false;
+  lib.createIcons();
+  return true;
 }
 
 /**

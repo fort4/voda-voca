@@ -196,6 +196,7 @@ const router = createRouter({
   routes,
   root,
   getUser,
+  afterRender: refreshIcons,
   onNotFound: () => {
     clear(root);
     root.append(

@@ -6,7 +6,8 @@
 import { api, apiResponse, ApiError } from "../core/api.js";
 import { button, clear, h, icon, notice, refreshIcons, skeleton } from "../core/dom.js";
 import { alertBox } from "../core/form.js";
-import { createQuizState, deriveQuizItems } from "../core/quiz-state.js";
+import { createQuizFlow } from "../core/quiz-flow.js";
+import { deriveQuizItems } from "../core/quiz-state.js";
 import { loadQuizResult, saveQuizResult } from "../core/result-cache.js";
 import { computeClockOffset, formatClock, isWarning, remainingMs } from "../core/timer.js";
 import { confirmDialog, toast } from "../core/toast.js";
@@ -126,19 +127,20 @@ export function quizView(root, ctx) {
   }
 
   /**
-   * 출제된 세션을 푼다. 타이머는 서버 expires_at 기준 로컬 카운트다운이다.
-   * @param {{session_id: number, expires_at: string, questions: Array<{question_id: number, term: string, choices: string[]}>}} session
+   * 출제된 세션을 푼다. 보기를 고르면 즉시 정오를 판정하고 해설을 보여 준다 (즉각 피드백).
+   * 타이머는 서버 expires_at 기준 로컬 카운트다운이다. 마지막 문항 뒤에는 최종 결과 보기로 제출한다.
+   * @param {{session_id: number, expires_at: string, questions: Array<{question_id: number, term: string, choices: string[], correct_index: number, example: string|null}>}} session
    * @param {Headers} headers 출제 응답 헤더 (Date 로 시계 차이 보정)
    * @param {{kind: string, wordbookId?: number}} source
    * @param {number} clientNow 응답을 받은 순간의 기기 시각
    */
   function runSession(session, headers, source, clientNow) {
     const offset = computeClockOffset(headers?.get?.("Date") ?? null, clientNow);
-    const quiz = createQuizState({ questions: session.questions });
-    const view = { index: 0, expired: false, submitting: false, timerId: null, ms: remainingMs(session.expires_at, Date.now(), offset) };
+    const flow = createQuizFlow({ session });
+    const view = { expired: false, submitting: false, timerId: null, ms: remainingMs(session.expires_at, Date.now(), offset) };
     const timerEl = h("span", { class: "font-mono text-base font-semibold tabular-nums", role: "timer" });
-    const progressBar = h("div", { class: "h-2 rounded-full bg-indigo-600 transition-all", style: "width: 0%" });
-    const progressText = h("p", { class: "text-sm text-zinc-600", "aria-live": "polite" });
+    const progressBar = h("div", { class: "h-2 rounded-full bg-indigo-600 transition-all duration-500", style: "width: 0%" });
+    const progressText = h("p", { class: "text-sm text-zinc-500", "aria-live": "polite" });
     const banner = alertBox();
     const stage = h("div", { class: "space-y-4" });
 
@@ -155,9 +157,8 @@ export function quizView(root, ctx) {
     }
 
     function paintProgress() {
-      progressBar.style.width = `${quiz.progressPercent()}%`;
-      const left = quiz.unansweredCount();
-      progressText.textContent = `${quiz.answeredCount()} / ${quiz.total} 답함${left ? ` · ${left}문항 남음` : ""}`;
+      progressBar.style.width = `${flow.progressPercent()}%`;
+      progressText.textContent = `${flow.answeredCount()} / ${flow.total} 답함`;
     }
 
     function expire() {
@@ -172,66 +173,112 @@ export function quizView(root, ctx) {
       view.timerId = null;
     }
 
+    /** 보기 한 개. 판정 후에는 정답은 초록, 내가 고른 틀린 답은 빨강으로 보여 준다. */
+    function choiceButton(question, i, feedback, locked) {
+      const isSelected = feedback?.selectedIndex === i;
+      const isAnswer = feedback !== null && i === feedback.correctIndex;
+      const isWrongPick = isSelected && feedback !== null && !feedback.isCorrect;
+      const tone = isAnswer
+        ? "border-emerald-500 bg-emerald-50 text-emerald-900"
+        : isWrongPick
+          ? "border-red-500 bg-red-50 text-red-800"
+          : "border-zinc-200 bg-white text-zinc-800 hover:border-indigo-300 hover:bg-indigo-50/40";
+      const btn = h(
+        "button",
+        {
+          type: "button",
+          class: `press focus-ring flex min-h-[52px] w-full items-center gap-3 rounded-xl border px-4 py-3 text-left text-[15px] font-medium shadow-sm transition-colors disabled:cursor-default ${tone}`,
+          disabled: locked,
+          "aria-pressed": String(isSelected),
+          onclick: () => {
+            if (flow.choose(i)) render();
+          },
+        },
+        h(
+          "span",
+          { class: `grid h-7 w-7 shrink-0 place-items-center rounded-lg font-mono text-sm ${isAnswer ? "bg-emerald-600 text-white" : isWrongPick ? "bg-red-600 text-white" : "bg-zinc-100 text-zinc-600"}` },
+          `${i + 1}`,
+        ),
+        h("span", { class: "min-w-0 flex-1 break-words" }, question.choices[i]),
+        isAnswer ? icon("check", "h-5 w-5 shrink-0 text-emerald-700") : isWrongPick ? icon("x", "h-5 w-5 shrink-0 text-red-700") : null,
+      );
+      if (isSelected) btn.classList.add("choice-selected");
+      return btn;
+    }
+
+    /** 해설 카드: 정오, 정답 뜻, 예문, 다음 문항 또는 최종 결과 보기. */
+    function feedbackCard(feedback) {
+      const last = flow.isLast();
+      return h(
+        "section",
+        { class: `rise-in space-y-3 rounded-2xl border p-5 ${feedback.isCorrect ? "border-emerald-200 bg-emerald-50/70" : "border-red-200 bg-red-50/70"}`, role: "status", "aria-live": "polite" },
+        h(
+          "p",
+          { class: `flex items-center gap-2 text-base font-bold ${feedback.isCorrect ? "text-emerald-800" : "text-red-800"}` },
+          icon(feedback.isCorrect ? "check-circle" : "x", "h-5 w-5"),
+          feedback.isCorrect ? "정답입니다!" : "아쉬워요, 오답입니다.",
+        ),
+        h(
+          "div",
+          { class: "space-y-1 text-sm text-zinc-700" },
+          h("p", {}, "정답 뜻: ", h("strong", { class: "text-zinc-900" }, feedback.correctMeaning)),
+        ),
+        h(
+          "div",
+          { class: "rounded-xl bg-white/80 p-4 ring-1 ring-zinc-200" },
+          h("p", { class: "mb-1 text-xs font-semibold uppercase tracking-wider text-zinc-500" }, "예문 해설"),
+          feedback.example
+            ? h("p", { class: "break-words text-[15px] italic leading-relaxed text-zinc-800" }, feedback.example)
+            : h("p", { class: "text-sm text-zinc-500" }, "이 단어에는 해설 예문이 없습니다."),
+        ),
+        button({ full: true, onClick: advance }, last ? "최종 결과 보기" : "다음 문항", icon(last ? "flag" : "chevron-right")),
+      );
+    }
+
     function render() {
       clear(stage);
-      const question = session.questions[view.index];
-      const disabled = view.expired || view.submitting;
-      const selected = quiz.answerOf(question.question_id);
-      const last = view.index === session.questions.length - 1;
+      const question = flow.current();
+      const feedback = flow.feedbackFor(question.question_id);
+      const locked = view.expired || view.submitting || feedback !== null;
       stage.append(
-        h("p", { class: "text-sm text-zinc-500" }, `${view.index + 1}번 문항`),
+        h("p", { class: "text-sm font-medium text-zinc-500" }, `${flow.index + 1} / ${flow.total}번 문항`),
         h("p", { class: "surface rise-in break-words p-6 text-center text-3xl font-bold tracking-tight text-zinc-900" }, question.term),
         h(
           "div",
-          { class: "grid gap-2", role: "radiogroup", "aria-label": "뜻 고르기" },
-          question.choices.map((choice, i) => {
-            const isSelected = selected === i;
-            const btn = button(
-              {
-                variant: isSelected ? "primary" : "secondary",
-                full: true,
-                disabled,
-                onClick: () => { quiz.select(question.question_id, i); render(); },
-              },
-              h(
-                "span",
-                { class: `grid h-7 w-7 shrink-0 place-items-center rounded-lg font-mono text-sm ${isSelected ? "bg-white/20" : "bg-zinc-100 text-zinc-600"}` },
-                `${i + 1}`,
-              ),
-              h("span", { class: "min-w-0 flex-1 break-words text-left" }, choice),
-              isSelected ? icon("check", "h-5 w-5 shrink-0") : null,
-            );
-            if (isSelected) btn.classList.add("choice-selected");
-            return btn;
-          }),
+          { class: "grid gap-2.5", role: "group", "aria-label": "뜻 고르기" },
+          question.choices.map((_, i) => choiceButton(question, i, feedback, locked)),
         ),
+        feedback && !view.expired ? feedbackCard(feedback) : null,
         h(
           "div",
           { class: "grid grid-cols-2 gap-2" },
-          button({ variant: "secondary", disabled: view.index === 0 || disabled, onClick: () => { view.index -= 1; render(); } }, icon("chevron-left"), "이전"),
-          last
-            ? button({ disabled: disabled || !quiz.allAnswered(), onClick: submit }, "제출하기")
-            : button({ disabled, onClick: () => { view.index += 1; render(); } }, "다음", icon("chevron-right")),
+          button({ variant: "secondary", disabled: flow.index === 0 || view.submitting, onClick: () => { flow.prev(); render(); } }, icon("chevron-left"), "이전"),
+          feedback === null && !view.expired
+            ? h("p", { class: "flex items-center justify-center text-center text-xs text-zinc-500" }, "보기를 고르면 바로 채점됩니다.")
+            : null,
         ),
-        last && !quiz.allAnswered() && !view.expired
-          ? h("p", { class: "text-center text-sm text-zinc-600" }, `아직 ${quiz.unansweredCount()}개 문항에 답하지 않았습니다.`)
-          : null,
       );
       paintProgress();
       refreshIcons();
     }
 
-    async function submit() {
-      if (!quiz.allAnswered() || view.submitting || view.expired) return;
-      const ok = await confirmDialog({ title: "퀴즈를 제출할까요?", text: "제출하면 답을 고칠 수 없습니다.", confirmText: "제출" });
-      if (!ok) return;
+    /** 해설의 다음 버튼. 마지막이면 최종 제출 (기록 저장 후 결과 화면). */
+    function advance() {
+      if (flow.isLast()) {
+        finish();
+        return;
+      }
+      if (flow.next()) render();
+    }
+
+    async function finish() {
+      if (!flow.canFinish() || view.submitting || view.expired) return;
       view.submitting = true;
       stopTimer();
       render();
       try {
-        const payload = quiz.toSubmitPayload();
-        const result = await api(`/study/quiz/sessions/${session.session_id}/submit`, { method: "POST", body: payload });
-        const answers = new Map(session.questions.map((q) => [q.question_id, quiz.answerOf(q.question_id)]));
+        const result = await api(`/study/quiz/sessions/${session.session_id}/submit`, { method: "POST", body: flow.toSubmitPayload() });
+        const answers = flow.answerMap();
         const record = {
           sessionId: session.session_id,
           source: sourceRouteQuery(source),
@@ -253,9 +300,7 @@ export function quizView(root, ctx) {
         } else {
           banner.show(error instanceof ApiError ? error.detail : "제출하지 못했습니다.");
         }
-        if (!view.expired) {
-          view.timerId = setInterval(tick, 1000);
-        }
+        if (!view.expired) view.timerId = setInterval(tick, 1000);
         render();
       }
     }
