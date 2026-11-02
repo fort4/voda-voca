@@ -9,6 +9,19 @@
  */
 
 /**
+ * 현재 화면에 무엇을 보일지 결정한다. 미선택 상태에서는 해설 카드를 만들지 않는다 (null 을 DOM 에 넘기지 않기 위해).
+ * @param {{feedback: QuizFeedback|null|undefined, expired: boolean}} state
+ * @returns {{showExplanation: boolean, showHint: boolean}}
+ */
+export function stageSlots({ feedback, expired }) {
+  const answered = feedback !== null && feedback !== undefined;
+  return {
+    showExplanation: answered && !expired,
+    showHint: !answered && !expired,
+  };
+}
+
+/**
  * @param {{session: {questions: QuizQuestion[]}}} opts
  */
 export function createQuizFlow({ session }) {

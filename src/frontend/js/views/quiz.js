@@ -4,9 +4,9 @@
  */
 
 import { api, apiResponse, ApiError } from "../core/api.js";
-import { button, clear, h, icon, notice, refreshIcons, skeleton } from "../core/dom.js";
+import { appendNodes, button, clear, h, icon, notice, refreshIcons, skeleton } from "../core/dom.js";
 import { alertBox } from "../core/form.js";
-import { createQuizFlow } from "../core/quiz-flow.js";
+import { createQuizFlow, stageSlots } from "../core/quiz-flow.js";
 import { deriveQuizItems } from "../core/quiz-state.js";
 import { loadQuizResult, saveQuizResult } from "../core/result-cache.js";
 import { computeClockOffset, formatClock, isWarning, remainingMs } from "../core/timer.js";
@@ -240,7 +240,9 @@ export function quizView(root, ctx) {
       const question = flow.current();
       const feedback = flow.feedbackFor(question.question_id);
       const locked = view.expired || view.submitting || feedback !== null;
-      stage.append(
+      const slots = stageSlots({ feedback, expired: view.expired });
+      appendNodes(
+        stage,
         h("p", { class: "text-sm font-medium text-zinc-500" }, `${flow.index + 1} / ${flow.total}번 문항`),
         h("p", { class: "surface rise-in break-words p-6 text-center text-3xl font-bold tracking-tight text-zinc-900" }, question.term),
         h(
@@ -248,14 +250,12 @@ export function quizView(root, ctx) {
           { class: "grid gap-2.5", role: "group", "aria-label": "뜻 고르기" },
           question.choices.map((_, i) => choiceButton(question, i, feedback, locked)),
         ),
-        feedback && !view.expired ? feedbackCard(feedback) : null,
+        slots.showExplanation ? feedbackCard(feedback) : null,
         h(
           "div",
           { class: "grid grid-cols-2 gap-2" },
           button({ variant: "secondary", disabled: flow.index === 0 || view.submitting, onClick: () => { flow.prev(); render(); } }, icon("chevron-left"), "이전"),
-          feedback === null && !view.expired
-            ? h("p", { class: "flex items-center justify-center text-center text-xs text-zinc-500" }, "보기를 고르면 바로 채점됩니다.")
-            : null,
+          slots.showHint ? h("p", { class: "flex items-center justify-center text-center text-xs text-zinc-500" }, "보기를 고르면 바로 채점됩니다.") : null,
         ),
       );
       paintProgress();

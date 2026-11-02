@@ -39,6 +39,26 @@ export function appendChildren(el, children) {
   }
 }
 
+/**
+ * 자식 후보에서 화면에 넣을 수 없는 값(null, undefined, false)을 걸러낸다. 배열은 펼친다.
+ * DOM 의 append 는 null 을 문자열 "null" 로 바꿔 넣으므로, 조건부 자식은 반드시 이 함수를 거친다.
+ * 순수 함수이며 DOM 에 의존하지 않는다.
+ * @param {Array<unknown>} children
+ * @returns {Array<unknown>}
+ */
+export function renderable(children) {
+  return children.flat(Infinity).filter((child) => child !== null && child !== undefined && child !== false);
+}
+
+/**
+ * 요소에 자식을 붙인다. 조건부 값이 섞여도 "null" 같은 문자열이 새지 않는다.
+ * @param {HTMLElement} el
+ * @param {...unknown} children
+ */
+export function appendNodes(el, ...children) {
+  el.append(...renderable(children));
+}
+
 /** @param {HTMLElement} el */
 export function clear(el) {
   el.replaceChildren();

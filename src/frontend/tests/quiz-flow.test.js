@@ -5,7 +5,8 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createQuizFlow } from "../js/core/quiz-flow.js";
+import { createQuizFlow, stageSlots } from "../js/core/quiz-flow.js";
+import { renderable } from "../js/core/dom.js";
 
 const SESSION = {
   session_id: 9,
@@ -120,4 +121,34 @@ test("빈 세션은 제출할 수 없다", () => {
   const flow = createQuizFlow({ session: { questions: [] } });
   assert.equal(flow.canFinish(), false);
   assert.equal(flow.progressPercent(), 0);
+});
+
+test("미선택(초기) 상태에서는 해설 카드를 보이지 않고, 안내 문구만 보인다", () => {
+  const flow = createQuizFlow({ session: SESSION });
+  const slots = stageSlots({ feedback: flow.feedbackFor(flow.current().question_id), expired: false });
+  assert.deepEqual(slots, { showExplanation: false, showHint: true });
+});
+
+test("보기를 고른 뒤에는 해설 카드가 보이고 안내 문구는 사라진다", () => {
+  const flow = createQuizFlow({ session: SESSION });
+  flow.choose(0);
+  const slots = stageSlots({ feedback: flow.feedbackFor(0), expired: false });
+  assert.deepEqual(slots, { showExplanation: true, showHint: false });
+});
+
+test("만료된 상태에서는 해설도 안내도 보이지 않는다", () => {
+  assert.deepEqual(stageSlots({ feedback: null, expired: true }), { showExplanation: false, showHint: false });
+});
+
+test("미선택 상태의 화면 자식 목록에는 null 이나 undefined 가 남지 않는다 (문자열 'null' 노출 방지)", () => {
+  const flow = createQuizFlow({ session: SESSION });
+  const { showExplanation, showHint } = stageSlots({ feedback: flow.feedbackFor(0), expired: false });
+  const children = renderable([
+    "문항 1",
+    "사과",
+    showExplanation ? "해설 카드" : null,
+    showHint ? "보기를 고르면 바로 채점됩니다." : null,
+  ]);
+  assert.equal(children.some((c) => c === null || c === undefined), false);
+  assert.equal(children.join("|").includes("null"), false);
 });

@@ -5,7 +5,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { refreshIcons } from "../js/core/dom.js";
+import { refreshIcons, renderable } from "../js/core/dom.js";
 
 test("Lucide 가 로드되지 않았으면 refreshIcons 는 예외 없이 false 를 돌려준다", () => {
   const saved = globalThis.lucide;
@@ -39,4 +39,15 @@ test("createIcons 가 없는 객체면 호출하지 않는다", () => {
   } finally {
     globalThis.lucide = saved;
   }
+});
+
+test("renderable 은 null, undefined, false 를 걸러내고 배열을 펼친다", () => {
+  assert.deepEqual(renderable([null, undefined, false, "a", [null, "b", [false, "c"]]]), ["a", "b", "c"]);
+  assert.deepEqual(renderable([]), []);
+});
+
+test("renderable 의 결과를 이어 붙여도 리터럴 null 이 생기지 않는다", () => {
+  const joined = renderable([null, "머리", null, undefined, "본문"]).join("");
+  assert.equal(joined, "머리본문");
+  assert.equal(joined.includes("null"), false);
 });
