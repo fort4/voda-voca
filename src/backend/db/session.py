@@ -43,9 +43,21 @@ async def get_db_session() -> AsyncIterator[AsyncSession]:
 
     요청마다 새 세션을 열고, 요청이 끝나면 닫는다 (커넥션은 풀에 반납된다).
     사용 예: `session: AsyncSession = Depends(get_db_session)`
+
+    예외 처리 순서를 고정한다.
+    - 요청 처리 중 예외가 나면 `rollback()`을 await 하여 미완료 트랜잭션을 먼저 되돌린다.
+    - 그 뒤 `finally`에서 `close()`로 세션을 닫아 커넥션을 풀에 반납한다.
+    - `rollback()`이 실패하면 그 예외가 전파되고, 원래 예외는 `__context__`에 남는다.
+      `finally`의 `close()`는 rollback 실패와 무관하게 항상 호출된다.
     """
-    async with get_session_factory()() as session:
+    session = get_session_factory()()
+    try:
         yield session
+    except Exception:
+        await session.rollback()
+        raise
+    finally:
+        await session.close()
 
 
 async def dispose_engine() -> None:
