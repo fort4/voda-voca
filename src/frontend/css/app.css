@@ -1,0 +1,58 @@
+/*
+ * 2026-11-02 - voda-voca - 앱 전역 스타일: 터치 지연 제거, 카드 뒤집기, 동작 줄이기, 입력 글자 크기 (REQ-020, REQ-021, REQ-114, REQ-115)
+ * 파일 위치: src/frontend/css/app.css
+ */
+
+:root {
+  color-scheme: light;
+}
+
+/* 300ms 탭 지연 제거 (REQ-021). 버튼과 링크, 입력 칸에 적용한다. */
+button,
+a,
+input,
+select,
+textarea,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+/* 모바일 가로 스크롤 방지 (REQ-020). 긴 표제어는 줄을 바꾼다. */
+html,
+body {
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+}
+
+/* iOS 가 입력 칸을 확대하지 않도록 16px 이상을 유지한다 (REQ-115). */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+/* 플래시카드 등 3D 뒤집기 (2단계에서 사용). 동작 줄이기 설정이면 뒤집기를 끈다. */
+.flip-scene {
+  perspective: 1000px;
+}
+.flip-card {
+  transform-style: preserve-3d;
+  transition: transform 300ms ease;
+}
+.flip-card.is-flipped {
+  transform: rotateY(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .flip-card,
+  .animate-pulse {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* 키보드가 열려도 화면 높이가 흔들리지 않도록 dvh 를 우선 쓴다. */
+@supports (height: 100dvh) {
+  .min-h-dvh {
+    min-height: 100dvh;
+  }
+}

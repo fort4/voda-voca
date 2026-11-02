@@ -4,7 +4,10 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+from pathlib import Path
+
 from fastapi import Depends, FastAPI, Response
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -48,3 +51,9 @@ async def health(
         response.status_code = 503
         return {"status": "error", "db": "disconnected"}
     return {"status": "ok", "db": "connected"}
+
+
+# 정적 프론트엔드 (같은 출처 배포, 2026-11-02). 모든 API 라우트를 등록한 뒤 마지막에 붙인다.
+# 라우트가 먼저 매칭되므로 /api, /health 는 정적 파일 마운트에 가려지지 않는다.
+FRONTEND_DIR = Path(__file__).resolve().parents[1] / "frontend"
+app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
