@@ -202,18 +202,3 @@ export function wordbooksView(root, { navigate }) {
   load(true);
   return () => controller.abort();
 }
-
-/**
- * 단어 목록 화면은 2단계에서 구현한다. 지금은 경로가 깨지지 않도록 안내만 보여 준다.
- * @param {HTMLElement} root
- * @param {{navigate: (path: string) => void}} ctx
- */
-export function wordbookPlaceholderView(root, { navigate }) {
-  root.append(
-    notice({
-      iconName: "hammer",
-      title: "단어 목록은 다음 단계에서 제공됩니다.",
-      action: button({ variant: "secondary", onClick: () => navigate("/wordbooks") }, icon("arrow-left"), "단어장으로"),
-    }),
-  );
-}

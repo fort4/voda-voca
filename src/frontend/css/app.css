@@ -56,3 +56,18 @@ textarea {
     min-height: 100dvh;
   }
 }
+
+/* 북마크 별 (2단계): 눌린 상태는 채움, 서버 전송 중은 흐리게 (aria 속성 기반) */
+.star-toggle svg {
+  transition: fill 150ms ease;
+}
+.star-toggle[aria-pressed="true"] {
+  color: #f59e0b;
+}
+.star-toggle[aria-pressed="true"] svg {
+  fill: currentColor;
+}
+.star-toggle[aria-busy="true"] {
+  opacity: 0.55;
+}
+

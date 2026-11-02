@@ -10,7 +10,8 @@ import { getUser, setUser } from "./core/state.js";
 import { toast } from "./core/toast.js";
 import { loginView } from "./views/login.js";
 import { signupView } from "./views/signup.js";
-import { wordbookPlaceholderView, wordbooksView } from "./views/wordbooks.js";
+import { wordbooksView } from "./views/wordbooks.js";
+import { wordsView } from "./views/words.js";
 
 const root = /** @type {HTMLElement} */ (document.getElementById("app"));
 const userbar = /** @type {HTMLElement} */ (document.getElementById("userbar"));
@@ -56,7 +57,7 @@ const routes = [
   { pattern: "/login", access: "guest", view: loginView },
   { pattern: "/signup", access: "guest", view: signupView },
   { pattern: "/wordbooks", access: "user", view: wordbooksView },
-  { pattern: "/wordbooks/:id", access: "user", view: wordbookPlaceholderView },
+  { pattern: "/wordbooks/:id", access: "user", view: wordsView },
 ];
 
 const router = createRouter({

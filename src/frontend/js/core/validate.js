@@ -12,6 +12,9 @@ export const LIMITS = Object.freeze({
   NICKNAME_MAX: 50,
   WORDBOOK_NAME_MAX: 50,
   WORDBOOK_DESCRIPTION_MAX: 200,
+  WORD_TERM_MAX: 100,
+  WORD_MEANING_MAX: 200,
+  WORD_EXAMPLE_MAX: 500,
 });
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -71,4 +74,26 @@ export function mapFieldErrors(fields, knownNames) {
     if (!out[key]) out[key] = message;
   }
   return out;
+}
+
+/** @param {string} value @returns {string|null} 표제어 1~100자, 공백만 불가 */
+export function validateWordTerm(value) {
+  const term = value.trim();
+  if (!term) return "표제어를 입력해 주세요.";
+  if (term.length > LIMITS.WORD_TERM_MAX) return `표제어는 ${LIMITS.WORD_TERM_MAX}자 이하여야 합니다.`;
+  return null;
+}
+
+/** @param {string} value @returns {string|null} 뜻 1~200자, 공백만 불가 */
+export function validateWordMeaning(value) {
+  const meaning = value.trim();
+  if (!meaning) return "뜻을 입력해 주세요.";
+  if (meaning.length > LIMITS.WORD_MEANING_MAX) return `뜻은 ${LIMITS.WORD_MEANING_MAX}자 이하여야 합니다.`;
+  return null;
+}
+
+/** @param {string} value @returns {string|null} 예문 0~500자, 빈 값 허용 */
+export function validateWordExample(value) {
+  if (value.trim().length > LIMITS.WORD_EXAMPLE_MAX) return `예문은 ${LIMITS.WORD_EXAMPLE_MAX}자 이하여야 합니다.`;
+  return null;
 }
