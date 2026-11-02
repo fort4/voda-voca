@@ -11,6 +11,7 @@ import { getUser, setUser } from "./core/state.js";
 import { confirmDialog, toast } from "./core/toast.js";
 import { loginView } from "./views/login.js";
 import { createThemeManager } from "./core/theme.js";
+import { isMuted, toggleMute } from "./core/sound.js";
 import { signupView } from "./views/signup.js";
 import { wordbooksView } from "./views/wordbooks.js";
 import { wordsView } from "./views/words.js";
@@ -320,6 +321,27 @@ function watchIcons() {
 }
 
 /**
+ * 정답 소리 버튼: 저장된 음소거 상태에 맞춰 아이콘과 라벨을 그리고, 누르면 켜고 끈다.
+ * 오답에는 소리가 없으므로 이 버튼은 정답 효과음만 제어한다.
+ */
+function initSound() {
+  const btn = document.getElementById("sound-toggle");
+  if (!btn) return;
+  const paint = () => {
+    const muted = isMuted();
+    btn.setAttribute("aria-pressed", String(!muted));
+    btn.setAttribute("aria-label", muted ? "정답 소리 켜기" : "정답 소리 끄기");
+    btn.replaceChildren(h("i", { "data-lucide": muted ? "volume-x" : "volume-2", class: "h-5 w-5", "aria-hidden": "true" }));
+    refreshIcons();
+  };
+  btn.addEventListener("click", () => {
+    toggleMute();
+    paint();
+  });
+  paint();
+}
+
+/**
  * 테마 초기화: 관리자 생성(저장값 > 시스템 설정), 전환 버튼 아이콘과 클릭 연결.
  * 첫 페이지 깜빡임은 index.html 의 인라인 스크립트가 막고, 여기서는 버튼 상태를 맞춘다.
  */
@@ -346,6 +368,7 @@ function initTheme() {
 async function boot() {
   setUnauthorizedHandler(onSessionExpired);
   initTheme();
+  initSound();
   watchIcons();
   try {
     setUser(await api("/auth/me", { skipAuthRedirect: true }));

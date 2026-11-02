@@ -7,6 +7,7 @@ import { api, apiResponse, ApiError } from "../core/api.js";
 import { appendNodes, button, clear, h, icon, notice, refreshIcons, skeleton } from "../core/dom.js";
 import { alertBox } from "../core/form.js";
 import { createQuizFlow, stageSlots } from "../core/quiz-flow.js";
+import { playCorrect } from "../core/sound.js";
 import { speak } from "../core/tts.js";
 import { isButtonTarget, modalIsOpen, shortcutsBlocked } from "../core/shortcuts.js";
 import { deriveQuizItems } from "../core/quiz-state.js";
@@ -232,7 +233,11 @@ export function quizView(root, ctx) {
           disabled: locked,
           "aria-pressed": String(isSelected),
           onclick: () => {
-            if (flow.choose(i)) render();
+            const result = flow.choose(i);
+            if (result) {
+              if (result.isCorrect) playCorrect(); // 오답은 무음이다
+              render();
+            }
           },
         },
         h(
@@ -323,8 +328,10 @@ export function quizView(root, ctx) {
       if (/^[1-4]$/.test(event.key)) {
         if (feedback) return;
         const choice = Number(event.key) - 1;
-        if (choice < question.choices.length && flow.choose(choice)) {
+        const result = choice < question.choices.length ? flow.choose(choice) : null;
+        if (result) {
           event.preventDefault();
+          if (result.isCorrect) playCorrect(); // 오답은 무음이다
           render();
         }
         return;
