@@ -12,6 +12,7 @@ import { validateWordbookDescription, validateWordbookName } from "../core/valid
 import { downloadWordbook, fetchAllPages } from "../core/backup.js";
 import { computeSummary, computeWeeklyActivity, computeWordbookProgress } from "../core/stats.js";
 import { renderWeeklyChart } from "../core/weekly-chart.js";
+import { openMenuPopover } from "../core/popover.js";
 import { sourceRouteQuery } from "../lib/study-source.js";
 
 export const PAGE_SIZE = 20;
@@ -63,6 +64,18 @@ export function listViewState(s) {
  */
 export function hasMore(s) {
   return s.items.length < s.total;
+}
+
+/**
+ * 단어장 카드의 더보기(미트볼) 메뉴 항목. 순서가 곧 화면 순서다.
+ * @returns {Array<{key: "edit"|"export"|"delete", label: string, icon: string, danger?: boolean}>}
+ */
+export function wordbookMenuItems() {
+  return [
+    { key: "edit", label: "수정", icon: "pencil" },
+    { key: "export", label: "CSV 내보내기", icon: "download" },
+    { key: "delete", label: "삭제", icon: "trash-2", danger: true },
+  ];
 }
 
 /**
@@ -232,6 +245,20 @@ export function wordbooksView(root, { navigate }) {
   /** @param {{id: number, name: string, description: string|null, updated_at: string, word_count: number}} wordbook */
   function card(wordbook) {
     const level = levelTagOf(wordbook.name);
+    /** @type {HTMLButtonElement} */
+    let menuButton;
+    menuButton = /** @type {HTMLButtonElement} */ (
+      button(
+        {
+          variant: "ghost",
+          "aria-label": `${wordbook.name} 더보기`,
+          "aria-haspopup": "menu",
+          "aria-expanded": "false",
+          onClick: () => openCardMenu(menuButton, wordbook),
+        },
+        icon("ellipsis", "h-5 w-5"),
+      )
+    );
     const progress = computeWordbookProgress(wordbook.id, dash.logs, wordbook.word_count);
     const fill = h("div", { class: "progress-fill" });
     fill.style.width = `${progress}%`;
@@ -262,9 +289,7 @@ export function wordbooksView(root, { navigate }) {
         h(
           "div",
           { class: "flex flex-col justify-center gap-1 pr-2" },
-          button({ variant: "ghost", onClick: () => openForm(wordbook) }, icon("pencil", "h-5 w-5"), h("span", { class: "sr-only" }, `${wordbook.name} 수정`)),
-          button({ variant: "ghost", onClick: () => exportOne(wordbook) }, icon("download", "h-5 w-5"), h("span", { class: "sr-only" }, `${wordbook.name} CSV 내보내기`)),
-          button({ variant: "ghost", onClick: () => remove(wordbook) }, icon("trash-2", "h-5 w-5 text-red-600"), h("span", { class: "sr-only" }, `${wordbook.name} 삭제`)),
+          menuButton,
         ),
       ),
       h(
@@ -378,6 +403,24 @@ export function wordbooksView(root, { navigate }) {
       toast(error.detail, "error");
       if (error.status === 404) await load(true);
     }
+  }
+
+  /**
+   * 카드의 더보기 메뉴를 연다. 항목을 고르면 해당 동작을 실행한다.
+   * @param {HTMLElement} anchor
+   * @param {{id: number, name: string, description: string|null, updated_at: string, word_count: number}} wordbook
+   */
+  function openCardMenu(anchor, wordbook) {
+    openMenuPopover(
+      anchor,
+      wordbookMenuItems(),
+      (key) => {
+        if (key === "edit") openForm(wordbook);
+        else if (key === "export") exportOne(wordbook);
+        else if (key === "delete") remove(wordbook);
+      },
+      { label: `${wordbook.name} 메뉴` },
+    );
   }
 
   /**
