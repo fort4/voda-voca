@@ -121,7 +121,7 @@ export function bookmarksView(root, { navigate }) {
         "div",
         { class: "flex items-baseline justify-between gap-2" },
         h("h1", { class: "text-xl font-bold" }, "북마크"),
-        h("span", { class: "text-sm text-slate-600", "data-count": "" }, `총 ${state.total}개`),
+        h("span", { class: "text-sm text-zinc-600", "data-count": "" }, `총 ${state.total}개`),
       ),
       h(
         "div",
@@ -129,7 +129,7 @@ export function bookmarksView(root, { navigate }) {
         button({ variant: "secondary", disabled: state.total === 0, onClick: () => navigate("/study/flashcards", { bookmarked: "1" }) }, icon("layers"), "플래시카드"),
         button({ disabled: !canQuiz || state.total === 0, onClick: () => navigate("/study/quiz", { bookmarks: "1" }), "data-quiz": "" }, icon("list-checks"), "퀴즈"),
       ),
-      h("p", { class: "text-xs text-slate-500", "data-hint": "" }, canQuiz || state.status !== "ok" ? "" : `북마크가 ${QUIZ_MIN_WORDS}개 이상이면 퀴즈를 할 수 있습니다.`),
+      h("p", { class: "text-xs text-zinc-500", "data-hint": "" }, canQuiz || state.status !== "ok" ? "" : `북마크가 ${QUIZ_MIN_WORDS}개 이상이면 퀴즈를 할 수 있습니다.`),
     );
 
     clear(listEl);
@@ -159,18 +159,18 @@ export function bookmarksView(root, { navigate }) {
     queue.init(item.word_id, true);
     return h(
       "article",
-      { class: "flex items-stretch rounded-xl bg-white shadow-sm ring-1 ring-slate-200", dataset: { wordId: String(item.word_id) } },
+      { class: "flex items-stretch surface", dataset: { wordId: String(item.word_id) } },
       h(
         "button",
         {
           type: "button",
-          class: "flex min-h-[44px] flex-1 flex-col items-start gap-1 rounded-l-xl p-4 text-left hover:bg-slate-50",
+          class: "flex min-h-[44px] flex-1 flex-col items-start gap-1 rounded-l-xl p-4 text-left hover:bg-zinc-50",
           onclick: () => navigate(`/wordbooks/${item.wordbook_id}`),
         },
-        h("span", { class: "break-words text-lg font-semibold text-slate-900" }, item.term),
-        h("span", { class: "break-words text-sm text-slate-700" }, item.meaning),
-        h("span", { class: "rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600" }, item.wordbook_name),
-        h("span", { class: "text-xs text-slate-500" }, `북마크 ${formatKst(item.bookmarked_at)}`),
+        h("span", { class: "break-words text-lg font-semibold text-zinc-900" }, item.term),
+        h("span", { class: "break-words text-sm text-zinc-700" }, item.meaning),
+        h("span", { class: "rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600" }, item.wordbook_name),
+        h("span", { class: "text-xs text-zinc-500" }, `북마크 ${formatKst(item.bookmarked_at)}`),
       ),
       h(
         "button",

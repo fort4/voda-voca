@@ -159,11 +159,11 @@ export function flashcardsView(root, { query, navigate }) {
         ? h(
             "div",
             { class: "space-y-1" },
-            h("p", { class: "text-sm text-slate-600" }, `${position} / ${total}`),
+            h("p", { class: "text-sm text-zinc-600" }, `${position} / ${total}`),
             h(
               "div",
-              { class: "h-2 w-full overflow-hidden rounded-full bg-slate-200", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": String(percent) },
-              h("div", { class: "h-2 rounded-full bg-blue-600 transition-all", style: `width: ${percent}%` }),
+              { class: "h-2 w-full overflow-hidden rounded-full bg-zinc-200", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": String(percent) },
+              h("div", { class: "h-2 rounded-full bg-indigo-600 transition-all", style: `width: ${percent}%` }),
             ),
           )
         : null,
@@ -194,14 +194,14 @@ export function flashcardsView(root, { query, navigate }) {
         { class: `flip-card relative min-h-[260px] w-full ${flipped ? "is-flipped" : ""}` },
         h(
           "div",
-          { class: "flip-face absolute inset-0 flex items-center justify-center rounded-2xl bg-white p-6 text-center shadow-md ring-1 ring-slate-200" },
-          h("span", { class: "break-words text-4xl font-bold text-slate-900" }, card.term),
+          { class: "flip-face" },
+          h("span", { class: "break-words text-4xl font-bold text-zinc-900" }, card.term),
         ),
         h(
           "div",
-          { class: "flip-face flip-back absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-2xl bg-blue-50 p-6 text-center shadow-md ring-1 ring-blue-200" },
-          h("span", { class: "break-words text-2xl font-semibold text-slate-900" }, card.meaning),
-          card.example ? h("span", { class: "break-words text-base text-slate-600" }, card.example) : null,
+          { class: "flip-face flip-back" },
+          h("span", { class: "break-words text-2xl font-semibold text-zinc-900" }, card.meaning),
+          card.example ? h("span", { class: "break-words text-base text-zinc-600" }, card.example) : null,
         ),
       ),
     );
@@ -211,7 +211,7 @@ export function flashcardsView(root, { query, navigate }) {
       sceneEl,
       h(
         "p",
-        { class: "text-center text-sm text-slate-500" },
+        { class: "text-center text-sm text-zinc-500" },
         "카드를 탭하면 뒤집고, 좌우로 밀거나 ← → 키로 넘깁니다.",
       ),
       h(

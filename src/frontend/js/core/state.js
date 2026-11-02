@@ -3,7 +3,7 @@
  * 파일 위치: src/frontend/js/core/state.js
  */
 
-/** @type {{user: null | {id: number, email: string, nickname: string}}} */
+/** @type {{user: null | {id: number, nickname: string, created_at: string}}} */
 const state = { user: null };
 
 /** @returns {typeof state.user} */

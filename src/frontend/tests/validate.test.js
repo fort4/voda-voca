@@ -8,18 +8,26 @@ import assert from "node:assert/strict";
 import { formatKst, formatRetry, utf8ByteLength } from "../js/core/format.js";
 import {
   mapFieldErrors,
-  validateEmail,
+  nicknameConfirmationMatches,
   validateNickname,
   validatePassword,
   validateWordbookDescription,
   validateWordbookName,
 } from "../js/core/validate.js";
 
-test("validateEmail: 빈 값, 형식 오류, 정상", () => {
-  assert.match(validateEmail("  "), /이메일을 입력/);
-  assert.match(validateEmail("not-an-email"), /형식/);
-  assert.equal(validateEmail("  user@example.com "), null);
-  assert.match(validateEmail(`${"a".repeat(260)}@b.co`), /255자/);
+test("validateNickname: 공백 제거 후 2~30자 (이메일 없는 회원 체계)", () => {
+  assert.match(validateNickname("   "), /닉네임을 입력/);
+  assert.match(validateNickname("가"), /2자 이상/);
+  assert.equal(validateNickname(" ab "), null, "앞뒤 공백을 빼고 2자면 통과");
+  assert.equal(validateNickname("가".repeat(30)), null);
+  assert.match(validateNickname("가".repeat(31)), /30자 이하/);
+});
+
+test("nicknameConfirmationMatches: 탈퇴 최종 확인은 닉네임과 정확히 같아야 한다", () => {
+  assert.equal(nicknameConfirmationMatches("학습자", "학습자"), true);
+  assert.equal(nicknameConfirmationMatches("  학습자 ", "학습자"), true, "앞뒤 공백만 무시한다");
+  assert.equal(nicknameConfirmationMatches("학습", "학습자"), false);
+  assert.equal(nicknameConfirmationMatches("Learner", "learner"), false, "대소문자는 구분한다");
 });
 
 test("validatePassword: 최소 8자, 72바이트 경계 (한글 24자 = 72바이트)", () => {
@@ -29,10 +37,7 @@ test("validatePassword: 최소 8자, 72바이트 경계 (한글 24자 = 72바이
   assert.match(validatePassword("가".repeat(25)), /72바이트/);
 });
 
-test("validateNickname / validateWordbookName: 공백만 불가, 길이 제한", () => {
-  assert.match(validateNickname("   "), /닉네임을 입력/);
-  assert.match(validateNickname("가".repeat(51)), /50자/);
-  assert.equal(validateNickname("학습자"), null);
+test("validateWordbookName: 공백만 불가, 길이 제한 (단어장 이름 50자)", () => {
   assert.match(validateWordbookName(""), /단어장 이름/);
   assert.match(validateWordbookName("a".repeat(51)), /50자/);
   assert.equal(validateWordbookName("영어 단어"), null);

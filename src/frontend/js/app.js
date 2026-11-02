@@ -4,10 +4,11 @@
  */
 
 import { api, setUnauthorizedHandler } from "./core/api.js";
+import { nicknameConfirmationMatches } from "./core/validate.js";
 import { button, clear, h, notice, refreshIcons, icon } from "./core/dom.js";
 import { createRouter, parseHash, safeNext } from "./core/router.js";
 import { getUser, setUser } from "./core/state.js";
-import { toast } from "./core/toast.js";
+import { confirmDialog, toast } from "./core/toast.js";
 import { loginView } from "./views/login.js";
 import { signupView } from "./views/signup.js";
 import { wordbooksView } from "./views/wordbooks.js";
@@ -47,10 +48,10 @@ function renderTabbar() {
           "a",
           {
             href: tab.href,
-            class: `flex min-h-[56px] flex-col items-center justify-center gap-1 text-xs font-semibold ${active ? "text-blue-700" : "text-slate-500"}`,
+            class: "tab-link focus-ring flex min-h-[56px] flex-col items-center justify-center gap-0.5 text-[11px] font-semibold tracking-tight",
             "aria-current": active ? "page" : null,
           },
-          icon(tab.iconName, "h-5 w-5"),
+          h("span", { class: "tab-pill" }, icon(tab.iconName, "h-5 w-5")),
           tab.label,
         );
       }),
@@ -59,18 +60,51 @@ function renderTabbar() {
   refreshIcons();
 }
 
-/** 상단바: 로그인 상태에 따라 닉네임과 로그아웃, 또는 로그인 링크를 보인다. */
+/** 상단바: 로그인 상태에 따라 계정 메뉴(닉네임 칩), 또는 로그인 링크를 보인다. */
 function renderUserbar() {
   clear(userbar);
   const user = getUser();
   if (user) {
     userbar.append(
-      h("span", { class: "hidden max-w-[10rem] truncate text-sm text-slate-600 sm:inline" }, user.nickname),
-      button({ variant: "ghost", onClick: logout }, icon("log-out", "h-5 w-5"), h("span", { class: "text-sm" }, "로그아웃")),
+      button(
+        { variant: "ghost", onClick: openAccountMenu, "aria-label": `${user.nickname} 계정 메뉴` },
+        h("span", { class: "grid h-7 w-7 place-items-center rounded-full bg-indigo-600 text-xs font-bold text-white" }, initialOf(user.nickname)),
+        h("span", { class: "hidden max-w-[9rem] truncate text-sm font-medium text-zinc-700 sm:inline" }, user.nickname),
+        icon("chevron-down", "h-4 w-4 text-zinc-400"),
+      ),
     );
   } else {
-    userbar.append(h("a", { href: "#/login", class: "inline-flex min-h-[44px] items-center px-2 text-sm font-semibold text-blue-700" }, "로그인"));
+    userbar.append(
+      h("a", { href: "#/login", class: "focus-ring inline-flex min-h-[44px] items-center rounded-xl px-3 text-sm font-semibold text-indigo-600 hover:bg-indigo-50" }, "로그인"),
+    );
   }
+}
+
+/** @param {string} nickname @returns {string} 아바타에 쓸 첫 글자 (코드 포인트 기준) */
+function initialOf(nickname) {
+  return Array.from(nickname)[0]?.toUpperCase() ?? "?";
+}
+
+/**
+ * 계정 메뉴: 로그아웃과 회원 탈퇴. 탈퇴는 별도의 위험 동작이라 아래 흐름으로만 진행한다.
+ */
+async function openAccountMenu() {
+  const user = getUser();
+  if (!user || !globalThis.Swal) return;
+  const result = await globalThis.Swal.fire({
+    title: user.nickname,
+    text: "계정 메뉴입니다.",
+    showCancelButton: true,
+    showDenyButton: true,
+    confirmButtonText: "로그아웃",
+    denyButtonText: "회원 탈퇴",
+    cancelButtonText: "닫기",
+    confirmButtonColor: "#4f46e5",
+    denyButtonColor: "#dc2626",
+    reverseButtons: true,
+  });
+  if (result.isConfirmed) await logout();
+  else if (result.isDenied) await withdraw();
 }
 
 async function logout() {
@@ -83,6 +117,55 @@ async function logout() {
   clearQuizResults(globalThis.sessionStorage);
   renderUserbar();
   renderTabbar();
+  router.navigate("/login");
+}
+
+/**
+ * 회원 탈퇴. 두 번 확인한다: 경고 확인, 그리고 닉네임을 직접 입력하는 최종 확인.
+ * 성공하면 세션 저장소를 비우고 로그인 화면으로 간다.
+ */
+async function withdraw() {
+  const user = getUser();
+  if (!user || !globalThis.Swal) return;
+  const first = await confirmDialog({
+    title: "회원 탈퇴를 진행할까요?",
+    text: "계정과 모든 단어장, 단어, 북마크, 학습 기록이 영구 삭제됩니다. 되돌릴 수 없습니다.",
+    confirmText: "계속",
+    danger: true,
+  });
+  if (!first) return;
+
+  const final = await globalThis.Swal.fire({
+    title: "최종 확인",
+    text: `확인하려면 닉네임 '${user.nickname}'을(를) 정확히 입력하세요.`,
+    input: "text",
+    inputPlaceholder: user.nickname,
+    inputAttributes: { autocomplete: "off", "aria-label": "닉네임 확인" },
+    showCancelButton: true,
+    confirmButtonText: "탈퇴하기",
+    cancelButtonText: "취소",
+    confirmButtonColor: "#dc2626",
+    inputValidator: (value) => (nicknameConfirmationMatches(value, user.nickname) ? null : "닉네임이 일치하지 않습니다."),
+  });
+  if (!final.isConfirmed) return;
+
+  try {
+    await api("/auth/me", { method: "DELETE" });
+  } catch (error) {
+    if (error.status !== 401) {
+      toast(error.detail ?? "탈퇴를 완료하지 못했습니다. 다시 시도해 주세요.", "error");
+      return;
+    }
+  }
+  try {
+    globalThis.sessionStorage?.clear();
+  } catch {
+    // 저장소를 쓸 수 없어도 탈퇴는 끝난 상태다
+  }
+  setUser(null);
+  renderUserbar();
+  renderTabbar();
+  toast("회원 탈퇴가 완료되었습니다. 그동안 이용해 주셔서 감사합니다.");
   router.navigate("/login");
 }
 

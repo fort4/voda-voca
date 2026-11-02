@@ -82,7 +82,7 @@ export function openBulkImport({ wordbookId, onDone = () => {} }) {
   const fileInput = h("input", {
     type: "file",
     accept: ".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain",
-    class: "block w-full text-sm text-slate-700 file:mr-3 file:min-h-[44px] file:rounded-xl file:border-0 file:bg-slate-100 file:px-4 file:font-semibold",
+    class: "block w-full text-sm text-zinc-700 file:mr-3 file:min-h-[44px] file:rounded-xl file:border-0 file:bg-zinc-100 file:px-4 file:font-semibold",
     "aria-label": "CSV 또는 TSV 파일 선택",
     onchange: onFile,
   });
@@ -98,7 +98,7 @@ export function openBulkImport({ wordbookId, onDone = () => {} }) {
       },
     })
   );
-  const summary = h("p", { class: "text-sm text-slate-600", "aria-live": "polite" });
+  const summary = h("p", { class: "text-sm text-zinc-600", "aria-live": "polite" });
   const banner = alertBox();
   const onlyErrorsBox = h("input", {
     type: "checkbox",
@@ -115,12 +115,12 @@ export function openBulkImport({ wordbookId, onDone = () => {} }) {
   const body = h(
     "div",
     { class: "space-y-4 text-left" },
-    h("div", { class: "space-y-2" }, h("p", { class: "text-sm font-medium text-slate-700" }, "파일에서 가져오기 (.csv, .tsv, .txt)"), fileInput),
-    h("div", { class: "space-y-2" }, h("p", { class: "text-sm font-medium text-slate-700" }, "직접 입력"), textarea),
-    h("p", { class: "text-xs text-slate-500" }, "한 줄에 한 단어입니다. 표제어,뜻 또는 표제어,뜻,예문 형식이며 탭으로 구분해도 됩니다. 한 번에 최대 100건입니다."),
+    h("div", { class: "space-y-2" }, h("p", { class: "text-sm font-medium text-zinc-700" }, "파일에서 가져오기 (.csv, .tsv, .txt)"), fileInput),
+    h("div", { class: "space-y-2" }, h("p", { class: "text-sm font-medium text-zinc-700" }, "직접 입력"), textarea),
+    h("p", { class: "text-xs text-zinc-500" }, "한 줄에 한 단어입니다. 표제어,뜻 또는 표제어,뜻,예문 형식이며 탭으로 구분해도 됩니다. 한 번에 최대 100건입니다."),
     banner.el,
     summary,
-    h("label", { class: "flex min-h-[44px] items-center gap-2 text-sm text-slate-700" }, onlyErrorsBox, "오류 행만 보기"),
+    h("label", { class: "flex min-h-[44px] items-center gap-2 text-sm text-zinc-700" }, onlyErrorsBox, "오류 행만 보기"),
     list,
     submitBtn,
   );
@@ -188,14 +188,14 @@ export function openBulkImport({ wordbookId, onDone = () => {} }) {
         h(
           "li",
           {
-            class: `rounded-xl p-3 ring-1 ${row.errors.length || conflicted ? "bg-red-50 ring-red-300" : "bg-white ring-slate-200"}`,
+            class: `p-3 rounded-xl ${row.errors.length || conflicted ? "border border-red-300 bg-red-50" : "surface"}`,
             dataset: { rowIndex: String(index) },
             "aria-invalid": String(row.errors.length > 0 || conflicted),
           },
-          h("p", { class: "text-xs text-slate-500" }, `${row.lineNo}행`),
-          h("p", { class: "break-words font-semibold text-slate-900" }, row.term || "(표제어 없음)"),
-          h("p", { class: "break-words text-sm text-slate-700" }, row.meaning || "(뜻 없음)"),
-          row.example ? h("p", { class: "break-words text-sm text-slate-500" }, row.example) : null,
+          h("p", { class: "text-xs text-zinc-500" }, `${row.lineNo}행`),
+          h("p", { class: "break-words font-semibold text-zinc-900" }, row.term || "(표제어 없음)"),
+          h("p", { class: "break-words text-sm text-zinc-700" }, row.meaning || "(뜻 없음)"),
+          row.example ? h("p", { class: "break-words text-sm text-zinc-500" }, row.example) : null,
           row.errors.length || conflicted
             ? h(
                 "p",

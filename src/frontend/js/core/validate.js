@@ -6,27 +6,16 @@
 import { utf8ByteLength } from "./format.js";
 
 export const LIMITS = Object.freeze({
-  EMAIL_MAX: 255,
+  NICKNAME_MIN: 2,
+  NICKNAME_MAX: 30,
   PASSWORD_MIN: 8,
   PASSWORD_MAX_BYTES: 72,
-  NICKNAME_MAX: 50,
   WORDBOOK_NAME_MAX: 50,
   WORDBOOK_DESCRIPTION_MAX: 200,
   WORD_TERM_MAX: 100,
   WORD_MEANING_MAX: 200,
   WORD_EXAMPLE_MAX: 500,
 });
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-/** @param {string} value @returns {string|null} 오류 문구 또는 null */
-export function validateEmail(value) {
-  const email = value.trim();
-  if (!email) return "이메일을 입력해 주세요.";
-  if (email.length > LIMITS.EMAIL_MAX) return `이메일은 ${LIMITS.EMAIL_MAX}자 이하여야 합니다.`;
-  if (!EMAIL_PATTERN.test(email)) return "이메일 형식이 올바르지 않습니다.";
-  return null;
-}
 
 /** @param {string} value @returns {string|null} */
 export function validatePassword(value) {
@@ -37,12 +26,27 @@ export function validatePassword(value) {
   return null;
 }
 
-/** @param {string} value @returns {string|null} */
+/**
+ * 닉네임: 공백 제거 후 2~30자. 로그인 식별자이며 중복될 수 없다 (회원 체계 단순화).
+ * @param {string} value
+ * @returns {string|null}
+ */
 export function validateNickname(value) {
   const nickname = value.trim();
   if (!nickname) return "닉네임을 입력해 주세요.";
+  if (nickname.length < LIMITS.NICKNAME_MIN) return `닉네임은 ${LIMITS.NICKNAME_MIN}자 이상이어야 합니다.`;
   if (nickname.length > LIMITS.NICKNAME_MAX) return `닉네임은 ${LIMITS.NICKNAME_MAX}자 이하여야 합니다.`;
   return null;
+}
+
+/**
+ * 회원 탈퇴 최종 확인: 입력한 글자가 닉네임과 같은지 본다 (앞뒤 공백만 무시).
+ * @param {string} input
+ * @param {string} nickname
+ * @returns {boolean}
+ */
+export function nicknameConfirmationMatches(input, nickname) {
+  return input.trim() === nickname;
 }
 
 /** @param {string} value @returns {string|null} */

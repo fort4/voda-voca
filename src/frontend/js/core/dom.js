@@ -69,7 +69,7 @@ export function skeleton(count = 3) {
     "div",
     { class: "space-y-3", "aria-busy": "true" },
     h("span", { class: "sr-only" }, "불러오는 중"),
-    Array.from({ length: count }, () => h("div", { class: "h-20 animate-pulse rounded-xl bg-slate-200" })),
+    Array.from({ length: count }, () => h("div", { class: "h-20 animate-pulse rounded-xl bg-zinc-200" })),
   );
 }
 
@@ -81,35 +81,38 @@ export function skeleton(count = 3) {
 export function notice({ iconName, title, text, action }) {
   return h(
     "section",
-    { class: "flex flex-col items-center gap-3 rounded-xl bg-white px-6 py-10 text-center shadow-sm" },
-    h("div", { class: "text-slate-400" }, icon(iconName, "h-10 w-10")),
-    h("p", { class: "text-lg font-semibold text-slate-800" }, title),
-    text ? h("p", { class: "text-sm text-slate-600" }, text) : null,
+    { class: "surface rise-in flex flex-col items-center gap-3 px-6 py-10 text-center" },
+    h("div", { class: "grid h-14 w-14 place-items-center rounded-2xl bg-zinc-100 text-zinc-500" }, icon(iconName, "h-7 w-7")),
+    h("p", { class: "text-lg font-semibold tracking-tight text-zinc-900" }, title),
+    text ? h("p", { class: "text-sm text-zinc-600" }, text) : null,
     action ?? null,
   );
 }
 
 /**
- * 최소 44×44px 버튼. variant: primary | secondary | danger | ghost
+ * 버튼. 최소 44×44px 터치 타깃, 누르면 살짝 눌리는 마이크로 인터랙션, 키보드 포커스 링 (디자인 시스템: app.css).
+ * variant: primary(인디고 채움) | secondary(표면 + 보더) | danger(빨강 채움) | ghost(글자만)
  * @param {{variant?: string, type?: string, onClick?: (e: Event) => void, disabled?: boolean, full?: boolean}} opts
  * @param {...any} children
  * @returns {HTMLButtonElement}
  */
-export function button({ variant = "primary", type = "button", onClick, disabled = false, full = false }, ...children) {
+export function button({ variant = "primary", type = "button", onClick, disabled = false, full = false, ...rest }, ...children) {
   const variants = {
-    primary: "bg-blue-600 text-white hover:bg-blue-700",
-    secondary: "bg-white text-slate-800 ring-1 ring-slate-300 hover:bg-slate-50",
-    danger: "bg-red-600 text-white hover:bg-red-700",
-    ghost: "text-slate-700 hover:bg-slate-100",
+    primary: "bg-indigo-600 text-white shadow-sm hover:bg-indigo-700",
+    secondary: "surface text-zinc-800 hover:bg-zinc-50",
+    danger: "bg-red-600 text-white shadow-sm hover:bg-red-700",
+    ghost: "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900",
+    "danger-soft": "bg-red-50 text-red-700 ring-1 ring-red-200 hover:bg-red-100",
   };
   return /** @type {HTMLButtonElement} */ (
     h(
       "button",
       {
         type,
-        class: `inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 rounded-xl px-4 font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant] ?? variants.primary} ${full ? "w-full" : ""}`,
+        class: `press focus-ring inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 rounded-xl px-4 text-[15px] font-semibold tracking-tight transition disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant] ?? variants.primary} ${full ? "w-full" : ""}`,
         onclick: onClick,
         disabled,
+        ...rest,
       },
       ...children,
     )

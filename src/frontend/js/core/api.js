@@ -62,7 +62,7 @@ export function parseRetryAfter(value) {
 
 /**
  * FastAPI 422 의 detail 배열을 필드 오류 목록으로 바꾼다.
- * loc 는 ["body", "email"] 같은 형태이며, 마지막 문자열 요소를 필드 이름으로 쓴다.
+ * loc 는 ["body", "nickname"] 같은 형태이며, 마지막 문자열 요소를 필드 이름으로 쓴다.
  * 모델 수준 오류(loc 가 ["body"])는 field 가 null 이다.
  * @param {unknown} detail
  * @returns {FieldError[]}

@@ -1,5 +1,5 @@
 /*
- * 2026-11-02 - voda-voca - 로그인 화면: 세션 쿠키 로그인, 401 안내, 429 시 버튼 비활성화와 초 단위 카운트다운 (REQ-001, REQ-121)
+ * 2026-11-02 - voda-voca - 로그인 화면: 닉네임 + 비밀번호 단일 폼, 401 안내, 429 시 버튼 비활성화와 초 단위 카운트다운 (REQ-001, REQ-121)
  * 파일 위치: src/frontend/js/views/login.js
  */
 
@@ -10,7 +10,7 @@ import { button, h } from "../core/dom.js";
 import { setUser } from "../core/state.js";
 import { toast } from "../core/toast.js";
 import { safeNext } from "../core/router.js";
-import { mapFieldErrors, validateEmail } from "../core/validate.js";
+import { mapFieldErrors } from "../core/validate.js";
 
 /**
  * @param {HTMLElement} root
@@ -18,10 +18,10 @@ import { mapFieldErrors, validateEmail } from "../core/validate.js";
  * @returns {() => void} 화면을 떠날 때 타이머를 정리한다
  */
 export function loginView(root, { query, navigate }) {
-  const email = field({ id: "email", label: "이메일", type: "email", autocomplete: "username", inputmode: "email" });
+  const nickname = field({ id: "nickname", label: "닉네임", autocomplete: "username" });
   const password = field({ id: "password", label: "비밀번호", type: "password", autocomplete: "current-password" });
   const banner = alertBox();
-  const note = h("p", { class: "min-h-[1.5rem] text-sm text-slate-600", "aria-live": "polite" });
+  const note = h("p", { class: "min-h-[1.5rem] text-sm text-zinc-500", "aria-live": "polite" });
   const submit = button({ type: "submit", full: true }, "로그인");
 
   let timer = null;
@@ -55,18 +55,17 @@ export function loginView(root, { query, navigate }) {
   async function onSubmit(event) {
     event.preventDefault();
     banner.hide();
-    const emailValue = email.input.value.trim();
+    const nicknameValue = nickname.input.value.trim();
     const passwordValue = password.input.value;
-    const emailError = validateEmail(emailValue);
-    email.setError(emailError);
+    nickname.setError(nicknameValue ? null : "닉네임을 입력해 주세요.");
     password.setError(passwordValue ? null : "비밀번호를 입력해 주세요.");
-    if (emailError || !passwordValue) return;
+    if (!nicknameValue || !passwordValue) return;
 
     submit.disabled = true;
     try {
       const user = await api("/auth/login", {
         method: "POST",
-        body: { email: emailValue, password: passwordValue },
+        body: { nickname: nicknameValue, password: passwordValue },
         skipAuthRedirect: true,
       });
       setUser(user);
@@ -81,8 +80,8 @@ export function loginView(root, { query, navigate }) {
         password.input.value = "";
         banner.show(error.detail);
       } else if (error.status === 422) {
-        const mapped = mapFieldErrors(error.fields, ["email", "password"]);
-        email.setError(mapped.email ?? null);
+        const mapped = mapFieldErrors(error.fields, ["nickname", "password"]);
+        nickname.setError(mapped.nickname ?? null);
         password.setError(mapped.password ?? null);
         banner.show(mapped._form ?? "입력값을 확인해 주세요.");
       } else {
@@ -96,7 +95,7 @@ export function loginView(root, { query, navigate }) {
   const form = h(
     "form",
     { class: "space-y-4", novalidate: true, onsubmit: onSubmit },
-    email.wrap,
+    nickname.wrap,
     password.wrap,
     banner.el,
     note,
@@ -106,20 +105,29 @@ export function loginView(root, { query, navigate }) {
   root.append(
     h(
       "section",
-      { class: "mx-auto max-w-sm space-y-6 pt-6" },
-      h("h1", { class: "text-2xl font-bold" }, "로그인"),
-      form,
+      { class: "mx-auto max-w-sm space-y-6 pt-6 rise-in" },
+      h(
+        "div",
+        { class: "space-y-2 text-center" },
+        h("div", { class: "brand-mark mx-auto h-12 w-12 rounded-2xl" }, "보"),
+        h("h1", { class: "text-2xl font-bold tracking-tight text-zinc-900" }, "다시 만나서 반가워요"),
+        h("p", { class: "text-sm text-zinc-500" }, "닉네임과 비밀번호로 로그인하세요."),
+      ),
+      h(
+        "div",
+        { class: "surface p-6" },
+        form,
+      ),
       h(
         "p",
-        { class: "text-center text-sm text-slate-600" },
-        "계정이 없으신가요? ",
-        h("a", { href: "#/signup", class: "inline-flex min-h-[44px] items-center font-semibold text-blue-700 underline" }, "회원가입"),
+        { class: "text-center text-sm text-zinc-500" },
+        "아직 계정이 없나요? ",
+        h("a", { href: "#/signup", class: "focus-ring inline-flex min-h-[44px] items-center font-semibold text-indigo-600 hover:text-indigo-700" }, "회원가입"),
       ),
     ),
   );
 
   if (query.signup === "done") toast("가입이 완료되었습니다. 로그인해 주세요.");
-  email.input.focus();
+  nickname.input.focus();
   return () => stopCooldown();
 }
-

@@ -58,25 +58,25 @@ export function historyView(root, { navigate }) {
     body.append(
       h(
         "section",
-        { class: "rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200" },
+        { class: "p-5 surface" },
         h("h1", { class: "text-xl font-bold" }, "학습 이력"),
         h("p", { class: "mt-2 text-3xl font-bold" }, `${summary.accuracy}%`),
-        h("p", { class: "text-sm text-slate-600" }, `최근 ${summary.total}건 중 정답 ${summary.correct}개, 오답 ${summary.wrong}개`),
-        h("p", { class: "mt-1 text-xs text-slate-500" }, `최근 ${HISTORY_LIMIT}건 기준입니다.`),
+        h("p", { class: "text-sm text-zinc-600" }, `최근 ${summary.total}건 중 정답 ${summary.correct}개, 오답 ${summary.wrong}개`),
+        h("p", { class: "mt-1 text-xs text-zinc-500" }, `최근 ${HISTORY_LIMIT}건 기준입니다.`),
       ),
       ...groupByKstDate(items).map((group) =>
         h(
           "section",
           { class: "space-y-2" },
-          h("h2", { class: "sticky top-14 bg-slate-50 py-1 text-sm font-semibold text-slate-600" }, group.date),
+          h("h2", { class: "sticky top-14 bg-zinc-50 py-1 text-sm font-semibold text-zinc-600" }, group.date),
           h(
             "ol",
             { class: "space-y-2" },
             group.items.map((log) =>
               h(
                 "li",
-                { class: "flex items-center gap-3 rounded-xl bg-white px-4 py-3 ring-1 ring-slate-200" },
-                h("span", { class: "w-12 shrink-0 font-mono text-sm text-slate-500" }, kstTime(log.created_at)),
+                { class: "flex items-center gap-3 px-4 py-3 surface" },
+                h("span", { class: "w-12 shrink-0 font-mono text-sm text-zinc-500" }, kstTime(log.created_at)),
                 h("span", { class: "min-w-0 flex-1 break-words font-medium" }, log.term),
                 log.is_correct
                   ? h("span", { class: "flex shrink-0 items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-800" }, icon("check", "h-3.5 w-3.5"), "정답")

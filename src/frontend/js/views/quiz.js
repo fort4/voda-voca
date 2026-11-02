@@ -62,11 +62,11 @@ export function quizView(root, ctx) {
     let chosen = 10;
     const banner = alertBox();
     const startBtn = button({ full: true, disabled: true, onClick: () => start() }, "퀴즈 시작");
-    const countInfo = h("p", { class: "text-sm text-slate-600" }, "단어 수를 확인하는 중…");
+    const countInfo = h("p", { class: "text-sm text-zinc-600" }, "단어 수를 확인하는 중…");
     const radios = QUIZ_COUNT_CHOICES.map((n) =>
       h(
         "label",
-        { class: "flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl border border-slate-300 bg-white px-3 font-semibold has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50" },
+        { class: "flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-xl border border-zinc-300 bg-white px-3 font-semibold has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50" },
         h("input", { type: "radio", name: "quiz-count", value: String(n), class: "sr-only", checked: n === chosen, onchange: () => { chosen = n; updateInfo(); } }),
         `${n}문항`,
       ),
@@ -92,7 +92,7 @@ export function quizView(root, ctx) {
           button({ variant: "ghost", onClick: () => c.navigate(source.kind === "wordbook" ? `/wordbooks/${source.wordbookId}` : "/bookmarks") }, icon("arrow-left"), h("span", { class: "sr-only" }, "돌아가기")),
           h("h1", { class: "text-xl font-bold" }, title),
         ),
-        h("div", { class: "space-y-2" }, h("p", { class: "text-sm font-medium text-slate-700" }, "문항 수"), h("div", { class: "flex gap-2" }, radios)),
+        h("div", { class: "space-y-2" }, h("p", { class: "text-sm font-medium text-zinc-700" }, "문항 수"), h("div", { class: "flex gap-2" }, radios)),
         countInfo,
         banner.el,
         startBtn,
@@ -137,8 +137,8 @@ export function quizView(root, ctx) {
     const quiz = createQuizState({ questions: session.questions });
     const view = { index: 0, expired: false, submitting: false, timerId: null, ms: remainingMs(session.expires_at, Date.now(), offset) };
     const timerEl = h("span", { class: "font-mono text-base font-semibold tabular-nums", role: "timer" });
-    const progressBar = h("div", { class: "h-2 rounded-full bg-blue-600 transition-all", style: "width: 0%" });
-    const progressText = h("p", { class: "text-sm text-slate-600", "aria-live": "polite" });
+    const progressBar = h("div", { class: "h-2 rounded-full bg-indigo-600 transition-all", style: "width: 0%" });
+    const progressText = h("p", { class: "text-sm text-zinc-600", "aria-live": "polite" });
     const banner = alertBox();
     const stage = h("div", { class: "space-y-4" });
 
@@ -179,23 +179,31 @@ export function quizView(root, ctx) {
       const selected = quiz.answerOf(question.question_id);
       const last = view.index === session.questions.length - 1;
       stage.append(
-        h("p", { class: "text-sm text-slate-500" }, `${view.index + 1}번 문항`),
-        h("p", { class: "break-words rounded-2xl bg-white p-6 text-center text-3xl font-bold shadow-sm ring-1 ring-slate-200" }, question.term),
+        h("p", { class: "text-sm text-zinc-500" }, `${view.index + 1}번 문항`),
+        h("p", { class: "surface rise-in break-words p-6 text-center text-3xl font-bold tracking-tight text-zinc-900" }, question.term),
         h(
           "div",
           { class: "grid gap-2", role: "radiogroup", "aria-label": "뜻 고르기" },
-          question.choices.map((choice, i) =>
-            button(
+          question.choices.map((choice, i) => {
+            const isSelected = selected === i;
+            const btn = button(
               {
-                variant: selected === i ? "primary" : "secondary",
+                variant: isSelected ? "primary" : "secondary",
                 full: true,
                 disabled,
                 onClick: () => { quiz.select(question.question_id, i); render(); },
               },
-              h("span", { class: "mr-2 font-mono opacity-80" }, `${i + 1}`),
-              h("span", { class: "break-words text-left" }, choice),
-            ),
-          ),
+              h(
+                "span",
+                { class: `grid h-7 w-7 shrink-0 place-items-center rounded-lg font-mono text-sm ${isSelected ? "bg-white/20" : "bg-zinc-100 text-zinc-600"}` },
+                `${i + 1}`,
+              ),
+              h("span", { class: "min-w-0 flex-1 break-words text-left" }, choice),
+              isSelected ? icon("check", "h-5 w-5 shrink-0") : null,
+            );
+            if (isSelected) btn.classList.add("choice-selected");
+            return btn;
+          }),
         ),
         h(
           "div",
@@ -206,7 +214,7 @@ export function quizView(root, ctx) {
             : button({ disabled, onClick: () => { view.index += 1; render(); } }, "다음", icon("chevron-right")),
         ),
         last && !quiz.allAnswered() && !view.expired
-          ? h("p", { class: "text-center text-sm text-slate-600" }, `아직 ${quiz.unansweredCount()}개 문항에 답하지 않았습니다.`)
+          ? h("p", { class: "text-center text-sm text-zinc-600" }, `아직 ${quiz.unansweredCount()}개 문항에 답하지 않았습니다.`)
           : null,
       );
       paintProgress();
@@ -264,7 +272,7 @@ export function quizView(root, ctx) {
           h("div", { class: "flex-1" }),
           timerEl,
         ),
-        h("div", { class: "h-2 w-full overflow-hidden rounded-full bg-slate-200", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": "100" }, progressBar),
+        h("div", { class: "h-2 w-full overflow-hidden rounded-full bg-zinc-200", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": "100" }, progressBar),
         progressText,
       ),
       banner.el,
@@ -304,15 +312,15 @@ export function quizView(root, ctx) {
         h("h1", { class: "text-xl font-bold" }, "퀴즈 결과"),
         h(
           "div",
-          { class: "rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-200" },
+          { class: "p-6 text-center surface" },
           h("p", { class: "text-4xl font-bold" }, `${record.correct_count} / ${record.total}`),
-          h("p", { class: "mt-1 text-lg text-slate-700" }, `정답률 ${record.accuracy}%`),
-          perfect ? h("p", { class: "mt-2 text-sm text-blue-700" }, "모두 맞혔습니다.") : null,
+          h("p", { class: "mt-1 text-lg text-zinc-700" }, `정답률 ${record.accuracy}%`),
+          perfect ? h("p", { class: "mt-2 text-sm text-indigo-700" }, "모두 맞혔습니다.") : null,
         ),
         h("h2", { class: "text-lg font-semibold" }, `오답 노트 (${wrong.length})`),
         wrong.length
           ? h("ol", { class: "space-y-3" }, wrong.map((item) => wrongNote(item)))
-          : h("p", { class: "text-sm text-slate-600" }, "틀린 문항이 없습니다."),
+          : h("p", { class: "text-sm text-zinc-600" }, "틀린 문항이 없습니다."),
         h("h2", { class: "text-lg font-semibold" }, "전체 문항"),
         h("ol", { class: "space-y-3" }, record.items.map((item, i) => questionResult(item, i))),
         h(
@@ -356,7 +364,7 @@ export function quizView(root, ctx) {
   function questionResult(item, i) {
     return h(
       "li",
-      { class: "rounded-xl bg-white p-4 ring-1 ring-slate-200" },
+      { class: "p-4 surface" },
       h(
         "p",
         { class: "mb-2 flex items-center gap-2 font-semibold" },
@@ -372,7 +380,7 @@ export function quizView(root, ctx) {
           const tag = isCorrect ? "정답" : isMyWrong ? "내 답" : "";
           return h(
             "li",
-            { class: `flex items-center gap-2 rounded-lg px-2 py-1 ${isCorrect ? "bg-green-50 text-green-800" : isMyWrong ? "bg-red-50 text-red-800" : "text-slate-600"}` },
+            { class: `flex items-center gap-2 rounded-lg px-2 py-1 ${isCorrect ? "bg-green-50 text-green-800" : isMyWrong ? "bg-red-50 text-red-800" : "text-zinc-600"}` },
             h("span", { class: "min-w-0 flex-1 break-words" }, choice),
             tag ? h("span", { class: "shrink-0 text-xs font-semibold" }, tag) : null,
           );

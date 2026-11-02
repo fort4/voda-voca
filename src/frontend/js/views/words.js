@@ -8,7 +8,7 @@ import { createBookmarkQueue } from "../core/bookmark.js";
 import { button, clear, h, icon, notice, refreshIcons, skeleton } from "../core/dom.js";
 import { INPUT_CLASS } from "../core/form.js";
 import { createSearch } from "../core/search.js";
-import { toast } from "../core/toast.js";
+import { confirmDialog, toast } from "../core/toast.js";
 import { openBulkImport } from "./bulk-import.js";
 import { openWordForm } from "./word-form.js";
 
@@ -98,22 +98,47 @@ export function wordsView(root, { params, navigate }) {
   root.append(
     h(
       "div",
-      { class: "mb-3 flex items-center gap-2" },
+      { class: "mb-4 flex items-center gap-2" },
       button({ variant: "ghost", onClick: () => navigate("/wordbooks") }, icon("arrow-left"), h("span", { class: "sr-only" }, "단어장 목록으로")),
       title,
-      button({ variant: "secondary", onClick: () => openBulkImport({ wordbookId, onDone: refresh }) }, icon("upload"), h("span", { class: "hidden sm:inline" }, "일괄 등록")),
-      button({ onClick: () => openWordForm({ wordbookId, onChanged: refresh }) }, icon("plus"), h("span", { class: "hidden sm:inline" }, "단어 추가")),
     ),
-    h("div", { class: "relative mb-3" }, input, h("div", { class: "absolute right-1 top-1" }, clearBtn)),
     h(
       "div",
-      { class: "mb-4 grid grid-cols-2 gap-2" },
+      { class: "mb-3 grid grid-cols-2 gap-2" },
       button({ variant: "secondary", onClick: () => navigate("/study/flashcards", { wordbook_id: String(wordbookId) }) }, icon("layers"), "플래시카드"),
       button({ variant: "secondary", onClick: () => navigate("/study/quiz", { wordbook_id: String(wordbookId) }) }, icon("list-checks"), "퀴즈"),
+      button({ variant: "secondary", onClick: () => openBulkImport({ wordbookId, onDone: refresh }) }, icon("upload"), "일괄 등록"),
+      button({ onClick: () => openWordForm({ wordbookId, onChanged: refresh }) }, icon("plus"), "단어 추가"),
     ),
+    h("div", { class: "relative mb-3" }, input, h("div", { class: "absolute right-1 top-1" }, clearBtn)),
     listEl,
     h("div", { class: "mt-4" }, moreBtn),
+    h(
+      "div",
+      { class: "mt-8 border-t border-zinc-200 pt-4 flex justify-end" },
+      button({ variant: "danger-soft", onClick: removeWordbook }, icon("trash-2", "h-4 w-4"), "단어장 삭제"),
+    ),
   );
+
+  /** 단어장 삭제: 되돌릴 수 없으므로 확인 창에서 CASCADE 범위를 분명히 알린다 (REQ-007). 성공하면 목록으로 간다. */
+  async function removeWordbook() {
+    const name = title.textContent || "이 단어장";
+    const ok = await confirmDialog({
+      title: "단어장을 삭제할까요?",
+      text: `'${name}' 안의 모든 단어, 북마크, 학습 기록이 함께 영구 삭제됩니다. 되돌릴 수 없습니다.`,
+      confirmText: "단어장 삭제",
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await api(`/wordbooks/${wordbookId}`, { method: "DELETE" });
+      toast("단어장을 삭제했습니다.");
+      navigate("/wordbooks");
+    } catch (error) {
+      toast(error.detail ?? "단어장을 삭제하지 못했습니다.", "error");
+      if (error.status === 404) navigate("/wordbooks");
+    }
+  }
 
   /** 화면 전체를 현재 상태로 다시 그린다. */
   function render() {
@@ -160,23 +185,23 @@ export function wordsView(root, { params, navigate }) {
     const current = bookmarks.getState(word.id)?.bookmarked ?? word.bookmarked;
     return h(
       "article",
-      { class: "flex items-stretch rounded-xl bg-white shadow-sm ring-1 ring-slate-200", dataset: { wordId: String(word.id) } },
+      { class: "flex items-stretch surface", dataset: { wordId: String(word.id) } },
       h(
         "button",
         {
           type: "button",
-          class: "flex min-h-[44px] flex-1 flex-col items-start gap-1 rounded-l-xl p-4 text-left hover:bg-slate-50",
+          class: "flex min-h-[44px] flex-1 flex-col items-start gap-1 rounded-l-xl p-4 text-left hover:bg-zinc-50",
           onclick: () => openWordForm({ wordbookId, word, onChanged: refresh }),
         },
-        h("span", { class: "text-lg font-semibold text-slate-900 break-words" }, word.term),
-        h("span", { class: "text-sm text-slate-700 break-words" }, word.meaning),
-        word.example ? h("span", { class: "text-sm text-slate-500 break-words line-clamp-2" }, word.example) : null,
+        h("span", { class: "text-lg font-semibold text-zinc-900 break-words" }, word.term),
+        h("span", { class: "text-sm text-zinc-700 break-words" }, word.meaning),
+        word.example ? h("span", { class: "text-sm text-zinc-500 break-words line-clamp-2" }, word.example) : null,
       ),
       h(
         "button",
         {
           type: "button",
-          class: "star-toggle flex min-h-[44px] min-w-[44px] items-center justify-center self-center rounded-xl pr-1 text-slate-400 hover:bg-amber-50",
+          class: "star-toggle flex min-h-[44px] min-w-[44px] items-center justify-center self-center rounded-xl pr-1 text-zinc-400 hover:bg-amber-50",
           "aria-pressed": String(current),
           "aria-label": `${word.term} 북마크`,
           dataset: { wordId: String(word.id) },

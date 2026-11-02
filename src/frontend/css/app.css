@@ -1,13 +1,48 @@
 /*
- * 2026-11-02 - voda-voca - 앱 전역 스타일: 터치 지연 제거, 카드 뒤집기, 동작 줄이기, 입력 글자 크기 (REQ-020, REQ-021, REQ-114, REQ-115)
+ * 2026-11-02 - voda-voca - 디자인 시스템: Zinc 뉴트럴 + Indigo 포인트, 섬세한 보더와 그림자, 카드·버튼 규격, 마이크로 인터랙션 (REQ-020, REQ-021, REQ-114, REQ-115)
  * 파일 위치: src/frontend/css/app.css
  */
 
+/* ---------- 토큰 ---------- */
 :root {
   color-scheme: light;
+  --bg: #fafafa;            /* zinc-50 */
+  --surface: #ffffff;
+  --border: #e4e4e7;        /* zinc-200: 섬세한 보더 */
+  --border-strong: #d4d4d8; /* zinc-300 */
+  --text: #18181b;          /* zinc-900 */
+  --text-2: #3f3f46;        /* zinc-700 */
+  --muted: #71717a;         /* zinc-500 */
+  --accent: #4f46e5;        /* indigo-600 */
+  --accent-hover: #4338ca;  /* indigo-700 */
+  --accent-soft: #eef2ff;   /* indigo-50 */
+  --danger: #dc2626;        /* red-600 */
+  --radius-card: 16px;
+  --radius-control: 12px;
+  --shadow-card: 0 1px 2px rgba(24, 24, 27, 0.04), 0 1px 3px rgba(24, 24, 27, 0.05);
+  --shadow-raised: 0 12px 28px -12px rgba(24, 24, 27, 0.22), 0 2px 6px -2px rgba(24, 24, 27, 0.08);
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/* 300ms 탭 지연 제거 (REQ-021). 버튼과 링크, 입력 칸에 적용한다. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: light; /* 이 앱은 밝은 테마만 제공한다 */
+  }
+}
+
+html,
+body {
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.01em;
+}
+
+/* 300ms 탭 지연 제거 (REQ-021). 탭 하이라이트는 끈다. */
 button,
 a,
 input,
@@ -15,71 +50,192 @@ select,
 textarea,
 [role="button"] {
   touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* 모바일 가로 스크롤 방지 (REQ-020). 긴 표제어는 줄을 바꾼다. */
-html,
-body {
-  overflow-x: hidden;
-  overscroll-behavior-y: contain;
-}
-
-/* iOS 가 입력 칸을 확대하지 않도록 16px 이상을 유지한다 (REQ-115). */
+/* iOS 가 입력 칸을 확대하지 않도록 16px 이상 (REQ-115). */
 input,
 select,
 textarea {
   font-size: 16px;
 }
 
-/* 플래시카드 등 3D 뒤집기 (2단계에서 사용). 동작 줄이기 설정이면 뒤집기를 끈다. */
+/* 키보드 포커스는 분명하게, 마우스 클릭에는 나타나지 않게 (접근성) */
+.focus-ring:focus-visible,
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+
+/* ---------- 표면: 카드와 패널 ---------- */
+.surface {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+/* 누를 수 있는 카드: 호버에 살짝 떠오르고, 누르면 가라앉는다 */
+.surface-interactive {
+  transition: transform 180ms var(--ease-out), box-shadow 180ms var(--ease-out), border-color 180ms ease;
+}
+.surface-interactive:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-raised);
+  transform: translateY(-1px);
+}
+.surface-interactive:active {
+  transform: scale(0.99);
+  box-shadow: var(--shadow-card);
+}
+
+/* ---------- 버튼 마이크로 인터랙션 ---------- */
+.press {
+  transition: transform 120ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+.press:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* ---------- 상단 헤더 ---------- */
+.app-header {
+  background: rgba(255, 255, 255, 0.85);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.brand-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #6366f1, #7c3aed);
+  color: #fff;
+  box-shadow: 0 2px 6px -2px rgba(79, 70, 229, 0.55);
+}
+
+/* ---------- 하단 탭바 ---------- */
+.tabbar {
+  background: rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  backdrop-filter: saturate(180%) blur(12px);
+  border-top: 1px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.tab-link {
+  position: relative;
+  color: var(--muted);
+  transition: color 150ms ease;
+}
+.tab-link .tab-pill {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 30px;
+  border-radius: 999px;
+  transition: background-color 200ms var(--ease-out), transform 200ms var(--ease-out);
+}
+.tab-link:hover { color: var(--text-2); }
+.tab-link[aria-current="page"] { color: var(--accent); }
+.tab-link[aria-current="page"] .tab-pill {
+  background: var(--accent-soft);
+  transform: translateY(-1px);
+}
+
+/* ---------- 선택지(퀴즈) 피드백 ---------- */
+@keyframes choice-pop {
+  0% { transform: scale(0.97); }
+  55% { transform: scale(1.015); }
+  100% { transform: scale(1); }
+}
+.choice-selected {
+  animation: choice-pop 260ms var(--ease-out);
+}
+
+/* ---------- 플래시카드 3D 플립 ---------- */
 .flip-scene {
-  perspective: 1000px;
+  perspective: 1200px;
+  -webkit-tap-highlight-color: transparent;
 }
 .flip-card {
+  position: relative;
   transform-style: preserve-3d;
-  transition: transform 300ms ease;
+  transition: transform 520ms var(--ease-out);
 }
 .flip-card.is-flipped {
   transform: rotateY(180deg);
 }
-@media (prefers-reduced-motion: reduce) {
-  .flip-card,
-  .animate-pulse {
-    transition: none;
-    animation: none;
-  }
-}
-
-/* 키보드가 열려도 화면 높이가 흔들리지 않도록 dvh 를 우선 쓴다. */
-@supports (height: 100dvh) {
-  .min-h-dvh {
-    min-height: 100dvh;
-  }
-}
-
-/* 북마크 별 (2단계): 눌린 상태는 채움, 서버 전송 중은 흐리게 (aria 속성 기반) */
-.star-toggle svg {
-  transition: fill 150ms ease;
-}
-.star-toggle[aria-pressed="true"] {
-  color: #f59e0b;
-}
-.star-toggle[aria-pressed="true"] svg {
-  fill: currentColor;
-}
-.star-toggle[aria-busy="true"] {
-  opacity: 0.55;
-}
-
-
-/* 플래시카드 앞·뒤 면 (3단계): 뒷면은 미리 뒤집어 두고, 뒤집기 시 카드 전체가 180도 돈다 */
 .flip-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 28px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow-raised);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
 .flip-face.flip-back {
   transform: rotateY(180deg);
+  background: linear-gradient(180deg, #ffffff 0%, var(--accent-soft) 100%);
+  border-color: #c7d2fe; /* indigo-200 */
 }
 .flip-scene .flip-card {
-  min-height: 260px;
+  min-height: 280px;
+}
+
+/* ---------- 북마크 별 상태 (2단계) ---------- */
+.star-toggle svg {
+  transition: fill 160ms ease, transform 160ms var(--ease-out);
+}
+.star-toggle[aria-pressed="true"] {
+  color: #f59e0b; /* amber-500 */
+}
+.star-toggle[aria-pressed="true"] svg {
+  fill: currentColor;
+}
+.star-toggle:active:not(:disabled) svg {
+  transform: scale(1.18);
+}
+.star-toggle[aria-busy="true"] {
+  opacity: 0.55;
+}
+
+/* ---------- 목록 진입 애니메이션 ---------- */
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.rise-in {
+  animation: rise-in 280ms var(--ease-out) both;
+}
+
+/* ---------- 동작 줄이기 (접근성) ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 키보드 높이 변화에도 화면이 흔들리지 않도록 dvh 를 우선 쓴다 */
+@supports (height: 100dvh) {
+  .min-h-dvh {
+    min-height: 100dvh;
+  }
 }

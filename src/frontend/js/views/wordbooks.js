@@ -113,17 +113,17 @@ export function wordbooksView(root, { navigate }) {
   function card(wordbook) {
     return h(
       "article",
-      { class: "flex items-stretch gap-2 rounded-xl bg-white shadow-sm ring-1 ring-slate-200", dataset: { wordbookId: String(wordbook.id) } },
+      { class: "flex items-stretch gap-2 surface", dataset: { wordbookId: String(wordbook.id) } },
       h(
         "button",
         {
           type: "button",
-          class: "flex min-h-[44px] flex-1 flex-col items-start gap-1 rounded-l-xl p-4 text-left hover:bg-slate-50",
+          class: "flex min-h-[44px] flex-1 flex-col items-start gap-1 rounded-l-xl p-4 text-left hover:bg-zinc-50",
           onclick: () => navigate(`/wordbooks/${wordbook.id}`),
         },
-        h("span", { class: "text-lg font-semibold text-slate-900 break-words" }, wordbook.name),
-        wordbook.description ? h("span", { class: "text-sm text-slate-600 line-clamp-1" }, wordbook.description) : null,
-        h("span", { class: "text-xs text-slate-500" }, `수정 ${formatKst(wordbook.updated_at)}`),
+        h("span", { class: "text-lg font-semibold text-zinc-900 break-words" }, wordbook.name),
+        wordbook.description ? h("span", { class: "text-sm text-zinc-600 line-clamp-1" }, wordbook.description) : null,
+        h("span", { class: "text-xs text-zinc-500" }, `수정 ${formatKst(wordbook.updated_at)}`),
       ),
       h(
         "div",
