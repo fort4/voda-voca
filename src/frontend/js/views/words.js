@@ -181,7 +181,7 @@ export function wordsView(root, { params, navigate }) {
     refreshIcons();
   }
 
-  /** @param {{id: number, term: string, meaning: string, example: string|null, bookmarked: boolean}} word */
+  /** @param {{id: number, term: string, meaning: string, example: string|null, example_meaning?: string|null, bookmarked: boolean}} word */
   function row(word) {
     const current = bookmarks.getState(word.id)?.bookmarked ?? word.bookmarked;
     return h(
@@ -197,6 +197,7 @@ export function wordsView(root, { params, navigate }) {
         h("span", { class: "text-lg font-semibold text-zinc-900 break-words" }, word.term),
         h("span", { class: "text-sm text-zinc-700 break-words" }, word.meaning),
         word.example ? h("span", { class: "text-sm text-zinc-500 break-words line-clamp-2" }, word.example) : null,
+        word.example_meaning ? h("span", { class: "text-sm text-zinc-400 break-words line-clamp-2" }, word.example_meaning) : null,
       ),
       h(
         "button",

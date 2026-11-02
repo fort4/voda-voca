@@ -4,8 +4,8 @@
  */
 
 /**
- * @typedef {{question_id: number, term: string, choices: string[], correct_index: number, example: string|null}} QuizQuestion
- * @typedef {{questionId: number, term: string, selectedIndex: number, correctIndex: number, isCorrect: boolean, correctMeaning: string, example: string|null}} QuizFeedback
+ * @typedef {{question_id: number, term: string, choices: string[], correct_index: number, example: string|null, example_meaning?: string|null}} QuizQuestion
+ * @typedef {{questionId: number, term: string, selectedIndex: number, correctIndex: number, isCorrect: boolean, correctMeaning: string, example: string|null, exampleMeaning: string|null}} QuizFeedback
  */
 
 /**
@@ -59,6 +59,7 @@ export function createQuizFlow({ session }) {
         isCorrect: choiceIndex === question.correct_index,
         correctMeaning: question.choices[question.correct_index],
         example: question.example ?? null,
+        exampleMeaning: question.example_meaning ?? null,
       };
       feedback.set(question.question_id, result);
       return result;

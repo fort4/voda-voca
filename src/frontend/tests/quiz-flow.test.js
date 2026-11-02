@@ -152,3 +152,16 @@ test("미선택 상태의 화면 자식 목록에는 null 이나 undefined 가 �
   assert.equal(children.some((c) => c === null || c === undefined), false);
   assert.equal(children.join("|").includes("null"), false);
 });
+
+test("예문 뜻이 있으면 판정 결과에 함께 실리고, 없으면 null 이다", () => {
+  const session = {
+    session_id: 10,
+    questions: [
+      { question_id: 0, term: "apple", choices: ["사과", "배", "포도", "바나나"], correct_index: 0, example: "I eat an apple.", example_meaning: "나는 사과를 먹는다." },
+      { question_id: 1, term: "pear", choices: ["자두", "배", "복숭아", "수박"], correct_index: 1, example: null, example_meaning: null },
+    ],
+  };
+  assert.equal(createQuizFlow({ session }).choose(0).exampleMeaning, "나는 사과를 먹는다.");
+  const second = createQuizFlow({ session: { ...session, questions: [session.questions[1]] } });
+  assert.equal(second.choose(1).exampleMeaning, null);
+});

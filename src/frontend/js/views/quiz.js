@@ -170,7 +170,7 @@ export function quizView(root, ctx) {
   /**
    * 출제된 세션을 푼다. 보기를 고르면 즉시 정오를 판정하고 해설을 보여 준다 (즉각 피드백).
    * 타이머는 서버 expires_at 기준 로컬 카운트다운이다. 마지막 문항 뒤에는 최종 결과 보기로 제출한다.
-   * @param {{session_id: number, expires_at: string, questions: Array<{question_id: number, term: string, choices: string[], correct_index: number, example: string|null}>}} session
+   * @param {{session_id: number, expires_at: string, questions: Array<{question_id: number, term: string, choices: string[], correct_index: number, example: string|null, example_meaning?: string|null}>}} session
    * @param {Headers} headers 출제 응답 헤더 (Date 로 시계 차이 보정)
    * @param {{kind: string, wordbookId?: number}} source
    * @param {number} clientNow 응답을 받은 순간의 기기 시각
@@ -271,6 +271,9 @@ export function quizView(root, ctx) {
           feedback.example
             ? h("p", { class: "break-words text-[15px] italic leading-relaxed text-zinc-800" }, feedback.example)
             : h("p", { class: "text-sm text-zinc-500" }, "이 단어에는 해설 예문이 없습니다."),
+          feedback.exampleMeaning
+            ? h("p", { class: "mt-2 break-words text-[15px] leading-relaxed text-zinc-600" }, feedback.exampleMeaning)
+            : null,
         ),
         button({ full: true, onClick: advance }, last ? "최종 결과 보기" : "다음 문항", icon(last ? "flag" : "chevron-right")),
       );

@@ -81,7 +81,7 @@ export function flashcardsView(root, { query, navigate }) {
         query: { ...sourceFlashcardQuery(source), shuffle: false, limit: FLASHCARD_LIMIT },
         signal: controller.signal,
       });
-      state.cards = data.items.map((item) => ({ term: item.term, meaning: item.meaning, example: item.example }));
+      state.cards = data.items.map((item) => ({ term: item.term, meaning: item.meaning, example: item.example, exampleMeaning: item.example_meaning ?? null }));
       state.deck = createDeck(state.cards, { shuffle: state.shuffle });
       state.status = state.cards.length ? "ok" : "empty";
     } catch (error) {
@@ -233,6 +233,7 @@ export function flashcardsView(root, { query, navigate }) {
           { class: "flip-face flip-back" },
           h("span", { class: "break-words text-2xl font-semibold text-zinc-900" }, card.meaning),
           card.example ? h("span", { class: "break-words text-base text-zinc-600" }, card.example) : null,
+          card.exampleMeaning ? h("span", { class: "break-words text-sm text-zinc-500" }, card.exampleMeaning) : null,
           card.example
             ? h(
                 "span",
