@@ -405,3 +405,41 @@ async def test_preset_without_data_file_is_503(
 async def test_preset_requires_login(client: httpx.AsyncClient) -> None:
     response = await client.post("/api/wordbooks/presets/intermediate-1000")
     assert response.status_code == 401
+
+
+# --- 예문 한글 뜻 적재 (v2 Phase 1) ---
+
+
+@pytest.mark.asyncio
+async def test_signup_copies_example_meaning_into_the_default_wordbooks(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
+    books = (await client.get("/api/wordbooks?size=100", headers=auth_headers(token))).json()["items"]
+    beginner = next(book for book in books if book["name"] == "초급 필수 영단어 200")
+
+    rows = (
+        await client.get(f"/api/wordbooks/{beginner['id']}/words", params={"q": "apple"}, headers=auth_headers(token))
+    ).json()["items"]
+    assert [row["term"] for row in rows] == ["apple"]
+    assert rows[0]["example_meaning"] == "나는 매일 아침 사과를 먹는다."
+
+
+@pytest.mark.asyncio
+async def test_preset_keeps_example_meaning_from_a_four_column_file(
+    client: httpx.AsyncClient, tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from backend.services import seed
+
+    lines = ["term,meaning,example,example_meaning"]
+    lines += [f"preset{i:04d},뜻{i},Example preset{i:04d}.,예문 뜻 {i}" for i in range(1000)]
+    (tmp_path / "intermediate_1000.csv").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    monkeypatch.setattr(seed, "SEED_DIR", tmp_path)
+    _, token = await signup_and_login(client)
+
+    created = await client.post("/api/wordbooks/presets/intermediate-1000", headers=auth_headers(token))
+    assert created.status_code == 201, created.text
+    rows = (
+        await client.get(
+            f"/api/wordbooks/{created.json()['id']}/words", params={"q": "preset0007"}, headers=auth_headers(token)
+        )
+    ).json()["items"]
+    assert [row["example_meaning"] for row in rows] == ["예문 뜻 7"]

@@ -71,3 +71,66 @@ async def test_missing_seed_file_fails_before_touching_the_database(tmp_path, mo
     with pytest.raises(SeedDataMissingError):
         await wordbook_service.create_preset_wordbook(db, 1, "intermediate-1000")  # type: ignore[arg-type]
     assert db.rolled_back is False
+
+
+# --- 시드 로더: 3열/4열 CSV, BOM, 헤더 오류, JSON 의 선택 키 (v2 Phase 1) ---
+
+
+def _preset_file(tmp_path, monkeypatch: pytest.MonkeyPatch, text: str) -> None:
+    (tmp_path / "intermediate_1000.csv").write_text(text, encoding="utf-8")
+    monkeypatch.setattr(seed, "SEED_DIR", tmp_path)
+
+
+def test_three_column_file_gives_no_translation(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _preset_file(tmp_path, monkeypatch, "term,meaning,example\na,가,a!\n")
+    _, words = load_preset("intermediate-1000")
+    assert words[0].example == "a!"
+    assert words[0].example_meaning is None
+
+
+def test_four_column_file_reads_translations_and_treats_blank_as_none(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _preset_file(tmp_path, monkeypatch, "term,meaning,example,example_meaning\na,가,a!,예문 뜻\nb,나,b!,\n")
+    _, words = load_preset("intermediate-1000")
+    assert words[0].example_meaning == "예문 뜻"
+    assert words[1].example_meaning is None
+
+
+def test_translation_is_dropped_when_the_example_is_missing(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _preset_file(tmp_path, monkeypatch, "term,meaning,example,example_meaning\na,가,,예문 없는 해석\n")
+    _, words = load_preset("intermediate-1000")
+    assert words[0].example == ""
+    assert words[0].example_meaning is None
+
+
+def test_bom_before_the_header_is_accepted(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _preset_file(tmp_path, monkeypatch, "﻿term,meaning,example,example_meaning\na,가,a!,해석\n")
+    _, words = load_preset("intermediate-1000")
+    assert words[0].term == "a"
+    assert words[0].example_meaning == "해석"
+
+
+def test_unknown_header_is_rejected_with_both_accepted_forms(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _preset_file(tmp_path, monkeypatch, "term,meaning\na,가\n")
+    with pytest.raises(ValueError, match="term,meaning,example 또는 term,meaning,example,example_meaning"):
+        load_preset("intermediate-1000")
+
+
+def test_json_item_without_the_translation_key_is_none_and_values_are_trimmed(tmp_path) -> None:
+    import json
+
+    path = tmp_path / "seed.json"
+    path.write_text(
+        json.dumps(
+            [
+                {"term": "a", "meaning": "가", "example": "a!"},
+                {"term": "b", "meaning": "나", "example": "b!", "example_meaning": "  해석  "},
+                {"term": "c", "meaning": "다", "example": "   ", "example_meaning": "버려짐"},
+            ],
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    first, second, third = seed._read_json_words(path)
+    assert first.example_meaning is None
+    assert second.example_meaning == "해석"
+    assert third.example == "" and third.example_meaning is None

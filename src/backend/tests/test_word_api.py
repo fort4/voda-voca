@@ -70,7 +70,17 @@ async def test_create_word_returns_201_with_fields(client: httpx.AsyncClient) ->
     )
     assert response.status_code == 201
     body = response.json()
-    assert set(body) == {"id", "wordbook_id", "term", "meaning", "example", "example_meaning", "created_at", "updated_at", "bookmarked"}
+    assert set(body) == {
+        "id",
+        "wordbook_id",
+        "term",
+        "meaning",
+        "example",
+        "example_meaning",
+        "created_at",
+        "updated_at",
+        "bookmarked",
+    }
     assert body["bookmarked"] is False
     assert (body["wordbook_id"], body["term"], body["meaning"], body["example"]) == (wb, "apple", "사과", "An apple.")
     assert body["created_at"].endswith("Z")
@@ -593,3 +603,107 @@ async def test_bulk_409_names_the_first_conflicting_requested_term(client: httpx
     assert response.status_code == 409
     assert response.json()["conflict_term"] == "plum"  # 요청 순서상 먼저 겹친 표제어
     assert set(response.json()) == {"detail", "conflict_term"}
+
+
+# --- 예문 한글 뜻 (example_meaning, v2 Phase 1) ---
+
+
+@pytest.mark.asyncio
+async def test_example_meaning_round_trips_through_create_get_and_patch(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
+    wb = await make_wordbook(client, token)
+    created = await client.post(
+        f"/api/wordbooks/{wb}/words",
+        json={"term": "apple", "meaning": "사과", "example": "I eat an apple.", "example_meaning": "나는 사과를 먹는다."},
+        headers=auth_headers(token),
+    )
+    assert created.status_code == 201, created.text
+    word_id = created.json()["id"]
+    assert created.json()["example_meaning"] == "나는 사과를 먹는다."
+
+    got = await client.get(f"/api/wordbooks/{wb}/words/{word_id}", headers=auth_headers(token))
+    assert got.json()["example_meaning"] == "나는 사과를 먹는다."
+
+    patched = await client.patch(
+        f"/api/wordbooks/{wb}/words/{word_id}",
+        json={"example_meaning": "  사과를 먹는다.  "},
+        headers=auth_headers(token),
+    )
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["example_meaning"] == "사과를 먹는다."  # 앞뒤 공백은 제거된다
+
+
+@pytest.mark.asyncio
+async def test_example_meaning_is_dropped_when_the_example_is_blank(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
+    wb = await make_wordbook(client, token)
+    response = await client.post(
+        f"/api/wordbooks/{wb}/words",
+        json={"term": "pear", "meaning": "배", "example": "   ", "example_meaning": "예문 없이 해석만 온 경우"},
+        headers=auth_headers(token),
+    )
+    assert response.status_code == 201, response.text
+    assert response.json()["example"] is None
+    assert response.json()["example_meaning"] is None
+
+
+@pytest.mark.asyncio
+async def test_clearing_the_example_also_clears_its_translation(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
+    wb = await make_wordbook(client, token)
+    created = await client.post(
+        f"/api/wordbooks/{wb}/words",
+        json={"term": "plum", "meaning": "자두", "example": "A plum.", "example_meaning": "자두 한 개."},
+        headers=auth_headers(token),
+    )
+    word_id = created.json()["id"]
+
+    cleared = await client.patch(
+        f"/api/wordbooks/{wb}/words/{word_id}", json={"example": None}, headers=auth_headers(token)
+    )
+    assert cleared.status_code == 200, cleared.text
+    assert cleared.json()["example"] is None
+    assert cleared.json()["example_meaning"] is None
+
+
+@pytest.mark.asyncio
+async def test_example_meaning_over_500_characters_is_422(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
+    wb = await make_wordbook(client, token)
+    too_long = "가" * 501
+    created = await client.post(
+        f"/api/wordbooks/{wb}/words",
+        json={"term": "fig", "meaning": "무화과", "example": "A fig.", "example_meaning": too_long},
+        headers=auth_headers(token),
+    )
+    assert created.status_code == 422
+
+    word = await make_word(client, token, wb, "kiwi", "키위")
+    patched = await client.patch(
+        f"/api/wordbooks/{wb}/words/{word['id']}", json={"example_meaning": too_long}, headers=auth_headers(token)
+    )
+    assert patched.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_bulk_create_and_list_keep_example_meaning_per_item(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
+    wb = await make_wordbook(client, token)
+    response = await client.post(
+        f"/api/wordbooks/{wb}/words/bulk",
+        json={
+            "items": [
+                {"term": "a1", "meaning": "뜻", "example": "An a1.", "example_meaning": "a1 예문 뜻"},
+                {"term": "a2", "meaning": "뜻"},
+            ]
+        },
+        headers=auth_headers(token),
+    )
+    assert response.status_code == 201, response.text
+    first, second = response.json()["items"]
+    assert first["example_meaning"] == "a1 예문 뜻"
+    assert second["example_meaning"] is None
+
+    listed = await search(client, token, wb)
+    by_term = {item["term"]: item["example_meaning"] for item in listed["items"]}
+    assert by_term == {"a1": "a1 예문 뜻", "a2": None}

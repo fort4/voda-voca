@@ -68,6 +68,32 @@ def test_distractors_return_none_when_three_distinct_meanings_are_unavailable() 
     assert study_service._pick_distractors(target, primary, fallback, random.Random(3)) is None
 
 
+def test_question_carries_the_example_and_its_translation_or_none() -> None:
+    """출제 문항에는 예문과 예문 뜻이 함께 실린다. 예문이 없으면 뜻도 None 이다."""
+
+    def word(word_id: int, example: str | None, translation: str | None) -> SimpleNamespace:
+        return SimpleNamespace(
+            id=word_id,
+            wordbook_id=10,
+            term=f"t{word_id}",
+            meaning=f"뜻{word_id}",
+            example=example,
+            example_meaning=translation,
+        )
+
+    with_translation = [word(1, "e1", "해석1")] + [word(i, "e", None) for i in range(2, 6)]
+    question = study_service._build_question(with_translation[0], {10: with_translation}, with_translation, random.Random(1))
+    assert question is not None
+    assert question["example"] == "e1"
+    assert question["example_meaning"] == "해석1"
+
+    no_example = [word(1, None, None)] + [word(i, None, None) for i in range(2, 6)]
+    question = study_service._build_question(no_example[0], {10: no_example}, no_example, random.Random(1))
+    assert question is not None
+    assert question["example"] is None
+    assert question["example_meaning"] is None
+
+
 def test_build_question_marks_correct_index_and_has_four_unique_choices() -> None:
     words = [_word(i, 10, f"뜻{i}") for i in range(1, 6)]
     by_book = {10: words}

@@ -594,3 +594,42 @@ async def test_wrong_quiz_source_is_exclusive_with_wordbook_and_bookmarks(client
     wb = await make_wordbook(client, token)
     assert (await create_quiz(client, token, {"wrong_only": True, "wordbook_id": wb})).status_code == 422
     assert (await create_quiz(client, token, {"wrong_only": True, "bookmarks": True})).status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_quiz_question_includes_example_meaning_or_null_when_there_is_no_example(client: httpx.AsyncClient) -> None:
+    """출제 응답의 문항에 예문 뜻이 실린다. 예문이 없는 단어는 해석이 있어도 null 이다."""
+    _, token = await signup_and_login(client)
+    wb = await make_wordbook(client, token)
+    expected: dict[int, str | None] = {}
+    for i in range(4):
+        payload = {"term": f"tr{i}", "meaning": f"뜻-{i}"}
+        if i < 3:
+            payload.update(example=f"Example {i}.", example_meaning=f"해석 {i}")
+        else:
+            payload.update(example_meaning="예문이 없으면 버려진다")
+        response = await client.post(f"/api/wordbooks/{wb}/words", json=payload, headers=auth_headers(token))
+        assert response.status_code == 201, response.text
+        expected[response.json()["id"]] = payload.get("example_meaning") if i < 3 else None
+
+    body = (await create_quiz(client, token, {"wordbook_id": wb})).json()
+    session = await load_session(body["session_id"])
+    assert len(body["questions"]) == 4
+    for stored, shown in zip(session.questions, body["questions"], strict=True):
+        assert "example_meaning" in stored  # 세션에도 저장되어 제출 뒤 조회와 맞는다
+        assert shown["example_meaning"] == expected[stored["word_id"]]
+
+
+@pytest.mark.asyncio
+async def test_flashcards_expose_example_meaning(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
+    wb = await make_wordbook(client, token)
+    response = await client.post(
+        f"/api/wordbooks/{wb}/words",
+        json={"term": "card", "meaning": "카드", "example": "A card.", "example_meaning": "카드 한 장."},
+        headers=auth_headers(token),
+    )
+    assert response.status_code == 201, response.text
+
+    page = (await client.get("/api/study/flashcards", params={"wordbook_id": wb}, headers=auth_headers(token))).json()
+    assert page["items"][0]["example_meaning"] == "카드 한 장."
