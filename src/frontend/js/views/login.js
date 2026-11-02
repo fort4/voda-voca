@@ -69,6 +69,7 @@ export function loginView(root, { query, navigate }) {
         skipAuthRedirect: true,
       });
       setUser(user);
+      toast(`${user.nickname}님, 환영합니다!`);
       navigate(safeNext(query.next));
     } catch (error) {
       if (error.status === 429) {
@@ -109,7 +110,7 @@ export function loginView(root, { query, navigate }) {
       h(
         "div",
         { class: "space-y-2 text-center" },
-        h("div", { class: "brand-mark mx-auto h-12 w-12 rounded-2xl" }, "보"),
+        h("div", { class: "brand-mark mx-auto h-12 w-12 rounded-2xl" }, "VODA"),
         h("h1", { class: "text-2xl font-bold tracking-tight text-zinc-900" }, "다시 만나서 반가워요"),
         h("p", { class: "text-sm text-zinc-500" }, "닉네임과 비밀번호로 로그인하세요."),
       ),

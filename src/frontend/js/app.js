@@ -210,6 +210,7 @@ async function logout() {
   clearQuizResults(globalThis.sessionStorage);
   renderUserbar();
   renderTabbar();
+  toast("로그아웃되었습니다.", "info");
   router.navigate("/login");
 }
 

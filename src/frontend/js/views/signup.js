@@ -66,7 +66,7 @@ export function signupView(root, { navigate }) {
       h(
         "div",
         { class: "space-y-2 text-center" },
-        h("div", { class: "brand-mark mx-auto h-12 w-12 rounded-2xl" }, "보"),
+        h("div", { class: "brand-mark mx-auto h-12 w-12 rounded-2xl" }, "VODA"),
         h("h1", { class: "text-2xl font-bold tracking-tight text-zinc-900" }, "회원가입"),
         h("p", { class: "text-sm text-zinc-500" }, "이메일 없이 닉네임만 정하면 바로 시작할 수 있어요."),
       ),
