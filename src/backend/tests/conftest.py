@@ -8,6 +8,7 @@ import pytest_asyncio
 from sqlalchemy import delete
 
 from backend.core.config import get_settings
+from backend.core.rate_limit import login_rate_limiter
 from backend.db.session import dispose_engine, get_session_factory
 from backend.models import User
 
@@ -24,6 +25,14 @@ async def _dispose_db_engine() -> AsyncIterator[None]:
     """
     yield
     await dispose_engine()
+
+
+@pytest.fixture(autouse=True)
+def _reset_login_rate_limiter() -> Iterator[None]:
+    """로그인 실패 집계는 프로세스 전역이다. 테스트마다 비워 서로의 실패가 섞이지 않게 한다."""
+    login_rate_limiter.clear()
+    yield
+    login_rate_limiter.clear()
 
 
 @pytest.fixture(autouse=True)

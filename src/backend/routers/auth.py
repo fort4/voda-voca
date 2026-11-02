@@ -1,4 +1,4 @@
-# 2026-11-02 - voda-voca - 인증 라우터: 가입, 로그인(세션 쿠키), 로그아웃, 내 정보 (REQ-001, REQ-002)
+# 2026-11-02 - voda-voca - 인증 라우터: 가입, 로그인(세션 쿠키, 무차별 대입 방어 REQ-121), 로그아웃, 내 정보 (REQ-001, REQ-002)
 # 파일 위치: src/backend/routers/auth.py
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.config import get_settings
 from backend.core.deps import SESSION_COOKIE_NAME, get_current_user
+from backend.core.rate_limit import login_rate_limiter
 from backend.db.session import get_db_session
 from backend.models import User
 from backend.schemas.auth import LoginRequest, SignupRequest, UserOut
@@ -13,6 +14,17 @@ from backend.services import auth as auth_service
 from backend.services.session import create_session, delete_session
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+LOGIN_RATE_LIMITED_DETAIL = "로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요."
+
+
+def _login_keys(request: Request, email: str) -> tuple[str, str]:
+    """로그인 집계 키: (IP 키, 계정 키). 계정은 가입 때와 같은 방식으로 정규화한다.
+
+    X-Forwarded-For 는 신뢰하지 않는다. 역방향 프록시 뒤에서는 프록시 IP로 집계된다.
+    """
+    client_ip = request.client.host if request.client else "unknown"
+    return f"ip:{client_ip}", f"acct:{email.strip().lower()}"
 
 
 def _cookie_options() -> dict[str, object]:
@@ -42,16 +54,33 @@ async def signup(
 @router.post("/login", response_model=UserOut)
 async def login(
     body: LoginRequest,
+    request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db_session),
 ) -> User:
+    """로그인. 1분 내 5회 실패한 IP 또는 계정은 비밀번호와 무관하게 429 로 거부한다 (REQ-121).
+
+    차단 판정은 DB 조회 전에 한다. 차단된 요청은 실패로 집계하지 않는다.
+    """
+    ip_key, account_key = _login_keys(request, body.email)
+    retry_after = login_rate_limiter.retry_after([ip_key, account_key])
+    if retry_after is not None:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=LOGIN_RATE_LIMITED_DETAIL,
+            headers={"Retry-After": str(retry_after)},
+        )
+
     try:
         user = await auth_service.authenticate(db, body.email, body.password)
     except auth_service.InvalidCredentialsError as exc:
+        login_rate_limiter.record_failure([ip_key, account_key])
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="이메일 또는 비밀번호가 올바르지 않습니다.",
         ) from exc
+
+    login_rate_limiter.reset(account_key)  # 성공하면 이 계정의 실패 기록을 지운다
 
     token = await create_session(db, user.id)
     response.set_cookie(
