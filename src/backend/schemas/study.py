@@ -27,6 +27,7 @@ class FlashcardOut(BaseModel):
     term: str
     meaning: str
     example: str | None
+    example_meaning: str | None = None
     bookmarked: bool
 
 
@@ -70,6 +71,7 @@ class QuizQuestionOut(BaseModel):
     choices: list[str] = Field(min_length=QUIZ_CHOICE_COUNT, max_length=QUIZ_CHOICE_COUNT)
     correct_index: int = Field(ge=0, lt=QUIZ_CHOICE_COUNT, description="정답 선지 번호 (0~3)")
     example: str | None = Field(default=None, description="해설용 예문 (없으면 null)")
+    example_meaning: str | None = Field(default=None, description="해설 예문의 한글 뜻 (없으면 null)")
 
 
 class QuizSessionOut(BaseModel):

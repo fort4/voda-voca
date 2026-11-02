@@ -113,6 +113,7 @@ async def create_word(
         term=data.term,
         meaning=data.meaning,
         example=data.example,
+        example_meaning=data.example_meaning,
     )
     db.add(word)
     await _commit_checking_term(db)
@@ -150,7 +151,13 @@ async def bulk_create_words(
     """
     await get_owned_wordbook(db, user_id, wordbook_id)
     words = [
-        Word(wordbook_id=wordbook_id, term=item.term, meaning=item.meaning, example=item.example)
+        Word(
+            wordbook_id=wordbook_id,
+            term=item.term,
+            meaning=item.meaning,
+            example=item.example,
+            example_meaning=item.example_meaning,
+        )
         for item in items
     ]
     db.add_all(words)
@@ -205,6 +212,8 @@ async def update_word(
     word = await get_owned_word(db, user_id, wordbook_id, word_id)
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(word, field, value)
+    if not word.example:
+        word.example_meaning = None  # 예문이 없으면 예문 뜻도 없다
     await _commit_checking_term(db)
     return word, await is_bookmarked(db, user_id, word_id)
 

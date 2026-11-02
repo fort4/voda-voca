@@ -31,6 +31,8 @@ class Word(Base):
     term: Mapped[str] = mapped_column(String(100), nullable=False)
     meaning: Mapped[str] = mapped_column(String(200), nullable=False)
     example: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # 예문의 한글 뜻 (선택). 예문이 없으면 항상 NULL 이다 (서비스 계층 규칙).
+    example_meaning: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DATETIME(fsp=3), nullable=False, server_default=UTC_NOW_DEFAULT
     )

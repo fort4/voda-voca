@@ -149,6 +149,7 @@ def _build_question(
         "choices": choices,
         "correct_index": choices.index(word.meaning),
         "example": word.example,
+        "example_meaning": word.example_meaning,
     }
 
 

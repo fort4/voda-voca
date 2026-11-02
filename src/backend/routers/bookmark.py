@@ -61,6 +61,7 @@ async def list_bookmarks(
             term=word.term,
             meaning=word.meaning,
             example=word.example,
+            example_meaning=word.example_meaning,
             bookmarked_at=bookmark.created_at,
         )
         for bookmark, word, wordbook_name in rows

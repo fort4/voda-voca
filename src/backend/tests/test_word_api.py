@@ -70,7 +70,7 @@ async def test_create_word_returns_201_with_fields(client: httpx.AsyncClient) ->
     )
     assert response.status_code == 201
     body = response.json()
-    assert set(body) == {"id", "wordbook_id", "term", "meaning", "example", "created_at", "updated_at", "bookmarked"}
+    assert set(body) == {"id", "wordbook_id", "term", "meaning", "example", "example_meaning", "created_at", "updated_at", "bookmarked"}
     assert body["bookmarked"] is False
     assert (body["wordbook_id"], body["term"], body["meaning"], body["example"]) == (wb, "apple", "사과", "An apple.")
     assert body["created_at"].endswith("Z")

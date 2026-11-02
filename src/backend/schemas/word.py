@@ -19,6 +19,7 @@ from backend.schemas.common import to_utc_iso
 TERM_MAX_CHARS = 100
 MEANING_MAX_CHARS = 200
 EXAMPLE_MAX_CHARS = 500
+EXAMPLE_MEANING_MAX_CHARS = 500
 SEARCH_MAX_CHARS = 100
 BULK_MAX_ITEMS = 100
 
@@ -47,6 +48,9 @@ class WordCreate(BaseModel):
     term: str = Field(description="표제어 (1~100자, 필수)")
     meaning: str = Field(description="뜻 (1~200자, 필수)")
     example: str | None = Field(default=None, description="예문 (0~500자, 선택)")
+    example_meaning: str | None = Field(
+        default=None, description="예문의 한글 뜻 (0~500자, 선택). 예문이 없으면 저장되지 않는다"
+    )
 
     @field_validator("term")
     @classmethod
@@ -63,6 +67,18 @@ class WordCreate(BaseModel):
     def _validate_example(cls, value: str | None) -> str | None:
         return _clean_optional(value, "예문", EXAMPLE_MAX_CHARS)
 
+    @field_validator("example_meaning")
+    @classmethod
+    def _validate_example_meaning(cls, value: str | None) -> str | None:
+        return _clean_optional(value, "예문 뜻", EXAMPLE_MEANING_MAX_CHARS)
+
+    @model_validator(mode="after")
+    def _translation_needs_example(self) -> Self:
+        """예문이 없으면 예문 뜻도 없다. 예문 없이 해석만 온 경우 해석을 버린다."""
+        if not self.example:
+            self.example_meaning = None
+        return self
+
 
 class WordUpdate(BaseModel):
     """부분 수정. 요청에 포함된 필드만 바꾼다.
@@ -73,6 +89,7 @@ class WordUpdate(BaseModel):
     term: str | None = None
     meaning: str | None = None
     example: str | None = None
+    example_meaning: str | None = None
 
     @field_validator("term")
     @classmethod
@@ -93,6 +110,11 @@ class WordUpdate(BaseModel):
     def _validate_example(cls, value: str | None) -> str | None:
         return _clean_optional(value, "예문", EXAMPLE_MAX_CHARS)
 
+    @field_validator("example_meaning")
+    @classmethod
+    def _validate_example_meaning(cls, value: str | None) -> str | None:
+        return _clean_optional(value, "예문 뜻", EXAMPLE_MEANING_MAX_CHARS)
+
 
 class WordOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -102,6 +124,7 @@ class WordOut(BaseModel):
     term: str
     meaning: str
     example: str | None
+    example_meaning: str | None = None
     created_at: datetime
     updated_at: datetime
     # 요청 사용자가 이 단어를 북마크했는지 여부 (단어 목록/상세 응답에서 채운다)

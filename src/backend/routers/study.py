@@ -80,6 +80,7 @@ async def get_flashcards(
             term=word.term,
             meaning=word.meaning,
             example=word.example,
+            example_meaning=word.example_meaning,
             bookmarked=flag,
         )
         for word, flag in rows
@@ -122,6 +123,7 @@ async def create_quiz_session(
                 choices=question["choices"],
                 correct_index=question["correct_index"],
                 example=question.get("example"),
+                example_meaning=question.get("example_meaning"),
             )
             for question in session.questions
         ],
