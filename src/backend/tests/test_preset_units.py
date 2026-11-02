@@ -37,11 +37,7 @@ def test_load_preset_raises_when_the_file_is_missing(tmp_path, monkeypatch: pyte
 
 
 def test_load_preset_reads_terms_meanings_and_examples(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
-    import json
-
-    (tmp_path / "intermediate_1000.json").write_text(
-        json.dumps([{"term": "a", "meaning": "가", "example": "a!"}]), encoding="utf-8"
-    )
+    (tmp_path / "intermediate_1000.csv").write_text("term,meaning,example\na,가,a!\n", encoding="utf-8")
     monkeypatch.setattr(seed, "SEED_DIR", tmp_path)
     name, words = load_preset("intermediate-1000")
     assert name == "중급 필수 영단어 1,000"
@@ -50,9 +46,7 @@ def test_load_preset_reads_terms_meanings_and_examples(tmp_path, monkeypatch: py
 
 @pytest.mark.asyncio
 async def test_preset_name_conflict_becomes_name_taken(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
-    import json
-
-    (tmp_path / "intermediate_1000.json").write_text(json.dumps([{"term": "a", "meaning": "가", "example": "a"}]), encoding="utf-8")
+    (tmp_path / "intermediate_1000.csv").write_text("term,meaning,example\na,가,a\n", encoding="utf-8")
     monkeypatch.setattr(seed, "SEED_DIR", tmp_path)
     db = _FakeSession(IntegrityError("INSERT", {}, Exception("Duplicate entry for key 'uk_wordbooks_user_name'")))
     with pytest.raises(wordbook_service.WordbookNameTakenError):
@@ -62,9 +56,7 @@ async def test_preset_name_conflict_becomes_name_taken(tmp_path, monkeypatch: py
 
 @pytest.mark.asyncio
 async def test_other_integrity_errors_are_propagated_unchanged(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
-    import json
-
-    (tmp_path / "intermediate_1000.json").write_text(json.dumps([{"term": "a", "meaning": "가", "example": "a"}]), encoding="utf-8")
+    (tmp_path / "intermediate_1000.csv").write_text("term,meaning,example\na,가,a\n", encoding="utf-8")
     monkeypatch.setattr(seed, "SEED_DIR", tmp_path)
     db = _FakeSession(IntegrityError("INSERT", {}, Exception("uk_words_wordbook_term")))
     with pytest.raises(IntegrityError):

@@ -1,7 +1,7 @@
 # 2026-11-02 - voda-voca - 기본 단어장 시드 데이터 검증: 각 200제, 중복 없음, 필드 제한, 예문에 표제어 포함 (DB 없이 실행)
 # 파일 위치: src/backend/tests/test_seed_data.py
 
-from backend.services.seed import DEFAULT_WORDBOOKS, SEED_DIR, default_wordbooks
+from backend.services.seed import DEFAULT_WORDBOOKS, PRESET_WORDBOOKS, SEED_DIR, default_wordbooks, load_preset
 from backend.schemas.word import TERM_MAX_CHARS, MEANING_MAX_CHARS, EXAMPLE_MAX_CHARS
 from backend.tests.helpers import DEFAULT_WORDBOOK_NAMES
 
@@ -45,6 +45,22 @@ def test_example_sentence_contains_its_term_for_quiz_explanations() -> None:
     for book in default_wordbooks():
         missing = [w.term for w in book.words if w.term.lower() not in w.example.lower()]
         assert missing == [], book.name
+
+
+def test_intermediate_1000_preset_file_has_1000_valid_words() -> None:
+    """추천 1,000제 CSV 가 실제로 들어 있으면 개수, 중복, 필드, 예문 조건을 모두 만족해야 한다."""
+    file_name, _ = PRESET_WORDBOOKS["intermediate-1000"]
+    assert (SEED_DIR / file_name).is_file(), file_name
+    _, words = load_preset("intermediate-1000")
+    assert len(words) == 1000
+    terms = [w.term.lower() for w in words]
+    assert len(set(terms)) == len(terms)
+    for w in words:
+        assert w.term and w.meaning and w.example, w
+        assert len(w.term) <= TERM_MAX_CHARS, w
+        assert len(w.meaning) <= MEANING_MAX_CHARS, w
+        assert len(w.example) <= EXAMPLE_MAX_CHARS, w
+        assert w.term.lower() in w.example.lower(), w
 
 
 def test_loader_is_cached_so_the_files_are_read_once() -> None:

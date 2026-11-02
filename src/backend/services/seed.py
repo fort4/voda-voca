@@ -1,6 +1,7 @@
-# 2026-11-02 - voda-voca - 기본 단어장 시드 로더: 초/중/고 200제 JSON 을 읽어 가입 시 복제할 목록으로 제공 (기본 단어장 자동 제공)
+# 2026-11-02 - voda-voca - 기본 단어장 시드 로더: 초/중/고 200제(JSON)와 추천 1,000제(CSV)를 읽어 단어장 생성용 목록으로 제공
 # 파일 위치: src/backend/services/seed.py
 
+import csv
 import json
 from dataclasses import dataclass
 from functools import lru_cache
@@ -36,7 +37,7 @@ class SeedDataMissingError(Exception):
 
 # 추천 프리셋: 키 -> (파일 이름, 생성될 단어장 이름). 파일은 요청마다 읽는다 (데이터 교체가 재시작 없이 반영되도록).
 PRESET_WORDBOOKS: dict[str, tuple[str, str]] = {
-    "intermediate-1000": ("intermediate_1000.json", "중급 필수 영단어 1,000"),
+    "intermediate-1000": ("intermediate_1000.csv", "중급 필수 영단어 1,000"),
 }
 
 
@@ -46,8 +47,22 @@ def load_preset(key: str) -> tuple[str, tuple[SeedWord, ...]]:
     path = SEED_DIR / file_name
     if not path.is_file():
         raise SeedDataMissingError(file_name)
-    raw = json.loads(path.read_text(encoding="utf-8"))
-    return name, tuple(SeedWord(term=i["term"], meaning=i["meaning"], example=i["example"]) for i in raw)
+    return name, _read_csv_words(path)
+
+
+PRESET_COLUMNS = ("term", "meaning", "example")
+
+
+def _read_csv_words(path: Path) -> tuple[SeedWord, ...]:
+    """헤더가 term,meaning,example 인 CSV 를 읽는다. BOM 이 있어도 허용한다."""
+    with path.open(encoding="utf-8-sig", newline="") as fh:
+        reader = csv.DictReader(fh)
+        if reader.fieldnames is None or tuple(reader.fieldnames) != PRESET_COLUMNS:
+            raise ValueError(f"{path.name}: 헤더는 {','.join(PRESET_COLUMNS)} 이어야 합니다")
+        return tuple(
+            SeedWord(term=row["term"].strip(), meaning=row["meaning"].strip(), example=row["example"].strip())
+            for row in reader
+        )
 
 
 @lru_cache(maxsize=1)

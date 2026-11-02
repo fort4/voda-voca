@@ -348,10 +348,9 @@ async def test_get_and_patch_return_word_count(client: httpx.AsyncClient) -> Non
 
 
 def _write_synthetic_preset(directory, count: int = 1000) -> None:
-    import json
-
-    items = [{"term": f"preset{i:04d}", "meaning": f"뜻{i}", "example": f"Example preset{i:04d}."} for i in range(count)]
-    (directory / "intermediate_1000.json").write_text(json.dumps(items, ensure_ascii=False), encoding="utf-8")
+    lines = ["term,meaning,example"]
+    lines += [f"preset{i:04d},뜻{i},Example preset{i:04d}." for i in range(count)]
+    (directory / "intermediate_1000.csv").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 @pytest.mark.asyncio
@@ -395,7 +394,7 @@ async def test_preset_without_data_file_is_503(
 ) -> None:
     from backend.services import seed
 
-    monkeypatch.setattr(seed, "SEED_DIR", tmp_path)  # intermediate_1000.json 이 없다
+    monkeypatch.setattr(seed, "SEED_DIR", tmp_path)  # intermediate_1000.csv 이 없다
     _, token = await signup_and_login(client)
     response = await client.post("/api/wordbooks/presets/intermediate-1000", headers=auth_headers(token))
     assert response.status_code == 503
