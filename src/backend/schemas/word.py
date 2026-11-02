@@ -1,9 +1,18 @@
-# 2026-11-02 - voda-voca - 단어 API 요청/응답 스키마 및 입력 검증 (REQ-008~010, REQ-111)
+# 2026-11-02 - voda-voca - 단어 API 요청/응답 스키마 및 입력 검증, 일괄 등록 스키마 (REQ-008~010, REQ-111, 일괄 등록)
 # 파일 위치: src/backend/schemas/word.py
 
+import unicodedata
 from datetime import datetime
+from typing import Self
 
-from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_serializer,
+    field_validator,
+    model_validator,
+)
 
 from backend.schemas.common import to_utc_iso
 
@@ -11,6 +20,7 @@ TERM_MAX_CHARS = 100
 MEANING_MAX_CHARS = 200
 EXAMPLE_MAX_CHARS = 500
 SEARCH_MAX_CHARS = 100
+BULK_MAX_ITEMS = 100
 
 
 def _clean_required(value: str, label: str, max_chars: int) -> str:
@@ -107,3 +117,45 @@ class WordPage(BaseModel):
     total: int
     page: int
     size: int
+
+
+def term_key(term: str) -> str:
+    """일괄 등록 요청 안의 중복 판정용 키.
+
+    DB 콜레이션 utf8mb4_0900_ai_ci 처럼 대소문자와 악센트를 무시한다 (Apple = apple, café = cafe).
+    DB 콜레이션과 완전히 같은 규칙은 아니다. 최종 판정은 DB UNIQUE 제약(409)이 한다.
+    """
+    decomposed = unicodedata.normalize("NFKD", term)
+    without_marks = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
+    return without_marks.casefold()
+
+
+class WordBulkCreate(BaseModel):
+    """단어 일괄 등록 요청. 한 번에 1~100건이며, 요청 안에서 표제어가 겹치면 422 다."""
+
+    items: list[WordCreate] = Field(
+        min_length=1,
+        max_length=BULK_MAX_ITEMS,
+        description=f"등록할 단어 목록 (1~{BULK_MAX_ITEMS}건, 전부 성공하거나 전부 실패)",
+    )
+
+    @model_validator(mode="after")
+    def _no_duplicate_terms_in_request(self) -> Self:
+        seen: set[str] = set()
+        duplicates: list[str] = []
+        for item in self.items:
+            key = term_key(item.term)
+            if key in seen:
+                duplicates.append(item.term)
+            seen.add(key)
+        if duplicates:
+            unique = list(dict.fromkeys(duplicates))
+            raise ValueError(f"요청 안에 같은 표제어가 있습니다: {', '.join(unique)}")
+        return self
+
+
+class WordBulkOut(BaseModel):
+    """일괄 등록 성공 응답. 입력 순서대로 생성된 단어 목록이다."""
+
+    items: list[WordOut]
+    count: int

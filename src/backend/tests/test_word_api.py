@@ -434,3 +434,148 @@ async def test_deleting_word_cascades_bookmarks_and_study_logs(client: httpx.Asy
         bookmarks = (await session.execute(select(Bookmark).where(Bookmark.word_id == word["id"]))).scalars().all()
         logs = (await session.execute(select(StudyLog).where(StudyLog.word_id == word["id"]))).scalars().all()
     assert bookmarks == [] and logs == []
+
+
+# --- 일괄 등록 (POST /api/wordbooks/{id}/words/bulk) ---
+
+
+def _bulk_body(*terms: str, meaning: str = "뜻") -> dict:
+    return {"items": [{"term": t, "meaning": f"{meaning}-{t}"} for t in terms]}
+
+
+async def bulk(client: httpx.AsyncClient, token: str, wordbook_id: int, body: dict) -> httpx.Response:
+    return await client.post(
+        f"/api/wordbooks/{wordbook_id}/words/bulk", json=body, headers=auth_headers(token)
+    )
+
+
+@pytest.mark.asyncio
+async def test_bulk_create_success_returns_all_words_in_order(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
+    wb = await make_wordbook(client, token)
+
+    response = await bulk(client, token, wb, {
+        "items": [
+            {"term": "banana", "meaning": "바나나", "example": "I eat a banana."},
+            {"term": "apple", "meaning": "사과"},
+            {"term": "cherry", "meaning": "체리", "example": "  "},
+        ]
+    })
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["count"] == 3
+    assert [item["term"] for item in body["items"]] == ["banana", "apple", "cherry"]
+    assert all(item["bookmarked"] is False for item in body["items"])
+    assert body["items"][0]["example"] == "I eat a banana."
+    assert body["items"][1]["example"] is None
+    assert body["items"][2]["example"] is None  # 공백 예문은 null 로 저장
+    assert all(item["created_at"].endswith("Z") for item in body["items"])
+
+    page = await search(client, token, wb)
+    assert page["total"] == 3
+    assert terms(page) == ["apple", "banana", "cherry"]
+
+
+@pytest.mark.asyncio
+async def test_bulk_accepts_exactly_100_items(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
+    wb = await make_wordbook(client, token)
+    names = [f"word{i:03d}" for i in range(100)]
+
+    response = await bulk(client, token, wb, _bulk_body(*names))
+    assert response.status_code == 201, response.text
+    assert response.json()["count"] == 100
+    assert (await search(client, token, wb, size=100))["total"] == 100
+
+
+@pytest.mark.asyncio
+async def test_bulk_over_100_items_is_422_and_stores_nothing(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
+    wb = await make_wordbook(client, token)
+    names = [f"word{i:03d}" for i in range(101)]
+
+    response = await bulk(client, token, wb, _bulk_body(*names))
+    assert response.status_code == 422
+    assert (await search(client, token, wb))["total"] == 0
+
+
+@pytest.mark.asyncio
+async def test_bulk_empty_items_is_422(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
+    wb = await make_wordbook(client, token)
+    assert (await bulk(client, token, wb, {"items": []})).status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_bulk_duplicate_in_request_is_422_and_stores_nothing(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
+    wb = await make_wordbook(client, token)
+
+    response = await bulk(client, token, wb, _bulk_body("apple", "Apple", "pear"))
+    assert response.status_code == 422
+    assert (await search(client, token, wb))["total"] == 0
+
+
+@pytest.mark.asyncio
+async def test_bulk_item_field_error_is_422(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
+    wb = await make_wordbook(client, token)
+    body = {"items": [{"term": "apple", "meaning": "사과"}, {"term": "pear", "meaning": "   "}]}
+
+    assert (await bulk(client, token, wb, body)).status_code == 422
+    assert (await search(client, token, wb))["total"] == 0
+
+
+@pytest.mark.asyncio
+async def test_bulk_conflict_with_existing_word_is_409_and_rolls_back_everything(
+    client: httpx.AsyncClient,
+) -> None:
+    """기존 단어와 겹치면 409. 요청한 새 단어 중 겹치지 않은 것도 저장되지 않는다 (All-or-Nothing)."""
+    _, token = await signup_and_login(client)
+    wb = await make_wordbook(client, token)
+    await make_word(client, token, wb, "apple")
+
+    # "Apple" 은 DB 콜레이션상 기존 "apple" 과 같은 표제어다. 요청 안에서는 겹치지 않으므로 DB 가 막는다.
+    response = await bulk(client, token, wb, _bulk_body("banana", "cherry", "Apple"))
+    assert response.status_code == 409, response.text
+    assert "전체 등록을 취소" in response.json()["detail"]
+
+    page = await search(client, token, wb)
+    assert page["total"] == 1
+    assert terms(page) == ["apple"]
+
+    # 롤백 후 같은 단어장에 정상 요청은 다시 성공한다
+    retry = await bulk(client, token, wb, _bulk_body("banana", "cherry"))
+    assert retry.status_code == 201
+    assert (await search(client, token, wb))["total"] == 3
+
+
+@pytest.mark.asyncio
+async def test_bulk_same_term_in_other_wordbook_is_allowed(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
+    wb_a = await make_wordbook(client, token, "A")
+    wb_b = await make_wordbook(client, token, "B")
+    await make_word(client, token, wb_a, "apple")
+
+    response = await bulk(client, token, wb_b, _bulk_body("apple", "pear"))
+    assert response.status_code == 201, response.text
+
+
+@pytest.mark.asyncio
+async def test_bulk_into_other_users_wordbook_is_404(client: httpx.AsyncClient) -> None:
+    _, owner = await signup_and_login(client)
+    _, intruder = await signup_and_login(client)
+    wb = await make_wordbook(client, owner)
+
+    foreign = await bulk(client, intruder, wb, _bulk_body("apple"))
+    missing = await bulk(client, intruder, 987654321, _bulk_body("apple"))
+    assert foreign.status_code == 404
+    assert missing.status_code == 404
+    assert foreign.json() == missing.json()
+    assert (await search(client, owner, wb))["total"] == 0
+
+
+@pytest.mark.asyncio
+async def test_bulk_requires_login(client: httpx.AsyncClient) -> None:
+    response = await client.post("/api/wordbooks/1/words/bulk", json=_bulk_body("apple"))
+    assert response.status_code == 401

@@ -4,7 +4,7 @@
 import pytest
 from pydantic import ValidationError
 
-from backend.schemas.word import WordCreate, WordUpdate
+from backend.schemas.word import BULK_MAX_ITEMS, WordBulkCreate, WordCreate, WordUpdate, term_key
 from backend.services.word import escape_like
 
 
@@ -73,3 +73,44 @@ def test_update_only_reports_sent_fields() -> None:
 )
 def test_escape_like(raw: str, expected: str) -> None:
     assert escape_like(raw) == expected
+
+
+def _items(*terms: str) -> list[dict]:
+    return [{"term": t, "meaning": f"뜻-{t}"} for t in terms]
+
+
+def test_term_key_ignores_case_and_accents() -> None:
+    assert term_key("Apple") == term_key("apple")
+    assert term_key("café") == term_key("CAFE") == term_key("cafe")
+    assert term_key("apple") != term_key("apples")
+
+
+def test_bulk_accepts_one_to_max_items() -> None:
+    assert len(WordBulkCreate(items=_items("a")).items) == 1
+    names = [f"w{i:03d}" for i in range(BULK_MAX_ITEMS)]
+    assert len(WordBulkCreate(items=_items(*names)).items) == BULK_MAX_ITEMS
+
+
+def test_bulk_rejects_empty_and_over_max_items() -> None:
+    with pytest.raises(ValidationError):
+        WordBulkCreate(items=[])
+    names = [f"w{i:03d}" for i in range(BULK_MAX_ITEMS + 1)]
+    with pytest.raises(ValidationError):
+        WordBulkCreate(items=_items(*names))
+
+
+@pytest.mark.parametrize(
+    "terms",
+    [("apple", "apple"), ("Apple", "apple"), ("café", "cafe"), ("a", "b", "A")],
+)
+def test_bulk_rejects_duplicate_terms_in_request(terms: tuple[str, ...]) -> None:
+    with pytest.raises(ValidationError, match="같은 표제어"):
+        WordBulkCreate(items=_items(*terms))
+
+
+def test_bulk_duplicate_message_lists_each_term_once() -> None:
+    with pytest.raises(ValidationError) as exc:
+        WordBulkCreate(items=_items("apple", "apple", "pear", "apple"))
+    message = exc.value.errors()[0]["msg"]
+    assert message.endswith("apple")  # 중복 표제어는 한 번만 나열한다
+    assert "pear" not in message

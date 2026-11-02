@@ -113,6 +113,29 @@ async def create_word(
     return word
 
 
+async def bulk_create_words(
+    db: AsyncSession, user_id: int, wordbook_id: int, items: list[WordCreate]
+) -> list[Word]:
+    """단어 여러 건을 한 트랜잭션으로 등록한다 (All-or-Nothing).
+
+    - 단어장 소유권을 먼저 확인한다. 아니면 WordbookNotFoundError (404).
+    - 모든 INSERT 를 하나의 커밋에 묶는다. 한 건이라도 표제어 UNIQUE 를 위반하면
+      WordTermTakenError (409) 가 되고, 나머지 건도 모두 롤백된다.
+    - 성공하면 입력 순서대로 생성된 단어를 반환한다.
+    """
+    await get_owned_wordbook(db, user_id, wordbook_id)
+    words = [
+        Word(wordbook_id=wordbook_id, term=item.term, meaning=item.meaning, example=item.example)
+        for item in items
+    ]
+    db.add_all(words)
+    await _commit_checking_term(db)
+
+    ids = [word.id for word in words]
+    result = await db.execute(select(Word).where(Word.id.in_(ids)).order_by(Word.id))
+    return list(result.scalars().all())
+
+
 async def list_words(
     db: AsyncSession,
     user_id: int,

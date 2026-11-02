@@ -7,7 +7,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.core.deps import get_current_user
 from backend.db.session import get_db_session
 from backend.models import User, Word
-from backend.schemas.word import SEARCH_MAX_CHARS, WordCreate, WordOut, WordPage, WordUpdate
+from backend.schemas.word import (
+    SEARCH_MAX_CHARS,
+    WordBulkCreate,
+    WordBulkOut,
+    WordCreate,
+    WordOut,
+    WordPage,
+    WordUpdate,
+)
 from backend.services import word as word_service
 from backend.services.wordbook import WordbookNotFoundError
 
@@ -24,6 +32,10 @@ WORD_NOT_FOUND = HTTPException(
 TERM_TAKEN = HTTPException(
     status_code=status.HTTP_409_CONFLICT,
     detail="같은 단어장에 이미 있는 표제어입니다.",
+)
+BULK_TERM_TAKEN = HTTPException(
+    status_code=status.HTTP_409_CONFLICT,
+    detail="같은 단어장에 이미 있는 표제어가 포함되어 있어 전체 등록을 취소했습니다.",
 )
 
 PAGE_SIZE_DEFAULT = 20
@@ -51,6 +63,28 @@ async def create_word(
         raise TERM_TAKEN from exc
     # 방금 만든 단어는 이 사용자가 북마크한 적이 없으므로 False 다.
     return _to_out(word, bookmarked=False)
+
+
+@router.post("/bulk", status_code=status.HTTP_201_CREATED, response_model=WordBulkOut)
+async def bulk_create_words(
+    wordbook_id: int,
+    body: WordBulkCreate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
+) -> WordBulkOut:
+    """단어 일괄 등록. 전부 성공하거나 전부 실패한다 (All-or-Nothing).
+
+    - 요청 안 중복과 본문 형식 오류는 422 (스키마에서 검사).
+    - 단어장이 없거나 타인 소유면 404.
+    - 기존 단어와 표제어가 겹치면 409 이고, 요청한 나머지 단어도 저장되지 않는다.
+    """
+    try:
+        words = await word_service.bulk_create_words(db, user.id, wordbook_id, body.items)
+    except WordbookNotFoundError as exc:
+        raise WORDBOOK_NOT_FOUND from exc
+    except word_service.WordTermTakenError as exc:
+        raise BULK_TERM_TAKEN from exc
+    return WordBulkOut(items=[_to_out(word, bookmarked=False) for word in words], count=len(words))
 
 
 @router.get("", response_model=WordPage)
