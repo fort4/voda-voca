@@ -4,13 +4,36 @@
  */
 
 import { api, ApiError } from "../core/api.js";
-import { button, clear, h, icon, notice, skeleton } from "../core/dom.js";
+import { button, clear, h, icon, notice, refreshIcons, skeleton } from "../core/dom.js";
 import { field, alertBox } from "../core/form.js";
 import { formatKst } from "../core/format.js";
 import { confirmDialog, toast } from "../core/toast.js";
 import { validateWordbookDescription, validateWordbookName } from "../core/validate.js";
+import { fetchAllPages } from "../core/backup.js";
+import { computeSummary, computeWeeklyActivity, computeWordbookProgress } from "../core/stats.js";
+import { renderWeeklyChart } from "../core/weekly-chart.js";
+import { sourceRouteQuery } from "../lib/study-source.js";
 
 export const PAGE_SIZE = 20;
+
+/** 기본 제공 단어장의 성격. 이름으로 판정하고, 나머지는 사용자가 만든 단어장이다. */
+const LEVEL_BY_NAME = new Map([
+  ["초급 필수 영단어 200", "beginner"],
+  ["중급 핵심 영단어 200", "intermediate"],
+  ["고급 심화 영단어 200", "advanced"],
+  ["중급 필수 영단어 1,000", "intermediate"],
+]);
+const LEVEL_LABEL = { beginner: "초급", intermediate: "중급", advanced: "고급", user: "내 단어장" };
+
+/**
+ * 단어장 태그(성격)를 정한다.
+ * @param {string} name
+ * @returns {{key: "beginner"|"intermediate"|"advanced"|"user", label: string}}
+ */
+export function levelTagOf(name) {
+  const key = /** @type {"beginner"|"intermediate"|"advanced"|"user"} */ (LEVEL_BY_NAME.get(name) ?? "user");
+  return { key, label: LEVEL_LABEL[key] };
+}
 
 /**
  * 단어 수 배지 문구. 0개도 분명히 보여 준다.
@@ -43,12 +66,32 @@ export function hasMore(s) {
 }
 
 /**
+ * 요약 통계 카드 한 장.
+ * @param {string} iconName
+ * @param {string} label
+ * @param {string} value
+ * @param {string} hint
+ */
+function statCard(iconName, label, value, hint) {
+  return h(
+    "div",
+    { class: "surface flex min-w-0 flex-col gap-1 p-3 sm:p-4" },
+    h("span", { class: "inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500" }, icon(iconName, "h-4 w-4"), label),
+    h("span", { class: "truncate text-xl font-bold tabular-nums text-zinc-900 sm:text-2xl" }, value),
+    hint ? h("span", { class: "truncate text-xs text-zinc-500" }, hint) : null,
+  );
+}
+
+/**
  * @param {HTMLElement} root
  * @param {{navigate: (path: string, query?: object) => void}} ctx
  * @returns {() => void}
  */
 export function wordbooksView(root, { navigate }) {
   const state = { status: "loading", items: [], total: 0, page: 0, error: "" };
+  /** 대시보드 통계. 단어장 목록과 따로 받는다. */
+  const dash = { status: "loading", summary: null, weekly: [], logs: [], error: "" };
+  const dashEl = h("section", { class: "mb-4 space-y-3", "aria-label": "학습 요약" });
   const controller = new AbortController();
   const listEl = h("div", { class: "space-y-3", "aria-live": "polite" });
   const moreBtn = button({ variant: "secondary", full: true, onClick: () => load(false) }, "더 보기");
@@ -62,6 +105,7 @@ export function wordbooksView(root, { navigate }) {
       h("h1", { class: "text-xl font-bold" }, "내 단어장"),
       h("div", { class: "flex flex-wrap justify-end gap-2" }, presetBtn, createBtn),
     ),
+    dashEl,
     listEl,
     h("div", { class: "mt-4" }, moreBtn),
   );
@@ -76,6 +120,7 @@ export function wordbooksView(root, { navigate }) {
     state.status = "loading";
     state.error = "";
     render();
+    if (reset) loadDashboard();
     try {
       const nextPage = state.page + 1;
       const data = await api("/wordbooks", { query: { page: nextPage, size: PAGE_SIZE }, signal: controller.signal });
@@ -89,6 +134,69 @@ export function wordbooksView(root, { navigate }) {
       state.error = error instanceof ApiError ? error.detail : "단어장을 불러오지 못했습니다.";
     }
     render();
+  }
+
+  /** 요약 카드와 주간 차트에 쓸 데이터를 받는다. 실패해도 단어장 목록은 그대로 보인다. */
+  async function loadDashboard() {
+    dash.status = "loading";
+    renderDashboard();
+    try {
+      const [books, logs] = await Promise.all([
+        fetchAllPages("/wordbooks", {}),
+        api("/study/logs", { query: { limit: 100 }, signal: controller.signal }),
+      ]);
+      dash.logs = logs.items;
+      dash.summary = computeSummary(books, logs.items);
+      dash.weekly = computeWeeklyActivity(logs.items);
+      dash.status = "ok";
+    } catch (error) {
+      if (error.name === "AbortError") return;
+      dash.status = "error";
+      dash.error = "통계를 불러오지 못했습니다.";
+    }
+    renderDashboard();
+    render();
+  }
+
+  function renderDashboard() {
+    clear(dashEl);
+    if (dash.status === "error") {
+      dashEl.append(h("p", { class: "text-sm text-zinc-500" }, dash.error));
+      return;
+    }
+    const loaded = dash.status === "ok";
+    const summary = dash.summary;
+    dashEl.append(
+      h(
+        "div",
+        { class: "grid grid-cols-3 gap-2 sm:gap-3" },
+        statCard("book-open", "총 단어", loaded ? summary.totalWords.toLocaleString("ko-KR") : "…", loaded ? "모든 단어장" : ""),
+        statCard(
+          "target",
+          "정답률",
+          loaded && summary.accuracy !== null ? `${summary.accuracy}%` : "—",
+          loaded && summary.answered > 0 ? `최근 ${summary.answered}문항` : "기록 없음",
+        ),
+        statCard("flame", "연속 학습", loaded ? `${summary.streak}일` : "…", loaded ? "오늘 기준" : ""),
+      ),
+    );
+    if (loaded) {
+      const weekTotal = dash.weekly.reduce((sum, day) => sum + day.count, 0);
+      dashEl.append(
+        h(
+          "section",
+          { class: "surface p-4" },
+          h(
+            "div",
+            { class: "mb-2 flex items-center justify-between" },
+            h("h2", { class: "text-sm font-semibold text-zinc-800" }, "최근 7일 학습"),
+            h("span", { class: "text-xs text-zinc-500" }, `합계 ${weekTotal.toLocaleString("ko-KR")}개`),
+          ),
+          renderWeeklyChart(dash.weekly),
+        ),
+      );
+    }
+    refreshIcons();
   }
 
   function render() {
@@ -118,30 +226,68 @@ export function wordbooksView(root, { navigate }) {
     } else {
       for (const wordbook of state.items) listEl.append(card(wordbook));
     }
+    refreshIcons();
   }
 
-  /** @param {{id: number, name: string, description: string|null, updated_at: string}} wordbook */
+  /** @param {{id: number, name: string, description: string|null, updated_at: string, word_count: number}} wordbook */
   function card(wordbook) {
+    const level = levelTagOf(wordbook.name);
+    const progress = computeWordbookProgress(wordbook.id, dash.logs, wordbook.word_count);
+    const fill = h("div", { class: "progress-fill" });
+    fill.style.width = `${progress}%`;
+    const track = h(
+      "div",
+      { class: "progress-track", role: "progressbar", "aria-label": `${wordbook.name} 학습 진행률`, "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": String(progress) },
+      fill,
+    );
     return h(
       "article",
-      { class: "flex items-stretch gap-2 surface", dataset: { wordbookId: String(wordbook.id) } },
+      { class: "surface overflow-hidden", dataset: { wordbookId: String(wordbook.id) } },
       h(
-        "button",
-        {
-          type: "button",
-          class: "flex min-h-[44px] flex-1 flex-col items-start gap-1 rounded-l-xl p-4 text-left hover:bg-zinc-50",
-          onclick: () => navigate(`/wordbooks/${wordbook.id}`),
-        },
-        h("span", { class: "text-lg font-semibold text-zinc-900 break-words" }, wordbook.name),
-        h("span", { class: "inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600" }, wordCountLabel(wordbook.word_count)),
-        wordbook.description ? h("span", { class: "text-sm text-zinc-600 line-clamp-1" }, wordbook.description) : null,
-        h("span", { class: "text-xs text-zinc-500" }, `수정 ${formatKst(wordbook.updated_at)}`),
+        "div",
+        { class: "flex items-stretch gap-2" },
+        h(
+          "button",
+          {
+            type: "button",
+            class: "flex min-h-[44px] flex-1 flex-col items-start gap-1 rounded-l-xl p-4 text-left hover:bg-zinc-50",
+            onclick: () => navigate(`/wordbooks/${wordbook.id}`),
+          },
+          h("span", { class: `level-tag level-tag--${level.key}` }, level.label),
+          h("span", { class: "text-lg font-semibold text-zinc-900 break-words" }, wordbook.name),
+          h("span", { class: "inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600" }, wordCountLabel(wordbook.word_count)),
+          wordbook.description ? h("span", { class: "text-sm text-zinc-600 line-clamp-1" }, wordbook.description) : null,
+          h("span", { class: "text-xs text-zinc-500" }, `수정 ${formatKst(wordbook.updated_at)}`),
+        ),
+        h(
+          "div",
+          { class: "flex flex-col justify-center gap-1 pr-2" },
+          button({ variant: "ghost", onClick: () => openForm(wordbook) }, icon("pencil", "h-5 w-5"), h("span", { class: "sr-only" }, `${wordbook.name} 수정`)),
+          button({ variant: "ghost", onClick: () => remove(wordbook) }, icon("trash-2", "h-5 w-5 text-red-600"), h("span", { class: "sr-only" }, `${wordbook.name} 삭제`)),
+        ),
       ),
       h(
         "div",
-        { class: "flex flex-col justify-center gap-1 pr-2" },
-        button({ variant: "ghost", onClick: () => openForm(wordbook), }, icon("pencil", "h-5 w-5"), h("span", { class: "sr-only" }, `${wordbook.name} 수정`)),
-        button({ variant: "ghost", onClick: () => remove(wordbook) }, icon("trash-2", "h-5 w-5 text-red-600"), h("span", { class: "sr-only" }, `${wordbook.name} 삭제`)),
+        { class: "flex items-center gap-2 px-4 pb-4" },
+        h(
+          "div",
+          { class: "min-w-0 flex-1" },
+          h(
+            "div",
+            { class: "mb-1 flex justify-between text-xs text-zinc-500" },
+            h("span", {}, "학습 진행률"),
+            h("span", { class: "tabular-nums" }, `${progress}%`),
+          ),
+          track,
+        ),
+        button(
+          { variant: "ghost", "aria-label": `${wordbook.name} 플래시카드`, onClick: () => navigate("/study/flashcards", sourceRouteQuery({ kind: "wordbook", wordbookId: wordbook.id })) },
+          icon("layers", "h-5 w-5"),
+        ),
+        button(
+          { variant: "ghost", "aria-label": `${wordbook.name} 퀴즈`, onClick: () => navigate("/study/quiz", sourceRouteQuery({ kind: "wordbook", wordbookId: wordbook.id })) },
+          icon("play", "h-5 w-5"),
+        ),
       ),
     );
   }

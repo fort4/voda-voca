@@ -1,0 +1,97 @@
+/*
+ * 2026-11-02 - voda-voca - 단어장 CSV 백업: 전체 단어장과 단어를 페이지로 받아 하나의 CSV 로 내려받는다 (직렬화는 순수 함수로 분리)
+ * 파일 위치: src/frontend/js/core/backup.js
+ */
+
+import { api } from "./api.js";
+import { kstDayKeyOf } from "./stats.js";
+
+export const BACKUP_HEADER = ["단어장", "표제어", "뜻", "예문", "예문 뜻"];
+const PAGE_SIZE = 100; // 서버의 목록 최대 페이지 크기
+
+/**
+ * CSV 셀 하나를 이스케이프한다. 쉼표, 따옴표, 줄바꿈이 있으면 큰따옴표로 감싼다.
+ * @param {unknown} value
+ * @returns {string}
+ */
+export function csvCell(value) {
+  const text = value === null || value === undefined ? "" : String(value);
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+/**
+ * 백업 CSV 본문을 만든다. 첫 줄은 헤더, 줄바꿈은 CRLF 다.
+ * @param {Array<{wordbook: string, term: string, meaning: string, example: string|null, exampleMeaning: string|null}>} rows
+ * @returns {string}
+ */
+export function buildBackupCsv(rows) {
+  const lines = [BACKUP_HEADER.map(csvCell).join(",")];
+  for (const row of rows) {
+    lines.push([row.wordbook, row.term, row.meaning, row.example, row.exampleMeaning].map(csvCell).join(","));
+  }
+  return lines.join("\r\n");
+}
+
+/**
+ * 파일 이름: 보다보카-단어장-YYYYMMDD.csv (한국 날짜 기준).
+ * @param {number} [now=Date.now()]
+ * @returns {string}
+ */
+export function backupFileName(now = Date.now()) {
+  return `보다보카-단어장-${kstDayKeyOf(now).replaceAll("-", "")}.csv`;
+}
+
+/**
+ * 한 목록 API 를 끝까지 받는다 (total 을 채울 때까지 페이지를 넘긴다).
+ * @param {string} path
+ * @param {Record<string, unknown>} [query]
+ * @returns {Promise<Array<any>>}
+ */
+export async function fetchAllPages(path, query = {}) {
+  const items = [];
+  for (let page = 1; ; page += 1) {
+    const data = await api(path, { query: { ...query, page, size: PAGE_SIZE } });
+    items.push(...data.items);
+    if (data.items.length === 0 || items.length >= data.total) return items;
+  }
+}
+
+/**
+ * 내 모든 단어장의 단어를 백업 행으로 모은다.
+ * @returns {Promise<Array<{wordbook: string, term: string, meaning: string, example: string|null, exampleMeaning: string|null}>>}
+ */
+export async function collectBackupRows() {
+  const wordbooks = await fetchAllPages("/wordbooks");
+  const rows = [];
+  for (const book of wordbooks) {
+    const words = await fetchAllPages(`/wordbooks/${book.id}/words`);
+    for (const word of words) {
+      rows.push({
+        wordbook: book.name,
+        term: word.term,
+        meaning: word.meaning,
+        example: word.example ?? null,
+        exampleMeaning: word.example_meaning ?? null,
+      });
+    }
+  }
+  return rows;
+}
+
+/**
+ * 백업 CSV 를 내려받는다. 엑셀에서 한글이 깨지지 않도록 BOM 을 붙인다.
+ * @returns {Promise<number>} 내려받은 단어 수
+ */
+export async function downloadBackup() {
+  const rows = await collectBackupRows();
+  const blob = new Blob(["﻿", buildBackupCsv(rows)], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = backupFileName();
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return rows.length;
+}

@@ -19,6 +19,7 @@ import { quizView } from "./views/quiz.js";
 import { bookmarksView } from "./views/bookmarks.js";
 import { historyView } from "./views/history.js";
 import { clearQuizResults } from "./core/result-cache.js";
+import { downloadBackup } from "./core/backup.js";
 
 const root = /** @type {HTMLElement} */ (document.getElementById("app"));
 const userbar = /** @type {HTMLElement} */ (document.getElementById("userbar"));
@@ -66,14 +67,19 @@ function renderUserbar() {
   clear(userbar);
   const user = getUser();
   if (user) {
-    userbar.append(
-      button(
-        { variant: "ghost", onClick: openAccountMenu, "aria-label": `${user.nickname} 계정 메뉴` },
-        h("span", { class: "grid h-7 w-7 place-items-center rounded-full bg-indigo-600 text-xs font-bold text-white" }, initialOf(user.nickname)),
-        h("span", { class: "hidden max-w-[9rem] truncate text-sm font-medium text-zinc-700 sm:inline" }, user.nickname),
-        icon("chevron-down", "h-4 w-4 text-zinc-400"),
-      ),
+    const trigger = button(
+      {
+        variant: "ghost",
+        onClick: () => toggleAccountMenu(trigger),
+        "aria-label": `${user.nickname} 계정 메뉴`,
+        "aria-haspopup": "menu",
+        "aria-expanded": "false",
+      },
+      h("span", { class: "grid h-7 w-7 place-items-center rounded-full bg-indigo-600 text-xs font-bold text-white" }, initialOf(user.nickname)),
+      h("span", { class: "hidden max-w-[9rem] truncate text-sm font-medium text-zinc-700 sm:inline" }, user.nickname),
+      icon("chevron-down", "h-4 w-4 text-zinc-400"),
     );
+    userbar.append(trigger);
   } else {
     userbar.append(
       h("a", { href: "#/login", class: "focus-ring inline-flex min-h-[44px] items-center rounded-xl px-3 text-sm font-semibold text-indigo-600 hover:bg-indigo-50" }, "로그인"),
@@ -86,26 +92,112 @@ function initialOf(nickname) {
   return Array.from(nickname)[0]?.toUpperCase() ?? "?";
 }
 
+/** 열려 있는 계정 드롭다운. 없으면 null. */
+let accountMenu = null;
+
+/** @param {HTMLElement} anchor 프로필 칩 */
+function toggleAccountMenu(anchor) {
+  if (accountMenu) closeAccountMenu();
+  else openAccountMenu(anchor);
+}
+
 /**
- * 계정 메뉴: 로그아웃과 회원 탈퇴. 탈퇴는 별도의 위험 동작이라 아래 흐름으로만 진행한다.
+ * 프로필 칩 바로 아래에 붙는 플로팅 드롭다운을 연다. 바깥 클릭이나 ESC 로 닫힌다.
+ * 로그아웃은 확인 후 처리하고, 회원 탈퇴는 기존 두 단계 확인 흐름을 쓴다.
+ * @param {HTMLElement} anchor
  */
-async function openAccountMenu() {
+function openAccountMenu(anchor) {
   const user = getUser();
-  if (!user || !globalThis.Swal) return;
-  const result = await globalThis.Swal.fire({
-    title: user.nickname,
-    text: "계정 메뉴입니다.",
-    showCancelButton: true,
-    showDenyButton: true,
-    confirmButtonText: "로그아웃",
-    denyButtonText: "회원 탈퇴",
-    cancelButtonText: "닫기",
-    confirmButtonColor: "#4f46e5",
-    denyButtonColor: "#dc2626",
-    reverseButtons: true,
-  });
-  if (result.isConfirmed) await logout();
-  else if (result.isDenied) await withdraw();
+  if (!user) return;
+  const backdrop = h("div", { class: "dropdown-backdrop", onclick: closeAccountMenu });
+  const popover = h(
+    "div",
+    { class: "dropdown-popover", role: "menu", "aria-label": "계정 메뉴" },
+    h(
+      "div",
+      { class: "flex items-center gap-3 px-3 py-3" },
+      h("span", { class: "grid h-10 w-10 shrink-0 place-items-center rounded-full bg-indigo-600 text-sm font-bold text-white" }, initialOf(user.nickname)),
+      h(
+        "div",
+        { class: "min-w-0" },
+        h("p", { class: "truncate text-sm font-semibold text-zinc-900" }, user.nickname),
+        h("span", { class: "inline-flex rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700" }, "학습자"),
+      ),
+    ),
+    h("div", { class: "dropdown-divider" }),
+    menuItem("download", "내 단어장 CSV 백업", backupFromMenu),
+    menuItem("log-out", "로그아웃", logoutFromMenu),
+    h("div", { class: "dropdown-divider" }),
+    h(
+      "div",
+      { class: "dropdown-danger-zone" },
+      menuItem("user-x", "회원 탈퇴", withdrawFromMenu, "danger"),
+    ),
+  );
+
+  const rect = anchor.getBoundingClientRect();
+  popover.style.top = `${rect.bottom + 8}px`;
+  popover.style.right = `${Math.max(8, window.innerWidth - rect.right)}px`;
+  document.body.append(backdrop, popover);
+  anchor.setAttribute("aria-expanded", "true");
+  const onKey = (event) => {
+    if (event.key === "Escape") closeAccountMenu();
+  };
+  document.addEventListener("keydown", onKey);
+  accountMenu = { backdrop, popover, anchor, onKey };
+  refreshIcons();
+  popover.querySelector("button")?.focus();
+}
+
+function closeAccountMenu() {
+  if (!accountMenu) return;
+  const { backdrop, popover, anchor, onKey } = accountMenu;
+  document.removeEventListener("keydown", onKey);
+  backdrop.remove();
+  popover.remove();
+  anchor.setAttribute("aria-expanded", "false");
+  accountMenu = null;
+}
+
+/**
+ * @param {string} iconName
+ * @param {string} label
+ * @param {() => void} onSelect
+ * @param {"default"|"danger"} [tone]
+ */
+function menuItem(iconName, label, onSelect, tone = "default") {
+  return h(
+    "button",
+    {
+      type: "button",
+      role: "menuitem",
+      class: tone === "danger" ? "dropdown-item dropdown-item--danger" : "dropdown-item",
+      onclick: onSelect,
+    },
+    icon(iconName, "h-5 w-5"),
+    h("span", {}, label),
+  );
+}
+
+async function backupFromMenu() {
+  closeAccountMenu();
+  try {
+    const count = await downloadBackup();
+    toast(`단어 ${count.toLocaleString("ko-KR")}개를 백업했습니다.`);
+  } catch (error) {
+    toast(error.detail ?? "백업 파일을 만들지 못했습니다.", "error");
+  }
+}
+
+async function logoutFromMenu() {
+  closeAccountMenu();
+  const ok = await confirmDialog({ title: "로그아웃할까요?", confirmText: "로그아웃" });
+  if (ok) await logout();
+}
+
+function withdrawFromMenu() {
+  closeAccountMenu();
+  return withdraw();
 }
 
 async function logout() {

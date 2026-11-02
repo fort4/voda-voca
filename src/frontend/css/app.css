@@ -235,6 +235,94 @@ a:focus-visible,
   }
 }
 
+/* ---------- 대시보드: 단어장 태그, 진행률 바, 주간 차트 (v2 UI 고도화) ---------- */
+.level-tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.level-tag--beginner { background: #ecfdf5; color: #047857; }
+.level-tag--intermediate { background: #eef2ff; color: #4338ca; }
+.level-tag--advanced { background: #faf5ff; color: #7e22ce; }
+.level-tag--user { background: #f4f4f5; color: #52525b; }
+html.dark .level-tag--beginner { background: rgba(16, 185, 129, 0.16); color: #6ee7b7; }
+html.dark .level-tag--intermediate { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; }
+html.dark .level-tag--advanced { background: rgba(168, 85, 247, 0.18); color: #d8b4fe; }
+html.dark .level-tag--user { background: #27272a; color: #d4d4d8; }
+
+.progress-track {
+  height: 0.375rem;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: var(--border);
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: var(--accent);
+  transition: width 420ms var(--ease-out);
+}
+
+.weekly-chart { display: block; width: 100%; height: auto; }
+.weekly-chart .chart-bar { fill: var(--accent); opacity: 0.85; transition: opacity 160ms ease; }
+.weekly-chart .chart-day:hover .chart-bar,
+.weekly-chart .chart-day[aria-current="true"] .chart-bar { opacity: 1; }
+.weekly-chart .chart-label { fill: var(--muted); font-size: 11px; }
+.weekly-chart .chart-tooltip { fill: var(--text); font-size: 11px; font-weight: 600; }
+.weekly-chart .chart-day { cursor: default; outline: none; }
+.weekly-chart .chart-day:focus-visible .chart-bar { stroke: var(--accent); stroke-width: 2; }
+
+/* ---------- 계정 드롭다운 (프로필 칩 아래 플로팅 메뉴) ---------- */
+.dropdown-backdrop { position: fixed; inset: 0; z-index: 40; background: transparent; }
+.dropdown-popover {
+  position: fixed;
+  z-index: 50;
+  width: 16rem;
+  max-width: calc(100vw - 16px);
+  padding: 0.25rem;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-raised);
+  transform-origin: top right;
+  animation: dropdown-in 160ms var(--ease-out);
+}
+@keyframes dropdown-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.dropdown-item {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: var(--radius-control);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-size: 0.875rem;
+  color: var(--text-2);
+  transition: background-color 160ms ease;
+}
+.dropdown-item:hover,
+.dropdown-item:focus-visible { background: var(--accent-soft); color: var(--text); outline: none; }
+.dropdown-item--danger { color: var(--danger); }
+.dropdown-item--danger:hover,
+.dropdown-item--danger:focus-visible { background: rgba(220, 38, 38, 0.08); color: var(--danger); }
+.dropdown-divider { margin: 0.25rem 0; border-top: 1px solid var(--border); }
+.dropdown-danger-zone { border-top: 1px solid var(--border); padding-top: 0.25rem; }
+@media (prefers-reduced-motion: reduce) {
+  .dropdown-popover { animation: none; }
+  .progress-fill, .weekly-chart .chart-bar { transition: none; }
+}
+
 /* ---------- 다크 테마 (v1.1 Phase 1): <html class="dark"> 일 때만 적용 ----------
  * 토큰 변수를 바꾸고, 뷰가 쓰는 Tailwind 유틸리티 색을 같은 톤으로 덮어쓴다.
  * 색 값은 Zinc 계열(배경 950/900, 보더 800, 본문 100, 보조 400)을 기준으로 한다. */
