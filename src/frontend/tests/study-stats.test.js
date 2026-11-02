@@ -6,7 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { kstDateKey, kstTime } from "../js/core/format.js";
-import { groupByKstDate, summarizeLogs } from "../js/lib/study-stats.js";
+import { groupByKstDate, summarizeLogs, uniqueWrongWordIds } from "../js/lib/study-stats.js";
 
 test("summarizeLogs: 정답 수, 오답 수, 정답률(소수 첫째 자리)을 계산한다", () => {
   const logs = [{ is_correct: true }, { is_correct: false }, { is_correct: true }];
@@ -34,4 +34,15 @@ test("groupByKstDate: 최신순 입력을 한국 날짜별로 묶고 순서를 �
   const groups = groupByKstDate(logs);
   assert.deepEqual(groups.map((g) => g.date), ["2026-11-02", "2026-11-01"]);
   assert.deepEqual(groups[0].items.map((l) => l.term), ["a", "b"]);
+});
+
+test("uniqueWrongWordIds: 틀린 답이 있었던 단어만 고유하게 모은다", () => {
+  const logs = [
+    { word_id: 1, is_correct: false },
+    { word_id: 1, is_correct: false },
+    { word_id: 2, is_correct: true },
+    { word_id: 3, is_correct: false },
+  ];
+  assert.deepEqual([...uniqueWrongWordIds(logs)].sort(), [1, 3]);
+  assert.equal(uniqueWrongWordIds([]).size, 0);
 });

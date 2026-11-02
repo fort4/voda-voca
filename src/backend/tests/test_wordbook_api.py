@@ -39,7 +39,8 @@ async def create(client: httpx.AsyncClient, token: str, name: str, description: 
 async def test_create_returns_201_with_utc_timestamps(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
     body = await create(client, token, "  토익  ", "  기출 단어  ")
-    assert set(body) == {"id", "name", "description", "created_at", "updated_at"}
+    assert set(body) == {"id", "name", "description", "word_count", "created_at", "updated_at"}
+    assert body["word_count"] == 0, "새 단어장은 단어가 없다"
     assert body["name"] == "토익"
     assert body["description"] == "기출 단어"
     assert body["created_at"].endswith("Z")
@@ -306,3 +307,102 @@ async def test_delete_cascades_words_bookmarks_and_study_logs(client: httpx.Asyn
             "study_logs": await session.scalar(select(func.count()).select_from(StudyLog).where(StudyLog.word_id == word_id)),
         }
     assert counts == {"wordbooks": 0, "words": 0, "bookmarks": 0, "study_logs": 0}
+
+
+# --- 단어 수 집계 (v1.1 Phase 2, word_count) ---
+
+
+@pytest.mark.asyncio
+async def test_list_word_counts_are_aggregated_per_wordbook(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
+    empty = await create(client, token, "빈 단어장")
+    two = await create(client, token, "두 단어장")
+    three = await create(client, token, "세 단어장")
+    for term in ("apple", "pear"):
+        await client.post(f"/api/wordbooks/{two['id']}/words", json={"term": term, "meaning": "뜻"}, headers=auth_headers(token))
+    for term in ("kiwi", "plum", "lime"):
+        await client.post(f"/api/wordbooks/{three['id']}/words", json={"term": term, "meaning": "뜻"}, headers=auth_headers(token))
+
+    items = (await client.get("/api/wordbooks?size=100", headers=auth_headers(token))).json()["items"]
+    counts = {i["name"]: i["word_count"] for i in items}
+    assert counts["빈 단어장"] == 0
+    assert counts["두 단어장"] == 2
+    assert counts["세 단어장"] == 3
+    assert all(counts[name] == 200 for name in DEFAULT_WORDBOOK_NAMES), "기본 단어장은 200개"
+    assert empty["id"] != two["id"] != three["id"]
+
+
+@pytest.mark.asyncio
+async def test_get_and_patch_return_word_count(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
+    wb = await create(client, token, "단건")
+    await client.post(f"/api/wordbooks/{wb['id']}/words", json={"term": "a1", "meaning": "뜻"}, headers=auth_headers(token))
+    await client.post(f"/api/wordbooks/{wb['id']}/words", json={"term": "a2", "meaning": "뜻"}, headers=auth_headers(token))
+    got = (await client.get(f"/api/wordbooks/{wb['id']}", headers=auth_headers(token))).json()
+    assert got["word_count"] == 2
+    patched = await client.patch(f"/api/wordbooks/{wb['id']}", json={"name": "단건-수정"}, headers=auth_headers(token))
+    assert patched.json()["word_count"] == 2
+
+
+# --- 중급 1,000제 추천 프리셋 (POST /api/wordbooks/presets/intermediate-1000) ---
+
+
+def _write_synthetic_preset(directory, count: int = 1000) -> None:
+    import json
+
+    items = [{"term": f"preset{i:04d}", "meaning": f"뜻{i}", "example": f"Example preset{i:04d}."} for i in range(count)]
+    (directory / "intermediate_1000.json").write_text(json.dumps(items, ensure_ascii=False), encoding="utf-8")
+
+
+@pytest.mark.asyncio
+async def test_preset_creates_a_1000_word_wordbook_in_one_request(
+    client: httpx.AsyncClient, tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from backend.services import seed
+
+    _write_synthetic_preset(tmp_path)
+    monkeypatch.setattr(seed, "SEED_DIR", tmp_path)
+    _, token = await signup_and_login(client)
+
+    response = await client.post("/api/wordbooks/presets/intermediate-1000", headers=auth_headers(token))
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["name"] == "중급 필수 영단어 1,000"
+    assert body["word_count"] == 1000
+
+    listing = (await client.get("/api/wordbooks?size=100", headers=auth_headers(token))).json()["items"]
+    preset = next(i for i in listing if i["id"] == body["id"])
+    assert preset["word_count"] == 1000
+
+
+@pytest.mark.asyncio
+async def test_preset_twice_is_409_because_the_name_is_taken(
+    client: httpx.AsyncClient, tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from backend.services import seed
+
+    _write_synthetic_preset(tmp_path)
+    monkeypatch.setattr(seed, "SEED_DIR", tmp_path)
+    _, token = await signup_and_login(client)
+    assert (await client.post("/api/wordbooks/presets/intermediate-1000", headers=auth_headers(token))).status_code == 201
+    again = await client.post("/api/wordbooks/presets/intermediate-1000", headers=auth_headers(token))
+    assert again.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_preset_without_data_file_is_503(
+    client: httpx.AsyncClient, tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from backend.services import seed
+
+    monkeypatch.setattr(seed, "SEED_DIR", tmp_path)  # intermediate_1000.json 이 없다
+    _, token = await signup_and_login(client)
+    response = await client.post("/api/wordbooks/presets/intermediate-1000", headers=auth_headers(token))
+    assert response.status_code == 503
+    assert "준비되지 않았습니다" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_preset_requires_login(client: httpx.AsyncClient) -> None:
+    response = await client.post("/api/wordbooks/presets/intermediate-1000")
+    assert response.status_code == 401

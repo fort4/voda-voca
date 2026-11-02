@@ -55,3 +55,11 @@ test("북마크 화면 상태: 로딩, 오류, 빈 목록, 성공", () => {
   assert.equal(bookmarkListState({ status: "ok", items: [] }), "empty");
   assert.equal(bookmarkListState({ status: "ok", items: [{}] }), "success");
 });
+
+test("오답 복습 출처: 쿼리 wrong=1 을 읽고, 퀴즈 본문과 경로에 반영한다", () => {
+  const source = parseStudySource({ wrong: "1" });
+  assert.deepEqual(source, { kind: "wrong" });
+  assert.deepEqual(sourceQuizBody(source), { wrong_only: true });
+  assert.deepEqual(sourceRouteQuery(source), { wrong: "1" });
+  assert.equal(parseStudySource({ wrong: "0" }), null);
+});

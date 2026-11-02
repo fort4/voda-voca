@@ -12,7 +12,7 @@ from sqlalchemy import func, select
 
 from backend.db.session import get_session_factory
 from backend.main import app
-from backend.models import QuizSession, StudyLog
+from backend.models import QuizSession, StudyLog, User
 from backend.models.base import utcnow
 from backend.routers import study as study_router
 from backend.tests.helpers import auth_headers, signup_and_login
@@ -516,3 +516,81 @@ async def test_study_endpoints_require_login(client: httpx.AsyncClient) -> None:
     assert (await client.post("/api/study/quiz/sessions", json={"bookmarks": True})).status_code == 401
     assert (await client.post("/api/study/quiz/sessions/1/submit", json={"answers": [{"question_id": 0, "choice_index": 0}]})).status_code == 401
     assert (await client.get("/api/study/logs")).status_code == 401
+
+
+# --- 오답 복습 퀴즈 (v1.1 Phase 2, wrong_only) ---
+
+
+async def _log(user_id: int, word_id: int, *, correct: bool) -> None:
+    from backend.models import StudyLog
+
+    async with get_session_factory()() as session:
+        session.add(StudyLog(user_id=user_id, word_id=word_id, is_correct=correct))
+        await session.commit()
+
+
+async def _user_id_for_token(client: httpx.AsyncClient, token: str) -> int:
+    me = (await client.get("/api/auth/me", headers=auth_headers(token))).json()
+    async with get_session_factory()() as session:
+        return (await session.execute(select(User.id).where(User.nickname == me["nickname"]))).scalar_one()
+
+
+@pytest.mark.asyncio
+async def test_wrong_quiz_under_four_wrong_words_is_400_with_the_count(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
+    wb = await make_wordbook(client, token)
+    words = await make_words(client, token, wb, 6)
+    user_id = await _user_id_for_token(client, token)
+    for word_id in list(words)[:3]:
+        await _log(user_id, word_id, correct=False)
+
+    response = await create_quiz(client, token, {"wrong_only": True})
+    assert response.status_code == 400
+    assert response.json()["detail"] == "복습 가능한 오답 단어가 4개 미만입니다 (현재 3개)"
+
+
+@pytest.mark.asyncio
+async def test_wrong_quiz_uses_distinct_wrong_words_and_records_source_wrong(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
+    wb = await make_wordbook(client, token)
+    words = await make_words(client, token, wb, 6)
+    user_id = await _user_id_for_token(client, token)
+    wrong = list(words)[:4]
+    for word_id in wrong:
+        await _log(user_id, word_id, correct=False)
+    await _log(user_id, wrong[0], correct=False)  # 같은 단어 중복 기록은 한 번만 센다
+    await _log(user_id, list(words)[5], correct=True)  # 맞힌 단어는 제외
+
+    response = await create_quiz(client, token, {"wrong_only": True, "count": 10})
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert len(body["questions"]) == 4
+    session = await load_session(body["session_id"])
+    assert session.source == "wrong"
+    assert session.wordbook_id is None
+    assert {q["word_id"] for q in session.questions} == set(wrong)
+
+
+@pytest.mark.asyncio
+async def test_wrong_quiz_ignores_wrong_answers_older_than_the_100_log_window(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
+    wb = await make_wordbook(client, token)
+    words = await make_words(client, token, wb, 4)
+    user_id = await _user_id_for_token(client, token)
+    for word_id in words:
+        await _log(user_id, word_id, correct=False)  # 오래된 오답 4개
+    filler = next(iter(words))
+    for _ in range(100):  # 그 뒤로 최근 기록 100건을 모두 맞힌 답으로 채운다
+        await _log(user_id, filler, correct=True)
+
+    response = await create_quiz(client, token, {"wrong_only": True})
+    assert response.status_code == 400
+    assert "현재 0개" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_wrong_quiz_source_is_exclusive_with_wordbook_and_bookmarks(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
+    wb = await make_wordbook(client, token)
+    assert (await create_quiz(client, token, {"wrong_only": True, "wordbook_id": wb})).status_code == 422
+    assert (await create_quiz(client, token, {"wrong_only": True, "bookmarks": True})).status_code == 422

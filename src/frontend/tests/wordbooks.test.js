@@ -5,7 +5,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { hasMore, listViewState } from "../js/views/wordbooks.js";
+import { hasMore, listViewState, wordCountLabel } from "../js/views/wordbooks.js";
 
 test("listViewState: 로딩, 오류, 빈 목록, 성공을 구분한다", () => {
   assert.equal(listViewState({ status: "loading", items: [], total: 0 }), "loading");
@@ -17,4 +17,12 @@ test("listViewState: 로딩, 오류, 빈 목록, 성공을 구분한다", () => 
 test("hasMore: 받은 개수가 전체보다 적을 때만 더 보기를 보인다", () => {
   assert.equal(hasMore({ items: new Array(20), total: 45 }), true);
   assert.equal(hasMore({ items: new Array(45), total: 45 }), false);
+});
+
+test("wordCountLabel: 단어 수를 천 단위 구분 기호와 함께 보여 주고, 0 과 잘못된 값은 0개", () => {
+  assert.equal(wordCountLabel(0), "0개 단어");
+  assert.equal(wordCountLabel(200), "200개 단어");
+  assert.equal(wordCountLabel(1000), "1,000개 단어");
+  assert.equal(wordCountLabel(undefined), "0개 단어");
+  assert.equal(wordCountLabel(-3), "0개 단어");
 });
