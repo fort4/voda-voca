@@ -8,6 +8,9 @@ import { LIMITS } from "../core/validate.js";
 export const BULK_MAX_ITEMS = 100;
 const HEADER_TERMS = ["표제어", "term"];
 const HEADER_MEANINGS = ["뜻", "meaning"];
+// 4열 헤더(표제어,뜻,예문,예문 뜻)로 내보낸 파일을 다시 가져올 수 있도록, 네 번째 칸 이름을 인식한다.
+const HEADER_EXAMPLE_MEANINGS = ["예문 뜻", "example_meaning"];
+const EXAMPLE_MEANING_MAX = 500;
 
 export class CsvParseError extends Error {
   /** @param {string} message @param {number} lineNo */
@@ -102,11 +105,13 @@ function normalizeHeaderCell(cell) {
 /**
  * 파싱된 레코드를 단어 후보 행으로 바꾼다. 첫 레코드가 헤더(표제어,뜻 / term,meaning)이면 건너뛴다.
  * @param {Array<{lineNo: number, cells: string[]}>} records
- * @returns {{headerSkipped: boolean, rows: Array<{lineNo: number, term: string, meaning: string, example: string, extraColumns: boolean, errors: string[]}>}}
+ * 첫 줄이 표제어,뜻,예문,예문 뜻 헤더이면 네 번째 칸을 예문 뜻으로 읽는다. 그 밖의 경우 네 번째 칸은 열 초과다.
+ * @returns {{headerSkipped: boolean, rows: Array<{lineNo: number, term: string, meaning: string, example: string, exampleMeaning: string, extraColumns: boolean, errors: string[]}>}}
  */
 export function toCandidateRows(records) {
   let headerSkipped = false;
   let start = 0;
+  let hasExampleMeaning = false;
   if (records.length > 0) {
     const [first] = records;
     const term = normalizeHeaderCell(first.cells[0] ?? "");
@@ -114,16 +119,21 @@ export function toCandidateRows(records) {
     if (HEADER_TERMS.includes(term) && HEADER_MEANINGS.includes(meaning)) {
       headerSkipped = true;
       start = 1;
+      hasExampleMeaning = HEADER_EXAMPLE_MEANINGS.includes(normalizeHeaderCell(first.cells[3] ?? ""));
     }
   }
-  const rows = records.slice(start).map(({ lineNo, cells }) => ({
-    lineNo,
-    term: (cells[0] ?? "").trim(),
-    meaning: (cells[1] ?? "").trim(),
-    example: (cells[2] ?? "").trim(),
-    extraColumns: cells.slice(3).some((cell) => cell.trim() !== ""),
-    errors: [],
-  }));
+  const rows = records.slice(start).map(({ lineNo, cells }) => {
+    const extraFrom = hasExampleMeaning ? 4 : 3;
+    return {
+      lineNo,
+      term: (cells[0] ?? "").trim(),
+      meaning: (cells[1] ?? "").trim(),
+      example: (cells[2] ?? "").trim(),
+      exampleMeaning: hasExampleMeaning ? (cells[3] ?? "").trim() : "",
+      extraColumns: cells.slice(extraFrom).some((cell) => cell.trim() !== ""),
+      errors: [],
+    };
+  });
   return { headerSkipped, rows };
 }
 
@@ -152,6 +162,7 @@ export function validateCandidateRows(rows) {
     if (row.term.length > LIMITS.WORD_TERM_MAX) errors.push(`표제어는 ${LIMITS.WORD_TERM_MAX}자 이하여야 합니다.`);
     if (row.meaning.length > LIMITS.WORD_MEANING_MAX) errors.push(`뜻은 ${LIMITS.WORD_MEANING_MAX}자 이하여야 합니다.`);
     if (row.example.length > LIMITS.WORD_EXAMPLE_MAX) errors.push(`예문은 ${LIMITS.WORD_EXAMPLE_MAX}자 이하여야 합니다.`);
+    if ((row.exampleMeaning ?? "").length > EXAMPLE_MEANING_MAX) errors.push(`예문 뜻은 ${EXAMPLE_MEANING_MAX}자 이하여야 합니다.`);
     if (row.term) {
       const key = termKey(row.term);
       const first = firstLineByKey.get(key);
@@ -168,14 +179,19 @@ export function validateCandidateRows(rows) {
 /**
  * 서버 전송용 WordBulkCreate 본문을 만든다. 오류가 없는 행만 입력 순서대로 담는다.
  * 행 번호와 구분자 정보는 넣지 않는다.
- * @param {Array<{term: string, meaning: string, example: string, errors: string[]}>} rows
- * @returns {{items: Array<{term: string, meaning: string, example: string|null}>}}
+ * 예문 뜻이 있는 행에만 example_meaning 을 붙인다 (없는 행은 키 자체를 보내지 않는다).
+ * @param {Array<{term: string, meaning: string, example: string, exampleMeaning?: string, errors: string[]}>} rows
+ * @returns {{items: Array<{term: string, meaning: string, example: string|null, example_meaning?: string}>}}
  */
 export function buildBulkPayload(rows) {
   return {
     items: rows
       .filter((row) => row.errors.length === 0)
-      .map((row) => ({ term: row.term, meaning: row.meaning, example: row.example || null })),
+      .map((row) => {
+        const item = { term: row.term, meaning: row.meaning, example: row.example || null };
+        if (row.exampleMeaning) item.example_meaning = row.exampleMeaning;
+        return item;
+      }),
   };
 }
 

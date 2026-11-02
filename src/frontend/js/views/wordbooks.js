@@ -9,7 +9,7 @@ import { field, alertBox } from "../core/form.js";
 import { formatKst } from "../core/format.js";
 import { confirmDialog, toast } from "../core/toast.js";
 import { validateWordbookDescription, validateWordbookName } from "../core/validate.js";
-import { fetchAllPages } from "../core/backup.js";
+import { downloadWordbook, fetchAllPages } from "../core/backup.js";
 import { computeSummary, computeWeeklyActivity, computeWordbookProgress } from "../core/stats.js";
 import { renderWeeklyChart } from "../core/weekly-chart.js";
 import { sourceRouteQuery } from "../lib/study-source.js";
@@ -263,6 +263,7 @@ export function wordbooksView(root, { navigate }) {
           "div",
           { class: "flex flex-col justify-center gap-1 pr-2" },
           button({ variant: "ghost", onClick: () => openForm(wordbook) }, icon("pencil", "h-5 w-5"), h("span", { class: "sr-only" }, `${wordbook.name} 수정`)),
+          button({ variant: "ghost", onClick: () => exportOne(wordbook) }, icon("download", "h-5 w-5"), h("span", { class: "sr-only" }, `${wordbook.name} CSV 내보내기`)),
           button({ variant: "ghost", onClick: () => remove(wordbook) }, icon("trash-2", "h-5 w-5 text-red-600"), h("span", { class: "sr-only" }, `${wordbook.name} 삭제`)),
         ),
       ),
@@ -376,6 +377,25 @@ export function wordbooksView(root, { navigate }) {
     } catch (error) {
       toast(error.detail, "error");
       if (error.status === 404) await load(true);
+    }
+  }
+
+  /**
+   * 단어장 하나를 CSV 로 내보낸다. 확인을 거친 뒤에만 받는다.
+   * @param {{id: number, name: string, word_count: number}} wordbook
+   */
+  async function exportOne(wordbook) {
+    const ok = await confirmDialog({
+      title: "CSV 내보내기",
+      text: `이 단어장('${wordbook.name}')의 단어 ${wordbook.word_count.toLocaleString("ko-KR")}개를 CSV 파일로 내보내시겠습니까?`,
+      confirmText: "내보내기",
+    });
+    if (!ok) return;
+    try {
+      const count = await downloadWordbook(wordbook);
+      toast(`'${wordbook.name}' 단어 ${count.toLocaleString("ko-KR")}개를 내보냈습니다.`);
+    } catch (error) {
+      toast(error.detail ?? "내보내지 못했습니다.", "error");
     }
   }
 

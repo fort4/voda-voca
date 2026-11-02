@@ -20,7 +20,7 @@ import { quizView } from "./views/quiz.js";
 import { bookmarksView } from "./views/bookmarks.js";
 import { historyView } from "./views/history.js";
 import { clearQuizResults } from "./core/result-cache.js";
-import { downloadBackup } from "./core/backup.js";
+import { downloadBackup, downloadWordbook, fetchAllPages } from "./core/backup.js";
 
 const root = /** @type {HTMLElement} */ (document.getElementById("app"));
 const userbar = /** @type {HTMLElement} */ (document.getElementById("userbar"));
@@ -126,7 +126,7 @@ function openAccountMenu(anchor) {
       ),
     ),
     h("div", { class: "dropdown-divider" }),
-    menuItem("download", "내 단어장 CSV 백업", backupFromMenu),
+    menuItem("download", "내 단어장 백업", exportFromMenu),
     menuItem("log-out", "로그아웃", logoutFromMenu),
     h("div", { class: "dropdown-divider" }),
     h(
@@ -180,13 +180,92 @@ function menuItem(iconName, label, onSelect, tone = "default") {
   );
 }
 
-async function backupFromMenu() {
+/** 드롭다운의 백업 항목. 바로 받지 않고 내보내기 모달을 연다. */
+async function exportFromMenu() {
   closeAccountMenu();
+  await openExportDialog();
+}
+
+/**
+ * @param {{value: string, label: string, hint: string}} opt
+ * @returns {{radio: HTMLInputElement, element: HTMLElement}}
+ */
+function scopeOption({ value, label, hint }) {
+  const radio = /** @type {HTMLInputElement} */ (
+    h("input", { type: "radio", name: "export-scope", value, class: "mt-1 h-4 w-4 accent-indigo-600" })
+  );
+  const element = h(
+    "label",
+    { class: "flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-200 p-3 hover:bg-zinc-50" },
+    radio,
+    h("span", { class: "min-w-0" }, h("span", { class: "block text-sm font-semibold text-zinc-900" }, label), h("span", { class: "block text-xs text-zinc-500" }, hint)),
+  );
+  return { radio, element };
+}
+
+/**
+ * 단어장 내보내기 모달 (SweetAlert2). 범위를 고르고 [내보내기]를 눌러야만 다운로드한다. [취소]는 아무 일도 하지 않는다.
+ * 전체 합본은 단어장 이름 열이 있는 백업 형식, 개별 단어장은 가져오기와 같은 4열 형식이다.
+ */
+async function openExportDialog() {
+  if (!globalThis.Swal) return;
+  let books;
   try {
-    const count = await downloadBackup();
-    toast(`단어 ${count.toLocaleString("ko-KR")}개를 백업했습니다.`);
+    books = await fetchAllPages("/wordbooks");
   } catch (error) {
-    toast(error.detail ?? "백업 파일을 만들지 못했습니다.", "error");
+    toast(error.detail ?? "단어장을 불러오지 못했습니다.", "error");
+    return;
+  }
+  const all = scopeOption({ value: "all", label: "전체 단어장 합본", hint: "모든 단어장을 하나의 CSV 파일로 묶습니다 (단어장 이름 열 포함)" });
+  const one = scopeOption({ value: "one", label: "개별 단어장 선택", hint: "고른 단어장 하나를 가져오기와 같은 형식의 CSV 로 받습니다" });
+  all.radio.checked = true;
+  const select = /** @type {HTMLSelectElement} */ (
+    h(
+      "select",
+      { id: "export-wordbook", class: "w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900" },
+      ...books.map((book) => h("option", { value: String(book.id) }, book.name)),
+    )
+  );
+  const syncSelect = () => {
+    select.disabled = !one.radio.checked || books.length === 0;
+  };
+  all.radio.addEventListener("change", syncSelect);
+  one.radio.addEventListener("change", syncSelect);
+  one.radio.disabled = books.length === 0;
+  syncSelect();
+
+  const body = h(
+    "div",
+    { class: "space-y-3 text-left" },
+    all.element,
+    one.element,
+    select,
+    h("p", { class: "text-xs text-zinc-500" }, "파일 규격: UTF-8 (BOM 포함). 엑셀에서 열어도 한글이 깨지지 않습니다."),
+  );
+  const result = await globalThis.Swal.fire({
+    title: "단어장 내보내기 (CSV)",
+    html: body,
+    showCancelButton: true,
+    confirmButtonText: "내보내기",
+    cancelButtonText: "취소",
+    confirmButtonColor: "#4f46e5",
+    reverseButtons: true,
+    preConfirm: () => ({ scope: one.radio.checked ? "one" : "all", wordbookId: Number(select.value) }),
+  });
+  if (!result.isConfirmed) return;
+
+  try {
+    if (result.value.scope === "all") {
+      const count = await downloadBackup();
+      toast(`단어 ${count.toLocaleString("ko-KR")}개를 내보냈습니다.`);
+    } else {
+      const book = books.find((item) => item.id === result.value.wordbookId);
+      if (!book) return;
+      const count = await downloadWordbook(book);
+      toast(`'${book.name}' 단어 ${count.toLocaleString("ko-KR")}개를 내보냈습니다.`);
+    }
+  } catch (error) {
+    toast(error.detail ?? "내보내지 못했습니다.", "error");
   }
 }
 
