@@ -10,6 +10,7 @@ import { createQuizFlow, stageSlots } from "../core/quiz-flow.js";
 import { speak } from "../core/tts.js";
 import { isButtonTarget, modalIsOpen, shortcutsBlocked } from "../core/shortcuts.js";
 import { deriveQuizItems } from "../core/quiz-state.js";
+import { uniqueWrongWordIds } from "../lib/study-stats.js";
 import { loadQuizResult, saveQuizResult } from "../core/result-cache.js";
 import { computeClockOffset, formatClock, isWarning, remainingMs } from "../core/timer.js";
 import { confirmDialog, toast } from "../core/toast.js";
@@ -23,6 +24,25 @@ import {
 } from "../lib/study-source.js";
 
 export const QUIZ_COUNT_CHOICES = [5, 10, 20];
+
+const TITLE = { wordbook: "단어장 퀴즈", bookmarks: "북마크 퀴즈", wrong: "오답 복습 퀴즈" };
+const SOURCE_NOUN = { wordbook: "단어장", bookmarks: "북마크", wrong: "최근 학습 기록" };
+const BACK_PATH = (source) =>
+  source.kind === "wordbook" ? `/wordbooks/${source.wordbookId}` : source.kind === "wrong" ? "/history" : "/bookmarks";
+
+/**
+ * 출제 가능한 원천 단어 수. 오답 복습은 최근 학습 기록(100건)의 고유 오답 단어로 센다.
+ * @param {{kind: string, wordbookId?: number}} source
+ * @returns {Promise<number>}
+ */
+async function fetchAvailableCount(source) {
+  if (source.kind === "wrong") {
+    const data = await api("/study/logs", { query: { limit: 100 } });
+    return uniqueWrongWordIds(data.items).size;
+  }
+  const req = sourceCountRequest(source);
+  return (await api(req.path, { query: req.query })).total;
+}
 
 function speakerButton(text, label, extraClass = "") {
   return h(
@@ -100,11 +120,11 @@ export function quizView(root, ctx) {
       const possible = Math.min(chosen, count.value);
       countInfo.textContent = canStartQuiz(count.value)
         ? `${possible}문항으로 출제합니다. (원천 단어 ${count.value}개)`
-        : `${source.kind === "wordbook" ? "단어장" : "북마크"}에 단어가 ${count.value}개뿐입니다. 퀴즈는 ${QUIZ_MIN_WORDS}개 이상일 때 시작할 수 있습니다.`;
+        : `${SOURCE_NOUN[source.kind]}에 ${source.kind === "wrong" ? "복습할 오답 단어" : "단어"}가 ${count.value}개뿐입니다. 퀴즈는 ${QUIZ_MIN_WORDS}개 이상일 때 시작할 수 있습니다.`;
       startBtn.disabled = !canStartQuiz(count.value);
     }
 
-    const title = source.kind === "wordbook" ? "단어장 퀴즈" : "북마크 퀴즈";
+    const title = TITLE[source.kind];
     body.append(
       h(
         "section",
@@ -112,7 +132,7 @@ export function quizView(root, ctx) {
         h(
           "div",
           { class: "flex items-center gap-2" },
-          button({ variant: "ghost", onClick: () => c.navigate(source.kind === "wordbook" ? `/wordbooks/${source.wordbookId}` : "/bookmarks") }, icon("arrow-left"), h("span", { class: "sr-only" }, "돌아가기")),
+          button({ variant: "ghost", onClick: () => c.navigate(BACK_PATH(source)) }, icon("arrow-left"), h("span", { class: "sr-only" }, "돌아가기")),
           h("h1", { class: "text-xl font-bold" }, title),
         ),
         h("div", { class: "space-y-2" }, h("p", { class: "text-sm font-medium text-zinc-700" }, "문항 수"), h("div", { class: "flex gap-2" }, radios)),
@@ -123,8 +143,7 @@ export function quizView(root, ctx) {
     );
 
     try {
-      const info = await api(sourceCountRequest(source).path, { query: sourceCountRequest(source).query });
-      count.value = info.total;
+      count.value = await fetchAvailableCount(source);
       count.loaded = true;
       updateInfo();
     } catch (error) {

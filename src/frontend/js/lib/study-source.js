@@ -17,12 +17,15 @@ export function parseStudySource(query) {
     return Number.isInteger(id) && id > 0 ? { kind: "wordbook", wordbookId: id } : null;
   }
   if (TRUE_VALUES.has(query.bookmarks) || TRUE_VALUES.has(query.bookmarked)) return { kind: "bookmarks" };
+  if (TRUE_VALUES.has(query.wrong)) return { kind: "wrong" };
   return null;
 }
 
 /** @param {{kind: string, wordbookId?: number}} source @returns {Record<string, string>} 라우트 쿼리 */
 export function sourceRouteQuery(source) {
-  return source.kind === "wordbook" ? { wordbook_id: String(source.wordbookId) } : { bookmarks: "1" };
+  if (source.kind === "wordbook") return { wordbook_id: String(source.wordbookId) };
+  if (source.kind === "wrong") return { wrong: "1" };
+  return { bookmarks: "1" };
 }
 
 /** 플래시카드 API 쿼리 (GET /api/study/flashcards) */
@@ -32,7 +35,9 @@ export function sourceFlashcardQuery(source) {
 
 /** 퀴즈 출제 본문 일부 (POST /api/study/quiz/sessions) */
 export function sourceQuizBody(source) {
-  return source.kind === "wordbook" ? { wordbook_id: source.wordbookId } : { bookmarks: true };
+  if (source.kind === "wordbook") return { wordbook_id: source.wordbookId };
+  if (source.kind === "wrong") return { wrong_only: true };
+  return { bookmarks: true };
 }
 
 /**

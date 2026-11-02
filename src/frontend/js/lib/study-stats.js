@@ -39,3 +39,12 @@ export function groupByKstDate(logs) {
   }
   return groups;
 }
+
+/**
+ * 학습 기록에서 틀린 답이 있었던 단어 ID 의 집합 (고유). 오답 복습 퀴즈의 출제 원천 개수와 같은 기준이다.
+ * @param {Array<{word_id: number, is_correct: boolean}>} logs
+ * @returns {Set<number>}
+ */
+export function uniqueWrongWordIds(logs) {
+  return new Set(logs.filter((log) => !log.is_correct).map((log) => log.word_id));
+}

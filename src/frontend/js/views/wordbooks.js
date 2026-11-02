@@ -13,6 +13,16 @@ import { validateWordbookDescription, validateWordbookName } from "../core/valid
 export const PAGE_SIZE = 20;
 
 /**
+ * 단어 수 배지 문구. 0개도 분명히 보여 준다.
+ * @param {number} count
+ * @returns {string}
+ */
+export function wordCountLabel(count) {
+  const n = Number.isInteger(count) && count > 0 ? count : 0;
+  return `${n.toLocaleString("ko-KR")}개 단어`;
+}
+
+/**
  * 목록 상태를 순수하게 계산한다. 화면 없이 테스트할 수 있도록 분리했다.
  * @param {{status: "loading"|"error"|"ok", items: unknown[], total: number}} s
  * @returns {"loading"|"error"|"empty"|"success"}
@@ -43,13 +53,14 @@ export function wordbooksView(root, { navigate }) {
   const listEl = h("div", { class: "space-y-3", "aria-live": "polite" });
   const moreBtn = button({ variant: "secondary", full: true, onClick: () => load(false) }, "더 보기");
   const createBtn = button({ onClick: () => openForm(null) }, icon("plus", "h-5 w-5"), "새 단어장");
+  const presetBtn = button({ variant: "secondary", onClick: addPreset }, icon("sparkles", "h-5 w-5"), "추천 1,000제 추가");
 
   root.append(
     h(
       "div",
       { class: "mb-4 flex items-center justify-between gap-3" },
       h("h1", { class: "text-xl font-bold" }, "내 단어장"),
-      createBtn,
+      h("div", { class: "flex flex-wrap justify-end gap-2" }, presetBtn, createBtn),
     ),
     listEl,
     h("div", { class: "mt-4" }, moreBtn),
@@ -122,6 +133,7 @@ export function wordbooksView(root, { navigate }) {
           onclick: () => navigate(`/wordbooks/${wordbook.id}`),
         },
         h("span", { class: "text-lg font-semibold text-zinc-900 break-words" }, wordbook.name),
+        h("span", { class: "inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600" }, wordCountLabel(wordbook.word_count)),
         wordbook.description ? h("span", { class: "text-sm text-zinc-600 line-clamp-1" }, wordbook.description) : null,
         h("span", { class: "text-xs text-zinc-500" }, `수정 ${formatKst(wordbook.updated_at)}`),
       ),
@@ -177,6 +189,28 @@ export function wordbooksView(root, { navigate }) {
       await load(true);
     } catch (error) {
       toast(error.status === 409 ? "같은 이름의 단어장이 이미 있습니다." : error.detail, "error");
+    }
+  }
+
+  /** 추천 1,000제 프리셋을 내 단어장으로 추가한다 (확인 후 POST, 1,000건이 한 번에 저장된다). */
+  async function addPreset() {
+    const ok = await confirmDialog({
+      title: "추천 1,000제를 추가할까요?",
+      text: "'중급 필수 영단어 1,000' 단어장과 단어 1,000개가 내 목록에 추가됩니다.",
+      confirmText: "추가",
+    });
+    if (!ok) return;
+    presetBtn.disabled = true;
+    try {
+      await api("/wordbooks/presets/intermediate-1000", { method: "POST" });
+      toast("추천 단어장을 추가했습니다.");
+      await load(true);
+    } catch (error) {
+      if (error.status === 409) toast("이미 추가된 추천 단어장입니다.", "info");
+      else if (error.status === 503) toast("추천 단어장 데이터가 아직 준비되지 않았습니다.", "error");
+      else toast(error.detail ?? "추가하지 못했습니다.", "error");
+    } finally {
+      presetBtn.disabled = false;
     }
   }
 

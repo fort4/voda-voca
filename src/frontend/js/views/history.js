@@ -6,9 +6,10 @@
 import { api, ApiError } from "../core/api.js";
 import { button, clear, h, icon, notice, refreshIcons, skeleton } from "../core/dom.js";
 import { kstTime } from "../core/format.js";
-import { groupByKstDate, summarizeLogs } from "../lib/study-stats.js";
+import { groupByKstDate, summarizeLogs, uniqueWrongWordIds } from "../lib/study-stats.js";
 
-export const HISTORY_LIMIT = 50;
+export const HISTORY_LIMIT = 100; // 오답 복습은 최근 100건에서 고른다 (백엔드 WRONG_REVIEW_WINDOW 와 같다)
+export const WRONG_REVIEW_MIN = 4;
 
 /**
  * @param {HTMLElement} root
@@ -63,6 +64,7 @@ export function historyView(root, { navigate }) {
         h("p", { class: "mt-2 text-3xl font-bold" }, `${summary.accuracy}%`),
         h("p", { class: "text-sm text-zinc-600" }, `최근 ${summary.total}건 중 정답 ${summary.correct}개, 오답 ${summary.wrong}개`),
         h("p", { class: "mt-1 text-xs text-zinc-500" }, `최근 ${HISTORY_LIMIT}건 기준입니다.`),
+        wrongReviewAction(items),
       ),
       ...groupByKstDate(items).map((group) =>
         h(
@@ -88,6 +90,31 @@ export function historyView(root, { navigate }) {
       ),
     );
     refreshIcons();
+  }
+
+  /**
+   * 오답 복습 시작 버튼. 최근 기록의 고유 오답 단어가 4개 미만이면 비활성화하고 현재 개수를 안내한다.
+   * @param {Array<{word_id: number, is_correct: boolean}>} items
+   */
+  function wrongReviewAction(items) {
+    const wrongCount = uniqueWrongWordIds(items).size;
+    const ready = wrongCount >= WRONG_REVIEW_MIN;
+    return h(
+      "div",
+      { class: "mt-4 space-y-2" },
+      button(
+        { full: true, disabled: !ready, onClick: () => navigate("/study/quiz", { wrong: "1" }) },
+        icon("target"),
+        "오답 복습 퀴즈 시작",
+      ),
+      h(
+        "p",
+        { class: "text-center text-xs text-zinc-500" },
+        ready
+          ? `틀린 단어 ${wrongCount}개로 복습합니다.`
+          : `복습 가능한 오답 단어가 ${WRONG_REVIEW_MIN}개 이상이어야 합니다 (현재 ${wrongCount}개).`,
+      ),
+    );
   }
 
   load();
