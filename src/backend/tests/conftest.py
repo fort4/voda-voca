@@ -1,11 +1,18 @@
-# 2026-11-02 - voda-voca - 테스트 공통 fixture: 테스트마다 DB 커넥션 풀 정리
+# 2026-11-02 - voda-voca - 테스트 공통 fixture: 엔진 정리, 빠른 bcrypt, 테스트 계정 정리
 # 파일 위치: src/backend/tests/conftest.py
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 
+import pytest
 import pytest_asyncio
+from sqlalchemy import delete
 
-from backend.db.session import dispose_engine
+from backend.core.config import get_settings
+from backend.db.session import dispose_engine, get_session_factory
+from backend.models import User
+
+# 테스트 계정 이메일 패턴. 정리(cleanup) 시 이 패턴만 지운다.
+TEST_EMAIL_LIKE = "tvoda-%@example.com"
 
 
 @pytest_asyncio.fixture(autouse=True)
@@ -17,3 +24,27 @@ async def _dispose_db_engine() -> AsyncIterator[None]:
     """
     yield
     await dispose_engine()
+
+
+@pytest.fixture(autouse=True)
+def _fast_bcrypt(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """테스트에서는 bcrypt cost 를 4 로 낮춰 실행 시간을 줄인다. 운영 기본값은 12 이다."""
+    monkeypatch.setenv("BCRYPT_ROUNDS", "4")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def _cleanup_test_users() -> AsyncIterator[None]:
+    """테스트 계정(과 그 세션, FK CASCADE)을 테스트 전후로 지운다."""
+    await _delete_test_users()
+    yield
+    await _delete_test_users()
+    await dispose_engine()
+
+
+async def _delete_test_users() -> None:
+    async with get_session_factory()() as session:
+        await session.execute(delete(User).where(User.email.like(TEST_EMAIL_LIKE)))
+        await session.commit()

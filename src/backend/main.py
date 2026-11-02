@@ -10,6 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.db.session import dispose_engine, get_db_session
+from backend.routers.auth import router as auth_router
 
 
 @asynccontextmanager
@@ -20,6 +21,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="voda-voca", lifespan=lifespan)
+app.include_router(auth_router)
 
 
 @app.get("/health")

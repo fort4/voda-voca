@@ -13,3 +13,7 @@ __pycache__/
 .vscode/
 .idea/
 .DS_Store
+
+# Test coverage 산출물
+.coverage
+htmlcov/

@@ -31,6 +31,14 @@ class Settings(BaseSettings):
     mysql_password: SecretStr
     mysql_database: str
 
+    # --- 인증 (REQ-001, REQ-002) ---
+    # 세션 수명(일). 로그인 시점부터 절대 만료 (기본 14일, ADR-001).
+    session_ttl_days: int = 14
+    # 세션 쿠키 Secure 속성. 로컬 HTTP 개발을 위해 기본 false. HTTPS 배포 시 COOKIE_SECURE=true.
+    cookie_secure: bool = False
+    # bcrypt cost factor (ADR-002). 테스트에서는 낮춰서 실행 시간을 줄인다.
+    bcrypt_rounds: int = 12
+
     @property
     def database_url(self) -> URL:
         """비동기 드라이버(asyncmy) 접속 URL.
