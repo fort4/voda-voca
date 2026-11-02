@@ -76,7 +76,7 @@ export function computeSummary(wordbooks, studyLogs, now = Date.now()) {
  * 최근 7일(오늘 포함) 일자별 학습한 단어 수. 같은 단어를 같은 날 여러 번 풀어도 한 번으로 센다.
  * @param {Array<{word_id: number, created_at: string}>} studyLogs
  * @param {number} [now=Date.now()]
- * @returns {Array<{date: string, label: string, count: number}>} 오래된 날부터 오늘 순서
+ * @returns {Array<{date: string, label: string, count: number, isToday: boolean}>} 오래된 날부터 오늘 순서
  */
 export function computeWeeklyActivity(studyLogs, now = Date.now()) {
   const today = kstDayKeyOf(now);
@@ -90,6 +90,7 @@ export function computeWeeklyActivity(studyLogs, now = Date.now()) {
     date: key,
     label: WEEK_LABELS[new Date(`${key}T00:00:00Z`).getUTCDay()],
     count: wordsByDay.get(key).size,
+    isToday: key === today,
   }));
 }
 

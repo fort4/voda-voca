@@ -52,8 +52,10 @@ test("연속 학습일: 잘못된 날짜 문자열은 무시한다", () => {
 test("최근 7일 활동: 오래된 날부터 오늘까지 7칸, 요일 라벨과 날짜 키를 준다", () => {
   const days = computeWeeklyActivity([], NOW);
   assert.equal(days.length, 7);
-  assert.deepEqual(days[0], { date: "2026-10-27", label: "화", count: 0 });
-  assert.deepEqual(days[6], { date: "2026-11-02", label: "월", count: 0 });
+  assert.deepEqual(days[0], { date: "2026-10-27", label: "화", count: 0, isToday: false });
+  assert.deepEqual(days[6], { date: "2026-11-02", label: "월", count: 0, isToday: true });
+  assert.equal(days.filter((d) => d.isToday).length, 1); // 오늘은 정확히 하루만 표시된다
+  assert.equal(days[5].isToday, false);
 });
 
 test("최근 7일 활동: 같은 날 같은 단어를 여러 번 풀어도 한 번으로 센다", () => {

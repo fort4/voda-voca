@@ -52,6 +52,22 @@ export function barPath(x, bottom, width, height) {
 }
 
 /**
+ * 오늘 막대 위쪽에 붙는 작은 "오늘" 뱃지 (SVG 그룹). 값 표시 말풍선과 겹치면 CSS 로 숨긴다.
+ * @param {number} cx 뱃지 중심 x 좌표
+ * @returns {SVGGElement}
+ */
+function todayBadge(cx) {
+  const w = 26;
+  const h = 13;
+  return svgEl("g", { class: "chart-today-badge" }, [
+    svgEl("rect", { x: cx - w / 2, y: 1, width: w, height: h, rx: h / 2, ry: h / 2 }),
+    svgEl("text", { x: cx, y: 1 + h / 2 + 0.5, "text-anchor": "middle", "dominant-baseline": "middle" }, [
+      document.createTextNode("오늘"),
+    ]),
+  ]);
+}
+
+/**
  * 주간 활동 차트를 SVG 로 만든다. 막대를 누르거나 포커스하면 그 날의 단어 수를 막대 위에 보여 준다.
  * @param {Array<{date: string, label: string, count: number}>} days
  * @returns {SVGSVGElement}
@@ -86,12 +102,14 @@ export function renderWeeklyChart(days) {
     const label = svgEl("text", { class: "chart-label", x: index * band + band / 2, y: CHART_HEIGHT - 6, "text-anchor": "middle" }, [
       document.createTextNode(item.label),
     ]);
+    const children = [hit, bar, label];
+    if (item.isToday) children.push(todayBadge(x + width / 2));
     const group = svgEl("g", {
-      class: "chart-day",
+      class: item.isToday ? "chart-day is-today" : "chart-day",
       tabindex: 0,
       role: "img",
-      "aria-label": `${item.label}요일 ${item.count}개 단어`,
-    }, [hit, bar, label]);
+      "aria-label": `${item.label}요일 ${item.count}개 단어${item.isToday ? ", 오늘" : ""}`,
+    }, children);
     group.addEventListener("pointerenter", () => show(index));
     group.addEventListener("pointerdown", () => show(index));
     group.addEventListener("focus", () => show(index));

@@ -271,10 +271,19 @@ html.dark .level-tag--user { background: #27272a; color: #d4d4d8; }
 }
 
 .weekly-chart { display: block; width: 100%; height: auto; }
-.weekly-chart .chart-bar { fill: var(--accent); opacity: 0.85; transition: opacity 160ms ease; }
+/* 지난 날 막대는 연하게, 오늘 막대는 진하게 강조한다 */
+.weekly-chart .chart-bar { fill: var(--accent); opacity: 0.35; transition: opacity 160ms ease; }
 .weekly-chart .chart-day:hover .chart-bar,
-.weekly-chart .chart-day[aria-current="true"] .chart-bar { opacity: 1; }
+.weekly-chart .chart-day[aria-current="true"] .chart-bar { opacity: 0.6; }
+.weekly-chart .chart-day.is-today .chart-bar,
+.weekly-chart .chart-day.is-today:hover .chart-bar,
+.weekly-chart .chart-day.is-today[aria-current="true"] .chart-bar { opacity: 1; }
+.weekly-chart .chart-today-badge rect { fill: var(--accent-soft); }
+.weekly-chart .chart-today-badge text { fill: var(--accent); font-size: 9px; font-weight: 700; }
+/* 오늘 막대를 가리키는 말풍선과 뱃지가 겹치지 않도록 포커스·호버 중에는 뱃지를 숨긴다 */
+.weekly-chart .chart-day.is-today[aria-current="true"] .chart-today-badge { visibility: hidden; }
 .weekly-chart .chart-label { fill: var(--muted); font-size: 11px; }
+.weekly-chart .chart-day.is-today .chart-label { fill: var(--accent); font-weight: 700; }
 .weekly-chart .chart-tooltip { fill: var(--text); font-size: 11px; font-weight: 600; }
 .weekly-chart .chart-day { cursor: default; outline: none; }
 .weekly-chart .chart-day:focus-visible .chart-bar { stroke: var(--accent); stroke-width: 2; }
