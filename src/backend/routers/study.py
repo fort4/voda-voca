@@ -26,6 +26,7 @@ from backend.schemas.study import (
 )
 from backend.services import study as study_service
 from backend.services.study import (
+    FlashcardOffsetWithShuffleError,
     QuizAlreadySubmittedError,
     QuizAnswerError,
     QuizExpiredError,
@@ -58,6 +59,11 @@ async def get_flashcards(
     bookmarked: bool = Query(default=False, description="true 면 본인 북마크 카드만"),
     shuffle: bool = Query(default=False, description="true 면 무작위 순서"),
     limit: int = Query(default=FLASHCARD_LIMIT_DEFAULT, ge=1, le=FLASHCARD_LIMIT_MAX),
+    offset: int = Query(
+        default=0,
+        ge=0,
+        description="표제어 순서에서 건너뛸 카드 수. limit 을 넘는 세트를 이어 받을 때 쓴다 (shuffle=true 와 함께 쓸 수 없다)",
+    ),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session),
 ) -> FlashcardPage:
@@ -68,10 +74,15 @@ async def get_flashcards(
         )
     try:
         rows, total = await study_service.list_flashcards(
-            db, user.id, wordbook_id, bookmarked, shuffle, limit
+            db, user.id, wordbook_id, bookmarked, shuffle, limit, offset
         )
     except WordbookNotFoundError as exc:
         raise WORDBOOK_NOT_FOUND from exc
+    except FlashcardOffsetWithShuffleError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail="shuffle=true 에서는 offset 을 쓸 수 없습니다. 순서가 매번 달라 이어 받을 수 없습니다.",
+        ) from exc
 
     items = [
         FlashcardOut(

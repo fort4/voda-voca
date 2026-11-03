@@ -5,13 +5,12 @@
 
 import { api, ApiError } from "../core/api.js";
 import { createDeck } from "../core/deck.js";
+import { loadAllCards } from "../core/flashcard-load.js";
 import { classifyGesture } from "../core/gesture.js";
 import { button, clear, h, icon, notice, refreshIcons, skeleton } from "../core/dom.js";
 import { parseStudySource, sourceFlashcardQuery } from "../lib/study-source.js";
 import { speak } from "../core/tts.js";
 import { isButtonTarget, modalIsOpen, shortcutsBlocked } from "../core/shortcuts.js";
-
-export const FLASHCARD_LIMIT = 500;
 
 function speakerButton(text, label, extraClass = "") {
   return h(
@@ -37,7 +36,7 @@ function speakerButton(text, label, extraClass = "") {
 export function flashcardsView(root, { query, navigate }) {
   const source = parseStudySource(query);
   const controller = new AbortController();
-  const state = { status: "loading", cards: [], deck: null, shuffle: false, error: "", done: false };
+  const state = { status: "loading", cards: [], deck: null, shuffle: false, error: "", done: false, serverTotal: 0, truncated: false };
   const content = h("div", { class: "space-y-4" });
   root.append(content);
 
@@ -77,10 +76,15 @@ export function flashcardsView(root, { query, navigate }) {
     state.status = "loading";
     render();
     try {
-      const data = await api("/study/flashcards", {
-        query: { ...sourceFlashcardQuery(source), shuffle: false, limit: FLASHCARD_LIMIT },
-        signal: controller.signal,
-      });
+      // 서버 한도(500장)를 넘는 단어장도 빠짐없이 받는다. 섞기는 전부 받은 뒤 deck 에서 한다 (이슈 #9).
+      const data = await loadAllCards(({ limit, offset }) =>
+        api("/study/flashcards", {
+          query: { ...sourceFlashcardQuery(source), shuffle: false, limit, offset },
+          signal: controller.signal,
+        }),
+      );
+      state.serverTotal = data.total;
+      state.truncated = data.truncated;
       state.cards = data.items.map((item) => ({ term: item.term, meaning: item.meaning, example: item.example, exampleMeaning: item.example_meaning ?? null }));
       state.deck = createDeck(state.cards, { shuffle: state.shuffle });
       state.status = state.cards.length ? "ok" : "empty";
@@ -186,6 +190,9 @@ export function flashcardsView(root, { query, navigate }) {
             "div",
             { class: "space-y-1" },
             h("p", { class: "text-sm text-zinc-600" }, `${position} / ${total}`),
+            state.truncated
+              ? h("p", { class: "text-xs text-amber-600", role: "status" }, `카드가 너무 많아 전체 ${state.serverTotal.toLocaleString("ko-KR")}장 중 ${total.toLocaleString("ko-KR")}장만 불러왔습니다.`)
+              : null,
             h(
               "div",
               { class: "h-2 w-full overflow-hidden rounded-full bg-zinc-200", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": String(percent) },

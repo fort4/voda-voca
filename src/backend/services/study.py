@@ -49,6 +49,10 @@ class QuizWordMissingError(StudyError):
     """출제 후 문항의 단어가 삭제되었다. 채점하면 이력 행이 깨지므로 제출을 막는다 (409)."""
 
 
+class FlashcardOffsetWithShuffleError(StudyError):
+    """무작위 순서와 offset 을 함께 요청했다. 순서가 매번 달라 이어 받기가 성립하지 않는다 (422)."""
+
+
 # --- 플래시카드 (REQ-012, 013, 019) ---
 
 
@@ -59,13 +63,18 @@ async def list_flashcards(
     bookmarked: bool,
     shuffle: bool,
     limit: int,
+    offset: int = 0,
 ) -> tuple[list[tuple[Word, bool]], int]:
     """플래시카드 세트를 반환한다. 단어장 범위, 북마크 범위, 또는 둘의 교집합.
 
     - wordbook_id 가 있으면 소유권을 먼저 확인한다 (타인이면 WordbookNotFoundError).
     - shuffle=True 이면 무작위 순서, 아니면 표제어 순서다.
+    - offset 은 표제어 순서에서 건너뛸 개수다. 한 번에 limit 개를 넘는 세트를 이어 받을 때 쓴다.
+      무작위 순서는 요청마다 달라 이어 받을 수 없으므로 shuffle=True 와 함께 쓸 수 없다 (FlashcardOffsetWithShuffleError).
     - 반환값은 (단어, 북마크 여부) 목록과 조건에 맞는 전체 개수다.
     """
+    if shuffle and offset:
+        raise FlashcardOffsetWithShuffleError
     if wordbook_id is not None:
         await get_owned_wordbook(db, user_id, wordbook_id)
 
@@ -85,7 +94,7 @@ async def list_flashcards(
     ).scalar_one()
 
     ordering = (func.rand(),) if shuffle else (Word.term.asc(), Word.id.asc())
-    result = await db.execute(base.order_by(*ordering).limit(limit))
+    result = await db.execute(base.order_by(*ordering).offset(offset).limit(limit))
     return [(word, bool(flag_value)) for word, flag_value in result.all()], total
 
 

@@ -172,6 +172,63 @@ async def test_flashcards_shuffle_returns_the_same_set(client: httpx.AsyncClient
     assert {item["word_id"] for item in response.json()["items"]} == set(words)
 
 
+@pytest.mark.asyncio
+async def test_flashcards_offset_continues_in_term_order(client: httpx.AsyncClient) -> None:
+    """limit 보다 큰 세트도 offset 으로 이어 받으면 빠짐없이, 겹침 없이 모두 받는다 (한도에서 잘리던 문제)."""
+    _, token = await signup_and_login(client)
+    wb = await make_wordbook(client, token)
+    words = await make_words(client, token, wb, 5)
+
+    collected: list[int] = []
+    for offset in (0, 2, 4):
+        response = await client.get(
+            "/api/study/flashcards",
+            params={"wordbook_id": wb, "limit": 2, "offset": offset},
+            headers=auth_headers(token),
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["total"] == 5  # total 은 offset·limit 과 무관하다
+        collected += [item["word_id"] for item in body["items"]]
+
+    assert len(collected) == 5 and set(collected) == set(words)
+    full = await client.get(
+        "/api/study/flashcards", params={"wordbook_id": wb}, headers=auth_headers(token)
+    )
+    assert collected == [item["word_id"] for item in full.json()["items"]], "표제어 순서가 유지되어야 한다"
+
+
+@pytest.mark.asyncio
+async def test_flashcards_offset_past_the_end_is_empty_not_an_error(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
+    wb = await make_wordbook(client, token)
+    await make_words(client, token, wb, 3)
+
+    response = await client.get(
+        "/api/study/flashcards", params={"wordbook_id": wb, "offset": 10}, headers=auth_headers(token)
+    )
+    assert response.status_code == 200
+    assert response.json() == {"items": [], "total": 3}
+
+
+@pytest.mark.asyncio
+async def test_flashcards_offset_with_shuffle_or_negative_is_422(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
+    wb = await make_wordbook(client, token)
+    await make_words(client, token, wb, 3)
+
+    shuffled = await client.get(
+        "/api/study/flashcards",
+        params={"wordbook_id": wb, "shuffle": "true", "offset": 1},
+        headers=auth_headers(token),
+    )
+    negative = await client.get(
+        "/api/study/flashcards", params={"wordbook_id": wb, "offset": -1}, headers=auth_headers(token)
+    )
+    assert shuffled.status_code == 422
+    assert negative.status_code == 422
+
+
 # --- 퀴즈 출제 (REQ-014, REQ-019) ---
 
 
