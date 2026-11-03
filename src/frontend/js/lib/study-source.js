@@ -28,6 +28,17 @@ export function sourceRouteQuery(source) {
   return { bookmarks: "1" };
 }
 
+/**
+ * 서버 세션의 출처(source, wordbook_id)로 '다시 풀기' 라우트 쿼리를 만든다 (결과 화면을 서버 데이터로 그릴 때 쓴다).
+ * @param {{source: string, wordbook_id: number|null}} session
+ * @returns {Record<string, string>}
+ */
+export function routeQueryFromSession(session) {
+  if (session.source === "wordbook") return { wordbook_id: String(session.wordbook_id) };
+  if (session.source === "wrong") return { wrong: "1" };
+  return { bookmarks: "1" };
+}
+
 /** 플래시카드 API 쿼리 (GET /api/study/flashcards) */
 export function sourceFlashcardQuery(source) {
   return source.kind === "wordbook" ? { wordbook_id: source.wordbookId } : { bookmarked: true };

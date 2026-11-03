@@ -10,6 +10,7 @@ import {
   canStartQuiz,
   parseStudySource,
   sourceCountRequest,
+  routeQueryFromSession,
   sourceFlashcardQuery,
   sourceQuizBody,
   sourceRouteQuery,
@@ -62,4 +63,10 @@ test("오답 복습 출처: 쿼리 wrong=1 을 읽고, 퀴즈 본문과 경로�
   assert.deepEqual(sourceQuizBody(source), { wrong_only: true });
   assert.deepEqual(sourceRouteQuery(source), { wrong: "1" });
   assert.equal(parseStudySource({ wrong: "0" }), null);
+});
+
+test("routeQueryFromSession: 세션 출처로 '다시 풀기' 라우트 쿼리를 만든다", () => {
+  assert.deepEqual(routeQueryFromSession({ source: "wordbook", wordbook_id: 7 }), { wordbook_id: "7" });
+  assert.deepEqual(routeQueryFromSession({ source: "bookmarks", wordbook_id: null }), { bookmarks: "1" });
+  assert.deepEqual(routeQueryFromSession({ source: "wrong", wordbook_id: null }), { wrong: "1" });
 });

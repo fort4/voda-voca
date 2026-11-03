@@ -19,7 +19,6 @@ import { flashcardsView } from "./views/flashcards.js";
 import { quizView } from "./views/quiz.js";
 import { bookmarksView } from "./views/bookmarks.js";
 import { historyView } from "./views/history.js";
-import { clearQuizResults } from "./core/result-cache.js";
 import { downloadBackup, downloadWordbook, fetchAllPages } from "./core/backup.js";
 
 const root = /** @type {HTMLElement} */ (document.getElementById("app"));
@@ -287,7 +286,6 @@ async function logout() {
     // 세션이 이미 없어도 로컬 상태는 지운다
   }
   setUser(null);
-  clearQuizResults(globalThis.sessionStorage);
   renderUserbar();
   renderTabbar();
   toast("로그아웃되었습니다.", "info");

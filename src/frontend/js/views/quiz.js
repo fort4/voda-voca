@@ -1,20 +1,20 @@
 /*
- * 2026-11-02 - voda-voca - 4지선다 퀴즈 화면: 출제 전 단어 수 가드, 30분 세션 카운트다운(서버 Date 보정), 일괄 채점 제출, 결과 sessionStorage 캐싱·복구 (REQ-014~016, REQ-019)
+ * 2026-11-03 - voda-voca - 4지선다 퀴즈 화면: 출제 전 단어 수 가드, 마지막 응답 후 30분 카운트다운(서버 Date 보정), 문항별 즉시 기록(재시도 큐), 서버 데이터 기반 결과 화면 (REQ-014~016, REQ-019, 이슈 #8)
  * 파일 위치: src/frontend/js/views/quiz.js
  */
 
 import { api, apiResponse, ApiError } from "../core/api.js";
-import { appendNodes, button, clear, h, icon, notice, refreshIcons, skeleton } from "../core/dom.js";
+import { appendNodes, button, clear, h, icon, notice, refreshIcons } from "../core/dom.js";
 import { alertBox } from "../core/form.js";
 import { createQuizFlow, stageSlots } from "../core/quiz-flow.js";
+import { renderQuizResult } from "./quiz-result.js";
 import { playCorrect } from "../core/sound.js";
 import { speak } from "../core/tts.js";
 import { isButtonTarget, modalIsOpen, shortcutsBlocked } from "../core/shortcuts.js";
-import { deriveQuizItems } from "../core/quiz-state.js";
 import { uniqueWrongWordIds } from "../lib/study-stats.js";
-import { loadQuizResult, saveQuizResult } from "../core/result-cache.js";
+import { createAnswerRecorder } from "../core/answer-recorder.js";
 import { computeClockOffset, formatClock, isWarning, remainingMs } from "../core/timer.js";
-import { confirmDialog, toast } from "../core/toast.js";
+import { confirmDialog } from "../core/toast.js";
 import {
   canStartQuiz,
   parseStudySource,
@@ -69,13 +69,13 @@ function speakerButton(text, label, extraClass = "") {
 export function quizView(root, ctx) {
   const { query } = ctx;
   let stopTimerFn = null; // 진행 중인 세션의 타이머 정리 함수
-  let removeKeysFn = null; // 진행 중인 세션의 단축키 리스너 정리 함수
+  let removeKeysFn = null; // 진행 중인 세션의 단축키·이탈 경고·온라인 복귀 리스너 정리 함수
   const body = h("div", { class: "space-y-4" });
   root.append(body);
 
   if (query.session !== undefined) {
     const id = Number(query.session);
-    renderSavedResult(id, ctx);
+    renderQuizResult(body, id, ctx);
   } else {
     const source = parseStudySource(query);
     if (!source) {
@@ -184,6 +184,24 @@ export function quizView(root, ctx) {
   function runSession(session, headers, source, clientNow) {
     const offset = computeClockOffset(headers?.get?.("Date") ?? null, clientNow);
     const flow = createQuizFlow({ session });
+    // 저장하지 못한 답이 있을 때만 보이는 안내. 네트워크가 돌아오면 자동으로 다시 보낸다.
+    const saveNote = h(
+      "div",
+      { class: "hidden items-center justify-between gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-700 ring-1 ring-red-200", role: "status" },
+      h("span", {}, "일부 답을 저장하지 못했습니다."),
+      button({ variant: "secondary", onClick: () => recorder.retryFailed() }, "다시 저장"),
+    );
+    const recorder = createAnswerRecorder({
+      send: ({ questionId, choiceIndex }) =>
+        api(`/study/quiz/sessions/${session.session_id}/answers`, { method: "POST", body: { question_id: questionId, choice_index: choiceIndex } }),
+      onRecorded: (result) => {
+        session.expires_at = result.expires_at; // 답을 기록할 때마다 마감이 30분씩 밀린다
+      },
+      onChange: ({ failed }) => {
+        saveNote.classList.toggle("hidden", failed === 0);
+        saveNote.classList.toggle("flex", failed > 0);
+      },
+    });
     const view = { expired: false, submitting: false, timerId: null, ms: remainingMs(session.expires_at, Date.now(), offset) };
     const timerEl = h("span", { class: "font-mono text-base font-semibold tabular-nums", role: "timer" });
     const progressBar = h("div", { class: "h-2 rounded-full bg-indigo-600 transition-all duration-500", style: "width: 0%" });
@@ -211,7 +229,11 @@ export function quizView(root, ctx) {
     function expire() {
       view.expired = true;
       stopTimer();
-      banner.show("시간이 지났습니다. 퀴즈를 다시 시작해 주세요.");
+      banner.show(
+        flow.answeredCount() > 0
+          ? "시간이 지났습니다. 푼 문항은 저장되어 있습니다."
+          : "시간이 지났습니다. 퀴즈를 다시 시작해 주세요.",
+      );
       render();
     }
 
@@ -241,6 +263,7 @@ export function quizView(root, ctx) {
             const result = flow.choose(i);
             if (result) {
               if (result.isCorrect) playCorrect(); // 오답은 무음이다
+              recorder.enqueue(question.question_id, i); // 해설은 바로 보이고, 기록은 뒤에서 한다
               render();
             }
           },
@@ -310,6 +333,9 @@ export function quizView(root, ctx) {
           question.choices.map((_, i) => choiceButton(question, i, feedback, locked)),
         ),
         slots.showExplanation ? feedbackCard(feedback) : null,
+        view.expired && flow.answeredCount() > 0
+          ? button({ full: true, onClick: () => complete({ partial: true }) }, "푼 문항 결과 보기", icon("flag"))
+          : null,
         h(
           "div",
           { class: "grid grid-cols-2 gap-2" },
@@ -337,6 +363,7 @@ export function quizView(root, ctx) {
         if (result) {
           event.preventDefault();
           if (result.isCorrect) playCorrect(); // 오답은 무음이다
+          recorder.enqueue(question.question_id, choice);
           render();
         }
         return;
@@ -356,34 +383,40 @@ export function quizView(root, ctx) {
       if (flow.next()) render();
     }
 
-    async function finish() {
-      if (!flow.canFinish() || view.submitting || view.expired) return;
+    /** 마지막 문항의 "최종 결과 보기". 모든 문항에 답해야 누를 수 있다. */
+    function finish() {
+      if (!flow.canFinish() || view.expired) return;
+      return complete({ partial: false });
+    }
+
+    /**
+     * 퀴즈를 끝내고 결과 화면으로 간다. 먼저 기록 큐가 빌 때까지 기다린다.
+     * 전부 푼 경우에는 전체 답을 함께 보내, 저장에 실패한 답이 있어도 서버가 이때 채운다.
+     * 만료나 일부만 푼 경우(partial)에는 이미 저장된 답으로만 끝낸다.
+     * @param {{partial: boolean}} opts
+     */
+    async function complete({ partial }) {
+      if (view.submitting) return;
       view.submitting = true;
       stopTimer();
       render();
       try {
-        const result = await api(`/study/quiz/sessions/${session.session_id}/submit`, { method: "POST", body: flow.toSubmitPayload() });
-        const answers = flow.answerMap();
-        const record = {
-          sessionId: session.session_id,
-          source: sourceRouteQuery(source),
-          total: result.total,
-          correct_count: result.correct_count,
-          accuracy: result.accuracy,
-          items: deriveQuizItems(session.questions, answers, result.wrong_items),
-        };
-        saveQuizResult(globalThis.sessionStorage, session.session_id, record);
+        await recorder.flush();
+        const body = partial ? { answers: [] } : flow.toSubmitPayload();
+        await api(`/study/quiz/sessions/${session.session_id}/submit`, { method: "POST", body });
         ctx.replace("/study/quiz", { session: String(session.session_id) });
       } catch (error) {
         view.submitting = false;
+        if (error instanceof ApiError && error.code === "QUIZ_ALREADY_SUBMITTED") {
+          ctx.replace("/study/quiz", { session: String(session.session_id) }); // 이미 끝났다면 결과를 보여 주면 된다
+          return;
+        }
         if (error instanceof ApiError && error.code === "QUIZ_EXPIRED") {
           expire();
           return;
         }
         if (error instanceof ApiError && error.code === "QUIZ_WORD_MISSING") {
-          banner.show("퀴즈에 포함된 단어가 삭제되어 제출할 수 없습니다. 퀴즈를 다시 시작해 주세요.");
-        } else if (error instanceof ApiError && error.code === "QUIZ_ALREADY_SUBMITTED") {
-          banner.show("이미 제출된 퀴즈입니다.");
+          banner.show("퀴즈에 포함된 단어가 삭제되어 일부 답을 저장하지 못했습니다. 퀴즈를 다시 시작해 주세요.");
         } else {
           banner.show(error instanceof ApiError ? error.detail : "제출하지 못했습니다.");
         }
@@ -400,7 +433,7 @@ export function quizView(root, ctx) {
         h(
           "div",
           { class: "flex items-center gap-2" },
-          button({ variant: "ghost", onClick: async () => { if (await confirmDialog({ title: "퀴즈를 그만둘까요?", text: "지금까지 고른 답은 저장되지 않습니다.", confirmText: "그만두기", danger: true })) ctx.navigate(`/study/quiz`, sourceRouteQuery(source)); } }, icon("x"), h("span", { class: "sr-only" }, "퀴즈 그만두기")),
+          button({ variant: "ghost", onClick: async () => { if (await confirmDialog({ title: "퀴즈를 그만둘까요?", text: "지금까지 푼 문항은 학습 기록에 저장됩니다. 끝내지 못한 퀴즈는 이어 풀 수 없습니다.", confirmText: "그만두기" })) ctx.navigate(`/study/quiz`, sourceRouteQuery(source)); } }, icon("x"), h("span", { class: "sr-only" }, "퀴즈 그만두기")),
           h("div", { class: "flex-1" }),
           timerEl,
         ),
@@ -408,118 +441,27 @@ export function quizView(root, ctx) {
         progressText,
       ),
       banner.el,
+      saveNote,
       stage,
     );
     stopTimerFn = stopTimer;
     paintTimer();
     render();
     view.timerId = setInterval(tick, 1000);
+    // 저장 중이거나 저장하지 못한 답이 있을 때 탭을 닫거나 새로고침하면 경고한다. 네트워크가 돌아오면 실패한 답을 다시 보낸다.
+    const onBeforeUnload = (event) => {
+      if (recorder.isIdle()) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    const onOnline = () => recorder.retryFailed();
     document.addEventListener("keydown", onKey);
-    removeKeysFn = () => document.removeEventListener("keydown", onKey);
-  }
-
-  /**
-   * 제출이 끝난 퀴즈의 결과를 세션 캐시에서 보여 준다. 캐시가 없으면 이 탭에서는 복구할 수 없다는 안내.
-   * @param {number} id
-   * @param {typeof ctx} c
-   */
-  function renderSavedResult(id, c) {
-    clear(body);
-    const record = Number.isInteger(id) ? loadQuizResult(globalThis.sessionStorage, id) : null;
-    if (!record) {
-      body.append(
-        notice({
-          iconName: "history",
-          title: "이 탭에서는 결과를 다시 볼 수 없습니다.",
-          text: "결과는 제출한 탭에서만 남아 있습니다. 새 퀴즈를 시작해 주세요.",
-          action: button({ variant: "secondary", onClick: () => c.navigate("/wordbooks") }, "단어장으로"),
-        }),
-      );
-      return;
-    }
-    const perfect = record.total > 0 && record.correct_count === record.total;
-    const wrong = record.items.filter((item) => !item.is_correct);
-    body.append(
-      h(
-        "section",
-        { class: "space-y-5" },
-        h("h1", { class: "text-xl font-bold" }, "퀴즈 결과"),
-        h(
-          "div",
-          { class: "p-6 text-center surface" },
-          h("p", { class: "text-4xl font-bold" }, `${record.correct_count} / ${record.total}`),
-          h("p", { class: "mt-1 text-lg text-zinc-700" }, `정답률 ${record.accuracy}%`),
-          perfect ? h("p", { class: "mt-2 text-sm text-indigo-700" }, "모두 맞혔습니다.") : null,
-        ),
-        h("h2", { class: "text-lg font-semibold" }, `오답 노트 (${wrong.length})`),
-        wrong.length
-          ? h("ol", { class: "space-y-3" }, wrong.map((item) => wrongNote(item)))
-          : h("p", { class: "text-sm text-zinc-600" }, "틀린 문항이 없습니다."),
-        h("h2", { class: "text-lg font-semibold" }, "전체 문항"),
-        h("ol", { class: "space-y-3" }, record.items.map((item, i) => questionResult(item, i))),
-        h(
-          "div",
-          { class: "grid grid-cols-2 gap-2" },
-          button({ variant: "secondary", onClick: () => c.navigate("/study/quiz", record.source) }, "다시 풀기"),
-          button({ onClick: () => c.navigate("/history") }, "학습 이력 보기"),
-        ),
-      ),
-    );
-    refreshIcons();
-  }
-
-  /** @param {any} item */
-  function wrongNote(item) {
-    const marked = { done: false };
-    const bookmarkBtn = button({ variant: "secondary", full: true, disabled: item.word_id == null, onClick: async () => {
-      try {
-        await api(`/bookmarks/${item.word_id}`, { method: "PUT" });
-        marked.done = true;
-        bookmarkBtn.disabled = true;
-        bookmarkBtn.textContent = "";
-        bookmarkBtn.append(icon("star"), "북마크함");
-        refreshIcons();
-        toast("북마크에 추가했습니다.");
-      } catch (error) {
-        toast(error.detail ?? "북마크를 저장하지 못했습니다.", "error");
-      }
-    } }, icon("star"), "북마크에 추가");
-    return h(
-      "li",
-      { class: "space-y-2 rounded-xl bg-white p-4 ring-1 ring-red-200" },
-      h("p", { class: "break-words text-lg font-semibold" }, item.term),
-      h("p", { class: "text-sm text-red-700" }, `내 답: ${item.choices[item.selected_index]}`),
-      h("p", { class: "text-sm text-green-700" }, `정답: ${item.choices[item.correct_index]}`),
-      bookmarkBtn,
-    );
-  }
-
-  /** @param {any} item @param {number} i */
-  function questionResult(item, i) {
-    return h(
-      "li",
-      { class: "p-4 surface" },
-      h(
-        "p",
-        { class: "mb-2 flex items-center gap-2 font-semibold" },
-        h("span", { class: item.is_correct ? "text-green-700" : "text-red-700" }, item.is_correct ? "정답" : "오답"),
-        h("span", { class: "break-words" }, `${i + 1}. ${item.term}`),
-      ),
-      h(
-        "ul",
-        { class: "space-y-1 text-sm" },
-        item.choices.map((choice, c) => {
-          const isCorrect = c === item.correct_index;
-          const isMyWrong = c === item.selected_index && !item.is_correct;
-          const tag = isCorrect ? "정답" : isMyWrong ? "내 답" : "";
-          return h(
-            "li",
-            { class: `flex items-center gap-2 rounded-lg px-2 py-1 ${isCorrect ? "bg-green-50 text-green-800" : isMyWrong ? "bg-red-50 text-red-800" : "text-zinc-600"}` },
-            h("span", { class: "min-w-0 flex-1 break-words" }, choice),
-            tag ? h("span", { class: "shrink-0 text-xs font-semibold" }, tag) : null,
-          );
-        }),
-      ),
-    );
+    window.addEventListener("beforeunload", onBeforeUnload);
+    window.addEventListener("online", onOnline);
+    removeKeysFn = () => {
+      document.removeEventListener("keydown", onKey);
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      window.removeEventListener("online", onOnline);
+    };
   }
 }
