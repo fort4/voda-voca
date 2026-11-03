@@ -42,6 +42,13 @@ WORDBOOK_NOT_FOUND = HTTPException(
     status_code=status.HTTP_404_NOT_FOUND,
     detail="단어장을 찾을 수 없습니다.",
 )
+# 제출 오류를 문구와 무관하게 구분하도록 응답 헤더에 싣는 오류 코드. 화면은 detail 문구가 아니라 이 값으로 분기한다.
+ERROR_CODE_HEADER = "X-Error-Code"
+CODE_QUIZ_EXPIRED = "QUIZ_EXPIRED"
+CODE_QUIZ_ALREADY_SUBMITTED = "QUIZ_ALREADY_SUBMITTED"
+CODE_QUIZ_ANSWER_INVALID = "QUIZ_ANSWER_INVALID"
+CODE_QUIZ_WORD_MISSING = "QUIZ_WORD_MISSING"
+
 QUIZ_SESSION_NOT_FOUND = HTTPException(
     status_code=status.HTTP_404_NOT_FOUND,
     detail="퀴즈 세션을 찾을 수 없습니다.",
@@ -158,18 +165,25 @@ async def submit_quiz_session(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="이미 제출된 퀴즈입니다.",
+            headers={ERROR_CODE_HEADER: CODE_QUIZ_ALREADY_SUBMITTED},
         ) from exc
     except QuizExpiredError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="퀴즈 제한 시간(30분)이 지났습니다.",
+            headers={ERROR_CODE_HEADER: CODE_QUIZ_EXPIRED},
         ) from exc
     except QuizAnswerError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+            headers={ERROR_CODE_HEADER: CODE_QUIZ_ANSWER_INVALID},
+        ) from exc
     except QuizWordMissingError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="퀴즈에 포함된 단어가 삭제되어 제출할 수 없습니다. 퀴즈를 다시 시작해 주세요.",
+            headers={ERROR_CODE_HEADER: CODE_QUIZ_WORD_MISSING},
         ) from exc
 
 

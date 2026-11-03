@@ -18,9 +18,9 @@ export function setUnauthorizedHandler(handler) {
 
 export class ApiError extends Error {
   /**
-   * @param {{status: number, detail: string, fields?: FieldError[], retryAfter?: number|null, body?: unknown}} info
+   * @param {{status: number, detail: string, fields?: FieldError[], retryAfter?: number|null, body?: unknown, code?: string|null}} info
    */
-  constructor({ status, detail, fields = [], retryAfter = null, body = null }) {
+  constructor({ status, detail, fields = [], retryAfter = null, body = null, code = null }) {
     super(detail);
     this.name = "ApiError";
     /** HTTP 상태 코드. 네트워크 오류·시간 초과는 0 */
@@ -31,6 +31,8 @@ export class ApiError extends Error {
     /** 429 에서 Retry-After 헤더를 정수 초로 바꾼 값 */
     this.retryAfter = retryAfter;
     this.body = body;
+    /** 서버가 X-Error-Code 헤더로 보낸 오류 코드. 화면은 detail 문구가 아니라 이 값으로 분기한다. 없으면 null */
+    this.code = code;
   }
 }
 
@@ -96,17 +98,18 @@ export function cleanMessage(msg) {
  */
 export function toApiError(status, headers, body) {
   const retryAfter = status === 429 ? parseRetryAfter(headers.get("Retry-After")) : null;
+  const code = headers.get("X-Error-Code") || null;
   if (status === 422) {
     const fields = parseFieldErrors(body?.detail);
     const detail = fields[0]?.message ?? "입력값을 확인해 주세요.";
-    return new ApiError({ status, detail, fields, body });
+    return new ApiError({ status, detail, fields, body, code });
   }
   const detail =
     typeof body?.detail === "string" && body.detail
       ? body.detail
       : defaultMessage(status);
   // 일괄 등록 409 의 conflict_term 등 추가 필드는 body 로 그대로 넘긴다.
-  return new ApiError({ status, detail, retryAfter, body });
+  return new ApiError({ status, detail, retryAfter, body, code });
 }
 
 /** @param {number} status @returns {string} */

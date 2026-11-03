@@ -162,3 +162,11 @@ test("api: 호출자가 취소하면 AbortError 를 그대로 던진다 (오류 
   controller.abort();
   await assert.rejects(pending, (error) => error.name === "AbortError");
 });
+
+test("toApiError: X-Error-Code 헤더를 code 로 싣는다 (문구가 바뀌어도 화면이 분기할 수 있다)", () => {
+  const withCode = toApiError(400, new Headers({ "X-Error-Code": "QUIZ_EXPIRED" }), { detail: "퀴즈 제한 시간(30분)이 지났습니다." });
+  assert.equal(withCode.code, "QUIZ_EXPIRED");
+  assert.equal(withCode.status, 400);
+  const without = toApiError(404, new Headers(), { detail: "없음" });
+  assert.equal(without.code, null);
+});

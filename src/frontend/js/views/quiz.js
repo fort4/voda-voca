@@ -376,12 +376,14 @@ export function quizView(root, ctx) {
         ctx.replace("/study/quiz", { session: String(session.session_id) });
       } catch (error) {
         view.submitting = false;
-        if (error instanceof ApiError && error.status === 400 && /지났습니다/.test(error.detail)) {
+        if (error instanceof ApiError && error.code === "QUIZ_EXPIRED") {
           expire();
           return;
         }
-        if (error instanceof ApiError && error.status === 409) {
-          banner.show(error.detail.includes("삭제") ? "퀴즈에 포함된 단어가 삭제되어 제출할 수 없습니다. 퀴즈를 다시 시작해 주세요." : "이미 제출된 퀴즈입니다.");
+        if (error instanceof ApiError && error.code === "QUIZ_WORD_MISSING") {
+          banner.show("퀴즈에 포함된 단어가 삭제되어 제출할 수 없습니다. 퀴즈를 다시 시작해 주세요.");
+        } else if (error instanceof ApiError && error.code === "QUIZ_ALREADY_SUBMITTED") {
+          banner.show("이미 제출된 퀴즈입니다.");
         } else {
           banner.show(error instanceof ApiError ? error.detail : "제출하지 못했습니다.");
         }

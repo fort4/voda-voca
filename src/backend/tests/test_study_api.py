@@ -417,6 +417,7 @@ async def test_submit_twice_is_409_and_logs_are_not_duplicated(client: httpx.Asy
 
     second = await submit(client, token, created["session_id"], answers)
     assert second.status_code == 409
+    assert second.headers["X-Error-Code"] == "QUIZ_ALREADY_SUBMITTED"
     assert await study_log_count() == before
 
 
@@ -449,6 +450,7 @@ async def test_submit_after_expiry_is_400(client: httpx.AsyncClient, monkeypatch
     monkeypatch.setattr(study_router, "_now", lambda: later)
     response = await submit(client, token, created["session_id"], answers)
     assert response.status_code == 400
+    assert response.headers["X-Error-Code"] == "QUIZ_EXPIRED"
     assert (await load_session(created["session_id"])).is_submitted is False
 
 
@@ -480,6 +482,7 @@ async def test_submit_with_bad_answer_set_is_400(client: httpx.AsyncClient) -> N
     for bad in (missing, duplicate, unknown):
         response = await submit(client, token, created["session_id"], bad)
         assert response.status_code == 400, bad
+        assert response.headers["X-Error-Code"] == "QUIZ_ANSWER_INVALID", bad
 
     # 잘못된 제출은 세션을 소모하지 않는다
     assert (await load_session(created["session_id"])).is_submitted is False
@@ -526,6 +529,7 @@ async def test_deleted_word_blocks_submit_without_partial_write(client: httpx.As
 
     response = await submit(client, token, created["session_id"], answers)
     assert response.status_code == 409
+    assert response.headers["X-Error-Code"] == "QUIZ_WORD_MISSING"
     assert (await load_session(created["session_id"])).is_submitted is False
     assert await study_log_count() == before
 
