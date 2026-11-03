@@ -10,7 +10,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import Bookmark, QuizSession, StudyLog, Word, Wordbook
 from backend.models.quiz_session import QUIZ_SOURCE_BOOKMARKS, QUIZ_SOURCE_WORDBOOK, QUIZ_SOURCE_WRONG
-from backend.schemas.study import QUIZ_CHOICE_COUNT, QuizAnswer, QuizResultOut, WrongItem
+from backend.schemas.study import (
+    QUIZ_CHOICE_COUNT,
+    QuizAnswer,
+    QuizAnswerOut,
+    QuizItemOut,
+    QuizResultOut,
+    QuizSessionDetailOut,
+    WrongItem,
+)
 from backend.services.wordbook import get_owned_wordbook
 
 QUIZ_TTL = timedelta(minutes=30)
@@ -47,6 +55,10 @@ class QuizAnswerError(StudyError):
 
 class QuizWordMissingError(StudyError):
     """출제 후 문항의 단어가 삭제되었다. 채점하면 이력 행이 깨지므로 제출을 막는다 (409)."""
+
+
+class QuizAnswerLockedError(StudyError):
+    """이미 답한 문항에 다른 답을 보냈다. 화면도 한 번 고른 답을 잠그므로 서버도 바꾸지 않는다 (409)."""
 
 
 class FlashcardOffsetWithShuffleError(StudyError):
@@ -239,6 +251,7 @@ async def create_quiz(
         wordbook_id=wordbook_id,
         source=source,
         questions=questions,
+        answers={},
         is_submitted=False,
         expires_at=now + QUIZ_TTL,
     )
@@ -248,31 +261,14 @@ async def create_quiz(
     return session
 
 
-# --- 퀴즈 제출·채점 (REQ-015, REQ-016, REQ-106) ---
+# --- 퀴즈 답 기록·완료·상세 (REQ-015, REQ-016, REQ-106, 이슈 #8) ---
+#
+# 답은 문항마다 record_answer 로 바로 기록한다. 중간에 닫거나 앱이 종료돼도 푼 답은 학습 이력에 남는다.
+# submit_quiz 는 "퀴즈 끝내기"다. 일부만 풀고 끝낼 수 있고, 이전 방식처럼 전체 답을 함께 보내도 된다.
 
 
-def _validate_answers(answers: list[QuizAnswer], questions: list[dict]) -> dict[int, int]:
-    """모든 문항에 정확히 한 번씩 답했는지 확인하고 {question_id: choice_index} 를 반환한다."""
-    answered = {answer.question_id: answer.choice_index for answer in answers}
-    expected = {question["question_id"] for question in questions}
-    if len(answered) != len(answers) or set(answered) != expected:
-        raise QuizAnswerError("모든 문항에 한 번씩만 답해야 합니다.")
-    return answered
-
-
-async def submit_quiz(
-    db: AsyncSession,
-    user_id: int,
-    session_id: int,
-    answers: list[QuizAnswer],
-    now: datetime,
-) -> QuizResultOut:
-    """답안을 채점하고 문항별 학습 이력을 한 트랜잭션으로 기록한다 (REQ-106).
-
-    - 세션 행을 FOR UPDATE 로 잠가, 같은 세션의 동시 제출 중 하나만 통과한다.
-    - 검사 순서: 존재 여부(404) → 이미 제출(409) → 만료(400) → 답안 형식(400) → 단어 존재(409).
-    - 성공하면 is_submitted=True 와 study_logs 다건 INSERT 가 함께 커밋된다.
-    """
+async def _lock_session(db: AsyncSession, user_id: int, session_id: int) -> QuizSession:
+    """세션 행을 FOR UPDATE 로 잠가 가져온다. 같은 세션의 동시 요청(재전송, 중복 제출)이 순서대로 처리된다."""
     row = (
         await db.execute(
             select(QuizSession)
@@ -282,47 +278,16 @@ async def submit_quiz(
     ).scalar_one_or_none()
     if row is None:
         raise QuizSessionNotFoundError
-    if row.is_submitted:
-        raise QuizAlreadySubmittedError
-    if now >= row.expires_at:
-        raise QuizExpiredError
+    return row
 
-    questions = row.questions
-    answered = _validate_answers(answers, questions)
 
-    word_ids = {question["word_id"] for question in questions}
-    existing = set(
-        (await db.execute(select(Word.id).where(Word.id.in_(word_ids)))).scalars()
-    )
-    if existing != word_ids:
-        await db.rollback()
-        raise QuizWordMissingError
+def _recorded_answers(row: QuizSession) -> dict[int, int]:
+    """JSON 에 저장된 {"문항번호": 선지} 를 {int: int} 로 읽는다."""
+    return {int(question_id): choice for question_id, choice in (row.answers or {}).items()}
 
-    by_id = {question["question_id"]: question for question in questions}
-    wrong_items: list[WrongItem] = []
-    logs: list[StudyLog] = []
-    correct_count = 0
-    for question_id in sorted(by_id):
-        question = by_id[question_id]
-        choice_index = answered[question_id]
-        is_correct = choice_index == question["correct_index"]
-        logs.append(
-            StudyLog(user_id=user_id, word_id=question["word_id"], is_correct=is_correct)
-        )
-        if is_correct:
-            correct_count += 1
-        else:
-            wrong_items.append(
-                WrongItem(
-                    word_id=question["word_id"],
-                    term=question["term"],
-                    correct_meaning=question["choices"][question["correct_index"]],
-                    selected_meaning=question["choices"][choice_index],
-                )
-            )
 
-    row.is_submitted = True
-    db.add_all(logs)
+async def _commit_logs(db: AsyncSession) -> None:
+    """커밋하면서 단어 삭제로 인한 FK 위반만 QuizWordMissingError 로 바꾼다."""
     try:
         await db.commit()
     except IntegrityError as exc:
@@ -331,13 +296,181 @@ async def submit_quiz(
             raise QuizWordMissingError from exc
         raise
 
-    total = len(questions)
+
+async def record_answer(
+    db: AsyncSession, user_id: int, session_id: int, answer: QuizAnswer, now: datetime
+) -> QuizAnswerOut:
+    """답 1건을 학습 이력과 세션에 한 트랜잭션으로 기록하고, 마감을 지금 + 30분으로 미룬다.
+
+    - 검사 순서: 존재(404) → 이미 끝남(409) → 알 수 없는 문항(400) → 같은 답 재전송(멱등, 200)
+      → 다른 답으로 변경(409) → 만료(400) → 단어 삭제(409).
+    - 같은 답을 다시 보내면 이력을 늘리지 않고 같은 결과를 돌려준다. 재시도해도 안전하다.
+    """
+    row = await _lock_session(db, user_id, session_id)
+    if row.is_submitted:
+        raise QuizAlreadySubmittedError
+    question = next((q for q in row.questions if q["question_id"] == answer.question_id), None)
+    if question is None:
+        raise QuizAnswerError("알 수 없는 문항입니다.")
+
+    correct_index = question["correct_index"]
+    recorded = _recorded_answers(row)
+    if answer.question_id in recorded:
+        if recorded[answer.question_id] != answer.choice_index:
+            raise QuizAnswerLockedError
+        return QuizAnswerOut(
+            question_id=answer.question_id,
+            selected_index=answer.choice_index,
+            correct_index=correct_index,
+            is_correct=answer.choice_index == correct_index,
+            expires_at=row.expires_at,
+        )
+    if now >= row.expires_at:
+        raise QuizExpiredError
+    if (await db.execute(select(Word.id).where(Word.id == question["word_id"]))).scalar_one_or_none() is None:
+        raise QuizWordMissingError
+
+    is_correct = answer.choice_index == correct_index
+    db.add(StudyLog(user_id=user_id, word_id=question["word_id"], is_correct=is_correct))
+    # JSON 컬럼은 내부를 바꿔도 변경으로 감지되지 않는다. 새 dict 를 대입한다.
+    row.answers = {**(row.answers or {}), str(answer.question_id): answer.choice_index}
+    row.expires_at = now + QUIZ_TTL
+    await _commit_logs(db)
+    return QuizAnswerOut(
+        question_id=answer.question_id,
+        selected_index=answer.choice_index,
+        correct_index=correct_index,
+        is_correct=is_correct,
+        expires_at=row.expires_at,
+    )
+
+
+def _validate_answers(answers: list[QuizAnswer], questions: list[dict]) -> dict[int, int]:
+    """보낸 답이 서로 겹치지 않고 모두 이 세션의 문항인지 확인한다. 일부만 보내는 것은 허용한다."""
+    answered = {answer.question_id: answer.choice_index for answer in answers}
+    known = {question["question_id"] for question in questions}
+    if len(answered) != len(answers) or not set(answered) <= known:
+        raise QuizAnswerError("같은 문항에 두 번 답했거나 알 수 없는 문항이 있습니다.")
+    return answered
+
+
+def _summarize(row: QuizSession, recorded: dict[int, int]) -> tuple[int, int, float]:
+    """(푼 문항 수, 맞힌 문항 수, 푼 문항 기준 정답률). 푼 문항이 없으면 정답률은 0 이다."""
+    correct = sum(
+        1
+        for question in row.questions
+        if recorded.get(question["question_id"]) == question["correct_index"]
+    )
+    answered = len(recorded)
+    return answered, correct, round(correct / answered * 100, 1) if answered else 0.0
+
+
+async def submit_quiz(
+    db: AsyncSession,
+    user_id: int,
+    session_id: int,
+    answers: list[QuizAnswer],
+    now: datetime,
+) -> QuizResultOut:
+    """퀴즈를 끝내고 요약을 돌려준다. 푼 문항이 일부여도 된다.
+
+    - 같은 세션의 동시 제출은 행 잠금으로 하나만 통과한다. 검사 순서: 존재(404) → 이미 끝남(409)
+      → 답안 형식(400) → [아직 기록되지 않은 답이 있을 때만] 만료(400) → 단어 존재(409).
+    - 이미 기록된 문항은 서버 값이 우선이고 다시 쓰지 않는다. 기록되지 않은 답만 학습 이력에 추가한다.
+    - 새로 기록할 답이 없으면 만료된 세션도 끝낼 수 있다 (푼 답은 이미 저장되어 있다).
+    """
+    row = await _lock_session(db, user_id, session_id)
+    if row.is_submitted:
+        raise QuizAlreadySubmittedError
+
+    by_id = {question["question_id"]: question for question in row.questions}
+    sent = _validate_answers(answers, row.questions)
+    recorded = _recorded_answers(row)
+    fresh = {question_id: choice for question_id, choice in sent.items() if question_id not in recorded}
+
+    if fresh:
+        if now >= row.expires_at:
+            raise QuizExpiredError
+        word_ids = {by_id[question_id]["word_id"] for question_id in fresh}
+        existing = set((await db.execute(select(Word.id).where(Word.id.in_(word_ids)))).scalars())
+        if existing != word_ids:
+            await db.rollback()
+            raise QuizWordMissingError
+        for question_id in sorted(fresh):
+            question = by_id[question_id]
+            db.add(
+                StudyLog(
+                    user_id=user_id,
+                    word_id=question["word_id"],
+                    is_correct=fresh[question_id] == question["correct_index"],
+                )
+            )
+        recorded = {**recorded, **fresh}
+        row.answers = {str(question_id): choice for question_id, choice in recorded.items()}
+
+    row.is_submitted = True
+    await _commit_logs(db)
+
+    answered, correct, accuracy = _summarize(row, recorded)
+    wrong_items = [
+        WrongItem(
+            word_id=question["word_id"],
+            term=question["term"],
+            correct_meaning=question["choices"][question["correct_index"]],
+            selected_meaning=question["choices"][recorded[question["question_id"]]],
+        )
+        for question in row.questions
+        if question["question_id"] in recorded
+        and recorded[question["question_id"]] != question["correct_index"]
+    ]
     return QuizResultOut(
         session_id=session_id,
-        total=total,
-        correct_count=correct_count,
-        accuracy=round(correct_count / total * 100, 1),
+        total=len(row.questions),
+        answered=answered,
+        correct_count=correct,
+        accuracy=accuracy,
         wrong_items=wrong_items,
+    )
+
+
+async def get_quiz_session(db: AsyncSession, user_id: int, session_id: int) -> QuizSessionDetailOut:
+    """본인 세션의 문항, 내가 고른 답, 요약을 돌려준다. 끝나지 않은 세션도 볼 수 있다. 타인 세션은 404 다."""
+    row = (
+        await db.execute(
+            select(QuizSession).where(QuizSession.id == session_id, QuizSession.user_id == user_id)
+        )
+    ).scalar_one_or_none()
+    if row is None:
+        raise QuizSessionNotFoundError
+    recorded = _recorded_answers(row)
+    answered, correct, accuracy = _summarize(row, recorded)
+    items = []
+    for question in row.questions:
+        selected = recorded.get(question["question_id"])
+        items.append(
+            QuizItemOut(
+                question_id=question["question_id"],
+                word_id=question["word_id"],
+                term=question["term"],
+                choices=question["choices"],
+                correct_index=question["correct_index"],
+                selected_index=selected,
+                is_correct=None if selected is None else selected == question["correct_index"],
+                example=question.get("example"),
+                example_meaning=question.get("example_meaning"),
+            )
+        )
+    return QuizSessionDetailOut(
+        session_id=row.id,
+        source=row.source,
+        wordbook_id=row.wordbook_id,
+        is_submitted=row.is_submitted,
+        expires_at=row.expires_at,
+        total=len(row.questions),
+        answered=answered,
+        correct_count=correct,
+        accuracy=accuracy,
+        items=items,
     )
 
 

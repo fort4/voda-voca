@@ -3,7 +3,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, CheckConstraint, ForeignKey, Index, String
+from sqlalchemy import JSON, Boolean, CheckConstraint, ForeignKey, Index, String, text
 from sqlalchemy.dialects.mysql import BIGINT, DATETIME
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -19,8 +19,10 @@ class QuizSession(Base):
 
     - questions: 문항 목록(JSON). 각 문항은 word_id, term, choices(4개), correct_index 를 가진다.
       정답 인덱스를 클라이언트에 보내지 않기 위해 서버가 이 값을 보관한다.
-    - is_submitted: 제출이 한 번이라도 성공하면 True. 같은 세션의 재제출을 막는다 (409).
-    - expires_at: 출제 시각 + 30분. 지나면 제출을 거부한다 (400).
+    - answers: {"문항번호": 고른 선지 번호}. 답을 고를 때마다 서버에 기록하고(study_logs 와 같은 트랜잭션),
+      같은 답의 재전송을 멱등으로, 다른 답으로 바꾸기를 거부하는 근거가 된다. 결과 화면도 이 값으로 다시 만든다 (이슈 #8).
+    - is_submitted: 퀴즈를 끝내면 True. 이후 답 기록과 재제출을 막는다 (409).
+    - expires_at: 마지막으로 답을 기록한 시각 + 30분 (처음에는 출제 시각 + 30분). 지나면 새 답을 거부한다 (400).
     - wordbook_id: source 가 'wordbook' 일 때만 값이 있다. 북마크 퀴즈는 NULL.
     """
 
@@ -47,6 +49,7 @@ class QuizSession(Base):
     )
     source: Mapped[str] = mapped_column(String(16), nullable=False)
     questions: Mapped[list[dict]] = mapped_column(JSON, nullable=False)
+    answers: Mapped[dict] = mapped_column(JSON, nullable=False, server_default=text("(JSON_OBJECT())"))
     is_submitted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     expires_at: Mapped[datetime] = mapped_column(DATETIME(fsp=3), nullable=False)
     created_at: Mapped[datetime] = mapped_column(

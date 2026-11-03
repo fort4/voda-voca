@@ -476,10 +476,10 @@ async def test_submit_with_bad_answer_set_is_400(client: httpx.AsyncClient) -> N
     created = (await create_quiz(client, token, {"wordbook_id": wb})).json()
     answers = correct_answers(await load_session(created["session_id"]))
 
-    missing = answers[:-1]
+    # 일부 문항만 보내는 것은 이제 정상이다 (이슈 #8 부분 완료). 중복·모르는 문항만 거부한다.
     duplicate = [*answers, answers[0]]
     unknown = [*answers[:-1], {"question_id": 99, "choice_index": 0}]
-    for bad in (missing, duplicate, unknown):
+    for bad in (duplicate, unknown):
         response = await submit(client, token, created["session_id"], bad)
         assert response.status_code == 400, bad
         assert response.headers["X-Error-Code"] == "QUIZ_ANSWER_INVALID", bad

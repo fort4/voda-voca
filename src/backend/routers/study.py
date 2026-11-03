@@ -17,8 +17,11 @@ from backend.schemas.study import (
     FlashcardOut,
     FlashcardPage,
     QuizCreate,
+    QuizAnswer,
+    QuizAnswerOut,
     QuizQuestionOut,
     QuizResultOut,
+    QuizSessionDetailOut,
     QuizSessionOut,
     QuizSubmit,
     StudyLogList,
@@ -27,8 +30,10 @@ from backend.schemas.study import (
 from backend.services import study as study_service
 from backend.services.study import (
     FlashcardOffsetWithShuffleError,
+    StudyError,
     QuizAlreadySubmittedError,
     QuizAnswerError,
+    QuizAnswerLockedError,
     QuizExpiredError,
     QuizSessionNotFoundError,
     QuizSourceTooSmallError,
@@ -47,6 +52,7 @@ ERROR_CODE_HEADER = "X-Error-Code"
 CODE_QUIZ_EXPIRED = "QUIZ_EXPIRED"
 CODE_QUIZ_ALREADY_SUBMITTED = "QUIZ_ALREADY_SUBMITTED"
 CODE_QUIZ_ANSWER_INVALID = "QUIZ_ANSWER_INVALID"
+CODE_QUIZ_ANSWER_LOCKED = "QUIZ_ANSWER_LOCKED"
 CODE_QUIZ_WORD_MISSING = "QUIZ_WORD_MISSING"
 
 QUIZ_SESSION_NOT_FOUND = HTTPException(
@@ -148,6 +154,67 @@ async def create_quiz_session(
     )
 
 
+def _quiz_http_error(exc: StudyError) -> HTTPException:
+    """퀴즈 세션 API(답 기록, 완료, 상세)의 도메인 오류를 HTTP 오류로 바꾼다. 화면은 X-Error-Code 로 분기한다."""
+    if isinstance(exc, QuizSessionNotFoundError):
+        return QUIZ_SESSION_NOT_FOUND
+    if isinstance(exc, QuizAlreadySubmittedError):
+        return HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="이미 끝난 퀴즈입니다.",
+            headers={ERROR_CODE_HEADER: CODE_QUIZ_ALREADY_SUBMITTED},
+        )
+    if isinstance(exc, QuizExpiredError):
+        return HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="마지막 응답 후 30분이 지나 답을 기록할 수 없습니다. 푼 문항은 이미 저장되어 있습니다.",
+            headers={ERROR_CODE_HEADER: CODE_QUIZ_EXPIRED},
+        )
+    if isinstance(exc, QuizAnswerLockedError):
+        return HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="이미 답한 문항은 바꿀 수 없습니다.",
+            headers={ERROR_CODE_HEADER: CODE_QUIZ_ANSWER_LOCKED},
+        )
+    if isinstance(exc, QuizAnswerError):
+        return HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+            headers={ERROR_CODE_HEADER: CODE_QUIZ_ANSWER_INVALID},
+        )
+    if isinstance(exc, QuizWordMissingError):
+        return HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="퀴즈에 포함된 단어가 삭제되어 답을 기록할 수 없습니다. 퀴즈를 다시 시작해 주세요.",
+            headers={ERROR_CODE_HEADER: CODE_QUIZ_WORD_MISSING},
+        )
+    raise exc
+
+
+QUIZ_ERRORS = (
+    QuizSessionNotFoundError,
+    QuizAlreadySubmittedError,
+    QuizExpiredError,
+    QuizAnswerLockedError,
+    QuizAnswerError,
+    QuizWordMissingError,
+)
+
+
+@router.post("/quiz/sessions/{session_id}/answers", response_model=QuizAnswerOut)
+async def answer_quiz_question(
+    session_id: int,
+    body: QuizAnswer,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
+) -> QuizAnswerOut:
+    """문항 하나의 답을 바로 기록한다. 같은 답을 다시 보내도 안전하고, 다른 답으로 바꾸려 하면 409 다."""
+    try:
+        return await study_service.record_answer(db, user.id, session_id, body, now=_now())
+    except QUIZ_ERRORS as exc:
+        raise _quiz_http_error(exc) from exc
+
+
 @router.post("/quiz/sessions/{session_id}/submit", response_model=QuizResultOut)
 async def submit_quiz_session(
     session_id: int,
@@ -155,36 +222,24 @@ async def submit_quiz_session(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session),
 ) -> QuizResultOut:
+    """퀴즈를 끝낸다. 일부만 풀어도 되고, 아직 기록되지 않은 답을 함께 보내도 된다."""
     try:
-        return await study_service.submit_quiz(
-            db, user.id, session_id, body.answers, now=_now()
-        )
+        return await study_service.submit_quiz(db, user.id, session_id, body.answers, now=_now())
+    except QUIZ_ERRORS as exc:
+        raise _quiz_http_error(exc) from exc
+
+
+@router.get("/quiz/sessions/{session_id}", response_model=QuizSessionDetailOut)
+async def get_quiz_session(
+    session_id: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
+) -> QuizSessionDetailOut:
+    """세션의 문항과 내가 고른 답, 요약. 결과 화면을 새로고침이나 다른 탭에서도 다시 볼 수 있다."""
+    try:
+        return await study_service.get_quiz_session(db, user.id, session_id)
     except QuizSessionNotFoundError as exc:
         raise QUIZ_SESSION_NOT_FOUND from exc
-    except QuizAlreadySubmittedError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="이미 제출된 퀴즈입니다.",
-            headers={ERROR_CODE_HEADER: CODE_QUIZ_ALREADY_SUBMITTED},
-        ) from exc
-    except QuizExpiredError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="퀴즈 제한 시간(30분)이 지났습니다.",
-            headers={ERROR_CODE_HEADER: CODE_QUIZ_EXPIRED},
-        ) from exc
-    except QuizAnswerError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-            headers={ERROR_CODE_HEADER: CODE_QUIZ_ANSWER_INVALID},
-        ) from exc
-    except QuizWordMissingError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="퀴즈에 포함된 단어가 삭제되어 제출할 수 없습니다. 퀴즈를 다시 시작해 주세요.",
-            headers={ERROR_CODE_HEADER: CODE_QUIZ_WORD_MISSING},
-        ) from exc
 
 
 @router.get("/logs", response_model=StudyLogList)

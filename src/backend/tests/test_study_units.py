@@ -119,15 +119,21 @@ def test_validate_answers_returns_mapping_when_exactly_one_per_question() -> Non
     assert study_service._validate_answers(_answers((0, 2), (1, 3)), questions) == {0: 2, 1: 3}
 
 
+def test_validate_answers_accepts_a_subset_or_nothing() -> None:
+    """일부만 풀고 끝낼 수 있다 (이슈 #8). 모든 문항을 요구하지 않는다."""
+    questions = [{"question_id": 0}, {"question_id": 1}]
+    assert study_service._validate_answers(_answers((1, 3)), questions) == {1: 3}
+    assert study_service._validate_answers([], questions) == {}
+
+
 @pytest.mark.parametrize(
     "answers",
     [
-        _answers((0, 1)),  # 누락
         _answers((0, 1), (0, 2), (1, 0)),  # 중복
         _answers((0, 1), (7, 0)),  # 알 수 없는 문항
     ],
 )
-def test_validate_answers_rejects_missing_duplicate_or_unknown(answers: list[QuizAnswer]) -> None:
+def test_validate_answers_rejects_duplicate_or_unknown(answers: list[QuizAnswer]) -> None:
     questions = [{"question_id": 0}, {"question_id": 1}]
     with pytest.raises(QuizAnswerError):
         study_service._validate_answers(answers, questions)
@@ -186,7 +192,7 @@ class _FakeResult:
 
 
 class _FakeSubmitSession:
-    """submit_quiz 가 쓰는 최소 인터페이스: execute(세션 행, 단어 ID), add_all, commit, rollback."""
+    """submit_quiz 가 쓰는 최소 인터페이스: execute(세션 행, 단어 ID), add, commit, rollback."""
 
     def __init__(self, row: SimpleNamespace, word_ids: list[int], commit_error: Exception | None) -> None:
         self._responses = [_FakeResult(row), _FakeResult(word_ids)]
@@ -197,8 +203,8 @@ class _FakeSubmitSession:
     async def execute(self, _stmt: object) -> _FakeResult:
         return self._responses.pop(0)
 
-    def add_all(self, objs: list) -> None:
-        self.logs.extend(objs)
+    def add(self, obj: object) -> None:
+        self.logs.append(obj)
 
     async def commit(self) -> None:
         if self._commit_error is not None:
@@ -217,6 +223,7 @@ def _submit_row() -> SimpleNamespace:
         is_submitted=False,
         expires_at=utcnow() + timedelta(minutes=10),
         questions=[{"question_id": 0, "word_id": 7, "term": "t", "choices": ["a", "b", "c", "d"], "correct_index": 0}],
+        answers={},
     )
 
 

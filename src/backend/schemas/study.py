@@ -93,7 +93,12 @@ class QuizAnswer(BaseModel):
 
 
 class QuizSubmit(BaseModel):
-    answers: list[QuizAnswer] = Field(min_length=1)
+    """퀴즈 완료 본문. 답은 문항마다 /answers 로 이미 기록되므로 비어 있어도 된다.
+
+    아직 기록되지 않은 답을 함께 보내면 이때 기록한다 (이전 방식의 일괄 제출과 호환). 이미 기록된 문항은 서버 값이 우선한다.
+    """
+
+    answers: list[QuizAnswer] = Field(default_factory=list)
 
 
 class WrongItem(BaseModel):
@@ -105,10 +110,61 @@ class WrongItem(BaseModel):
 
 class QuizResultOut(BaseModel):
     session_id: int
-    total: int
+    total: int = Field(description="출제된 문항 수")
+    answered: int = Field(description="답을 기록한 문항 수 (일부만 풀고 끝낼 수 있다)")
     correct_count: int
-    accuracy: float = Field(description="정답률 (0~100, 소수 첫째 자리까지)")
+    accuracy: float = Field(description="푼 문항 기준 정답률 (0~100, 소수 첫째 자리까지). 푼 문항이 없으면 0")
     wrong_items: list[WrongItem]
+
+
+# --- 문항별 즉시 기록, 세션 상세 (이슈 #8) ---
+
+
+class QuizAnswerOut(BaseModel):
+    """답 1건을 기록한 결과. 같은 답을 다시 보내면 같은 응답을 돌려준다 (멱등)."""
+
+    question_id: int
+    selected_index: int
+    correct_index: int
+    is_correct: bool
+    expires_at: datetime = Field(description="이 시각 이후에는 새 답을 기록할 수 없다 (UTC). 답을 기록할 때마다 30분씩 밀린다")
+
+    @field_serializer("expires_at")
+    def _serialize_utc(self, value: datetime) -> str:
+        return to_utc_iso(value)
+
+
+class QuizItemOut(BaseModel):
+    """결과 화면의 문항 1개. 아직 풀지 않았으면 selected_index, is_correct 는 null 이다."""
+
+    question_id: int
+    word_id: int
+    term: str
+    choices: list[str]
+    correct_index: int
+    selected_index: int | None
+    is_correct: bool | None
+    example: str | None = None
+    example_meaning: str | None = None
+
+
+class QuizSessionDetailOut(BaseModel):
+    """세션 상세 = 문항 + 내가 고른 답 + 요약. 결과 화면을 새로고침·다른 탭에서도 다시 만들 수 있다."""
+
+    session_id: int
+    source: str
+    wordbook_id: int | None
+    is_submitted: bool
+    expires_at: datetime
+    total: int
+    answered: int
+    correct_count: int
+    accuracy: float
+    items: list[QuizItemOut]
+
+    @field_serializer("expires_at")
+    def _serialize_utc(self, value: datetime) -> str:
+        return to_utc_iso(value)
 
 
 # --- 학습 이력 (REQ-016) ---
