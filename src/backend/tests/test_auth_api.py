@@ -175,6 +175,7 @@ async def test_wrong_password_and_unknown_nickname_return_same_401(client: httpx
     )
     assert wrong_pw.status_code == unknown.status_code == 401
     assert wrong_pw.json() == unknown.json()
+    assert wrong_pw.json()["detail"] == "닉네임 또는 비밀번호가 올바르지 않습니다.", "이메일 문구가 남아 있으면 안 된다"
     assert SESSION_COOKIE_NAME not in wrong_pw.cookies
     assert SESSION_COOKIE_NAME not in unknown.cookies
 

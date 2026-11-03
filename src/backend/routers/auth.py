@@ -77,7 +77,7 @@ async def login(
         login_rate_limiter.record_failure([ip_key, account_key])
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="이메일 또는 비밀번호가 올바르지 않습니다.",
+            detail="닉네임 또는 비밀번호가 올바르지 않습니다.",
         ) from exc
 
     login_rate_limiter.reset(account_key)  # 성공하면 이 계정의 실패 기록을 지운다

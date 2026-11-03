@@ -126,7 +126,7 @@ test("api: skipAuthRedirect 면 401 에도 콜백을 부르지 않는다 (로그
     api("/auth/login", {
       method: "POST",
       skipAuthRedirect: true,
-      fetchImpl: async () => jsonResponse(401, { detail: "이메일 또는 비밀번호가 올바르지 않습니다." }),
+      fetchImpl: async () => jsonResponse(401, { detail: "닉네임 또는 비밀번호가 올바르지 않습니다." }),
     }),
     ApiError,
   );
