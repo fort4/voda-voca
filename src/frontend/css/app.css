@@ -440,6 +440,17 @@ html.dark .ring-indigo-200 { --tw-ring-color: rgba(129, 140, 248, 0.35); }
 html.dark .ring-emerald-200 { --tw-ring-color: rgba(52, 211, 153, 0.35); }
 html.dark .divide-zinc-200 > * + * { border-color: #3f3f46; }
 
+/* 사용 중이지만 빠져 있던 색 (이슈 #10). 새 색 클래스를 쓰면 tests/dark-theme.test.js 가 누락을 알려 준다.
+ * 특히 hover:text-zinc-900 은 고스트 버튼(닫기, 뒤로가기, 더보기)을 누르거나 올릴 때 어두운 배경에 어두운 글자가 되었다. */
+html.dark .bg-green-50 { background-color: rgba(34, 197, 94, 0.14); }
+html.dark .hover\:bg-indigo-50\/40:hover { background-color: rgba(99, 102, 241, 0.1); }
+html.dark .text-red-600 { color: #fca5a5; }
+html.dark .hover\:text-zinc-900:hover { color: #fafafa; }
+html.dark .hover\:text-indigo-600:hover,
+html.dark .hover\:text-indigo-700:hover { color: #a5b4fc; }
+html.dark .border-red-200 { border-color: rgba(248, 113, 113, 0.35); }
+html.dark .hover\:border-indigo-300:hover { border-color: rgba(129, 140, 248, 0.5); }
+
 /* 입력 칸 */
 html.dark input,
 html.dark textarea,
