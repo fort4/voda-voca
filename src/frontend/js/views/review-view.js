@@ -4,7 +4,7 @@
  */
 
 import { api } from "../core/api.js";
-import { button, clear, h, icon, refreshIcons } from "../core/dom.js";
+import { appendNodes, button, clear, h, icon, refreshIcons } from "../core/dom.js";
 import { loadMode } from "../core/home-model.js";
 import { bookmarkRow, reviewSources } from "../core/review-model.js";
 import { mountLoader } from "./components/loader.js";
@@ -46,7 +46,9 @@ class ReviewPanel {
     const sources = reviewSources({ bookmarkCount: this.data.bookmarks.total, wrongCount: this.data.wrong.total });
     const source = sources.find((s) => s.id === this.active);
     const current = this.data[this.active];
-    this.body.append(
+    // 목록이 끝났으면 "더 보기" 자리는 null 이다. 네이티브 append 는 null 을 "null" 글자로 그리므로 appendNodes 로 거른다.
+    appendNodes(
+      this.body,
       h("div", { class: "grid grid-cols-2 gap-1 rounded-xl bg-zinc-100 p-1", role: "tablist" }, TABS.map((tab) => this.tab(tab, sources))),
       h("section", { class: "surface space-y-3 p-4" }, h("p", { class: "text-sm text-zinc-700" }, source.message), button({ variant: "primary", full: true, disabled: !source.ready, onClick: () => openSession(this.ctx.navigate, loadMode(globalThis.localStorage), this.active) }, icon("play", "h-5 w-5"), "복습 시작")),
       current.items.length === 0 ? h("p", { class: "surface p-6 text-center text-sm text-zinc-600" }, this.active === "bookmarks" ? "북마크한 단어가 없어요. 학습 중 ★ 를 눌러 모아 보세요." : "틀린 단어가 없어요. 잘하고 있어요!") : h("div", { class: "space-y-2" }, current.items.map((item) => this.row(bookmarkRow(item)))),

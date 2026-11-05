@@ -71,7 +71,7 @@ function toggleAccountMenu(anchor) {
 
 /**
  * 프로필 칩 바로 아래에 붙는 플로팅 드롭다운을 연다. 바깥 클릭이나 ESC 로 닫힌다.
- * 로그아웃은 확인 후 처리하고, 회원 탈퇴는 기존 두 단계 확인 흐름을 쓴다.
+ * 로그아웃은 확인 없이 즉시 처리하고, 회원 탈퇴는 기존 두 단계 확인 흐름을 쓴다.
  * @param {HTMLElement} anchor
  */
 function openAccountMenu(anchor) {
@@ -146,10 +146,9 @@ function menuItem(iconName, label, onSelect, tone = "default") {
   );
 }
 
-async function logoutFromMenu() {
+function logoutFromMenu() {
   closeAccountMenu();
-  const ok = await confirmDialog({ title: "로그아웃할까요?", confirmText: "로그아웃" });
-  if (ok) await logout();
+  return logout();
 }
 
 function withdrawFromMenu() {

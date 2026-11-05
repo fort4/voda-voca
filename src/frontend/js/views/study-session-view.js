@@ -7,7 +7,7 @@ import { api } from "../core/api.js";
 import { button, clear, h, notice, refreshIcons, skeleton } from "../core/dom.js";
 import { createSessionDriver } from "../core/session-driver.js";
 import { ACTION, PHASE, currentItem, progressOf, summaryOf } from "../core/session-runner.js";
-import { VIEW_ACTION, choiceStates, errorCopy, sessionKeyAction } from "../core/session-view-model.js";
+import { VIEW_ACTION, choiceStates, errorCopy, flashcardFaces, sessionKeyAction } from "../core/session-view-model.js";
 import { isButtonTarget, modalIsOpen, shortcutsBlocked } from "../core/shortcuts.js";
 import { playCorrect } from "../core/sound.js";
 import { confirmDialog } from "../core/toast.js";
@@ -15,6 +15,9 @@ import { speak } from "../core/tts.js";
 import { renderFeedbackSheet } from "./components/feedback-sheet.js";
 import { renderProgressHeader } from "./components/progress-header.js";
 import { renderSessionResult } from "./components/session-result.js";
+
+/** CSS 의 card-exit-* 애니메이션 길이(ms)와 같아야 한다 */
+const CARD_EXIT_MS = 180;
 
 /**
  * @param {HTMLElement} root
@@ -27,6 +30,10 @@ export function studySessionView(root, ctx) {
   let flipKey = "";
   let refs = { card: null, known: null, unsure: null };
   let advanceTimer = null;
+  // 플래시카드 전환 연출: 평가 직후 현재 카드가 밀려 나가고(leaving), 다음 카드는 한 번만 들어온다(enteredKey).
+  let leaving = null; // { dir: "known"|"unsure", until: number } | null
+  let enteredKey = "";
+  let paintTimer = null;
 
   const driver = createSessionDriver({
     api,
@@ -35,12 +42,20 @@ export function studySessionView(root, ctx) {
       if (key !== flipKey) {
         flipKey = key;
         flipped = false;
+        leaving = null;
       }
+      if (state.error) leaving = null; // 전송 실패 시 카드를 다시 보여 준다
       if (action.type === ACTION.ANSWER_RECEIVED && state.feedback?.is_correct) playCorrect();
-      paint(state);
+      // 나가는 카드는 연출이 끝날 때까지 그대로 두고, 끝나면 서버 응답을 기다리지 않고 다음 카드를 미리 보여 준다
+      clearTimeout(paintTimer);
+      const remaining = leaving ? leaving.until - Date.now() : 0;
+      if (remaining > 0) paintTimer = setTimeout(() => paint(driver.getState()), remaining);
+      else paint(state);
       // 플래시카드는 시트 없이 바로 다음 카드로 간다 (속도 우선)
       if (state.phase === PHASE.FEEDBACK_SHOWING && state.mode === "flashcard") {
-        advanceTimer = setTimeout(() => driver.dispatch({ type: ACTION.NEXT }), 0);
+        // 나가는 연출이 끝난 뒤에 다음 카드로 넘어가 화면이 끊기지 않게 한다
+        const wait = leaving ? Math.max(0, leaving.until - Date.now()) : 0;
+        advanceTimer = setTimeout(() => driver.dispatch({ type: ACTION.NEXT }), wait);
       }
     },
   });
@@ -49,6 +64,7 @@ export function studySessionView(root, ctx) {
   async function act(action) {
     switch (action.type) {
       case VIEW_ACTION.FLIP:
+        if (leaving) return; // 넘어가는 중에는 뒤집지 않는다
         flipped = !flipped;
         syncFlashcard();
         return;
@@ -66,12 +82,24 @@ export function studySessionView(root, ctx) {
       case VIEW_ACTION.GO_REVIEW:
         ctx.navigate("/review");
         return;
+      case ACTION.EVALUATE_FLASHCARD:
+        startLeaving(action.known);
+        driver.dispatch(action);
+        return;
       case ACTION.START:
         driver.dispatch({ ...action, mode: driver.getState().mode });
         return;
       default:
         driver.dispatch(action);
     }
+  }
+
+  /** 평가한 카드를 알아요는 오른쪽, 헷갈려요는 왼쪽으로 밀어낸다. 요청이 오가며 화면이 다시 그려져도 사라진 채로 유지한다. */
+  function startLeaving(known) {
+    const state = driver.getState();
+    if (state.mode !== "flashcard" || state.pending || leaving) return;
+    leaving = { dir: known ? "known" : "unsure", until: Date.now() + CARD_EXIT_MS };
+    refs.card?.parentElement?.classList.add(`card-exit-${leaving.dir}`);
   }
 
   function onKeydown(event) {
@@ -184,20 +212,32 @@ export function studySessionView(root, ctx) {
     );
   }
 
-  function renderFlashcard(state, item) {
+  function renderFlashcard(state, current) {
+    // 평가 직후에는 응답을 기다리는 동안에도 다음 카드를 앞면으로 미리 보여 준다 (카드가 사라졌다 튀어나오지 않게)
+    const preview = leaving ? state.items[state.index + 1] ?? null : null;
+    const item = preview ?? current;
+    const faces = flashcardFaces(item);
     const card = h(
       "div",
-      { class: `flip-card${flipped ? " is-flipped" : ""}` },
-      h("div", { class: "flip-face" }, h("p", { class: "session-hint" }, "탭해서 뒤집기"), h("p", { class: "session-term" }, item.term), item.context ? h("p", { class: "session-context" }, item.context) : null),
+      { class: `flip-card${flipped && !preview ? " is-flipped" : ""}` },
+      h("div", { class: "flip-face" }, h("p", { class: "session-hint" }, "탭해서 뒤집기"), h("p", { class: "session-term" }, faces.front.term)),
       h(
         "div",
         { class: "flip-face flip-back" },
-        h("p", { class: "session-term" }, item.meaning),
-        item.example_meaning ? h("p", { class: "session-context" }, item.example_meaning) : null,
+        h("p", { class: "session-term" }, faces.back.meaning),
+        faces.back.example ? h("p", { class: "session-context" }, faces.back.example) : null,
+        faces.back.exampleMeaning ? h("p", { class: "session-context" }, faces.back.exampleMeaning) : null,
       ),
     );
     refs.card = card;
-    return h("div", { class: "flip-scene", role: "button", tabindex: "0", "aria-label": "카드 뒤집기", onclick: () => act({ type: VIEW_ACTION.FLIP }) }, card);
+    let motion = "";
+    const shownKey = preview ? `${state.sessionId}:${state.index + 1}` : flipKey;
+    if (leaving && !preview) motion = " card-gone"; // 마지막 카드: 다음 카드가 없으니 결과 화면을 기다린다
+    else if (shownKey !== enteredKey) {
+      enteredKey = shownKey;
+      motion = " card-enter";
+    }
+    return h("div", { class: `flip-scene${motion}`, role: "button", tabindex: "0", "aria-label": "카드 뒤집기", onclick: () => act({ type: VIEW_ACTION.FLIP }) }, card);
   }
 
   function renderFlashcardButtons(state) {
@@ -230,6 +270,7 @@ export function studySessionView(root, ctx) {
   return () => {
     document.removeEventListener("keydown", onKeydown);
     clearTimeout(advanceTimer);
+    clearTimeout(paintTimer);
     driver.dispose();
   };
 }
