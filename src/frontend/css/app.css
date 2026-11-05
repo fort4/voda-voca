@@ -24,6 +24,39 @@
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+/* ---------- 디자인 토큰 v2.2: 타입 스케일, 간격, 반경 (모바일 기준값, sm 이상 보정은 5단계) ----------
+ * 폰트는 Pretendard Variable 단일 적용. 라틴 글리프가 Inter 기반이라 영단어도 같은 서체로 위계를 만든다.
+ * CDN 로딩 실패 시에는 한글 지원 시스템 폰트로 폴백한다. */
+:root {
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Segoe UI", Roboto, sans-serif;
+
+  /* 타입 스케일: 용도 기반 7단계 */
+  --fs-micro: 0.75rem;     /* 12px 배지·보조 라벨 */
+  --fs-caption: 0.8125rem; /* 13px 캡션·메타 정보 */
+  --fs-body: 0.9375rem;    /* 15px 본문 */
+  --fs-lead: 1.0625rem;    /* 17px 강조 본문·예문 */
+  --fs-heading: 1.25rem;   /* 20px 섹션 제목 */
+  --fs-title: 1.5rem;      /* 24px 화면 제목 */
+  --fs-display: 2rem;      /* 32px 학습 단어 */
+
+  --lh-tight: 1.2;
+  --lh-normal: 1.5;
+  --lh-relaxed: 1.65;
+
+  /* 간격: 4px 배수 */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+
+  /* 반경 (--radius-control/--radius-card 는 위에서 정의) */
+  --radius-sm: 8px;
+  --radius-pill: 999px;
+}
+
 
 html,
 body {
@@ -33,6 +66,8 @@ body {
 body {
   background: var(--bg);
   color: var(--text);
+  font-family: var(--font-sans);
+  word-break: keep-all; /* 한글은 어절 단위로 줄바꿈 */
   -webkit-font-smoothing: antialiased;
   letter-spacing: -0.01em;
 }
