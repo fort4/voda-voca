@@ -504,3 +504,169 @@ html.dark .swal2-popup.voda-toast .swal2-title { color: #fafafa; }
 @media (prefers-reduced-motion: reduce) {
   .swal2-popup.voda-toast { animation: none; }
 }
+
+/* ---------- 학습 세션 (2026-11-05): 한 문항 집중 카드, 선지 버튼, 하단 피드백 시트 ---------- */
+:root {
+  --ok: #059669;            /* emerald-600 */
+  --ok-soft: #ecfdf5;       /* emerald-50 */
+  --ok-border: #a7f3d0;     /* emerald-200 */
+  --ok-text: #065f46;       /* emerald-800 */
+  --bad: #dc2626;           /* red-600 */
+  --bad-soft: #fef2f2;      /* red-50 */
+  --bad-border: #fecaca;    /* red-200 */
+  --bad-text: #991b1b;      /* red-800 */
+}
+html.dark {
+  --ok: #34d399;
+  --ok-soft: rgba(16, 185, 129, 0.14);
+  --ok-border: rgba(52, 211, 153, 0.4);
+  --ok-text: #6ee7b7;
+  --bad: #f87171;
+  --bad-soft: rgba(239, 68, 68, 0.14);
+  --bad-border: rgba(248, 113, 113, 0.4);
+  --bad-text: #fca5a5;
+}
+
+.session-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: calc(100dvh - 6.5rem);
+}
+.session-screen.has-sheet { padding-bottom: 17rem; } /* 피드백 시트가 선택지를 가리지 않게 */
+
+.session-header { display: flex; align-items: center; gap: 12px; }
+.progress-track {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 300ms var(--ease-out);
+}
+.progress-count { min-width: 3.25rem; text-align: right; font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.session-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow-card);
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+.session-term { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; word-break: break-word; color: var(--text); }
+.session-context { font-size: 1.0625rem; line-height: 1.6; color: var(--text-2); word-break: break-word; }
+.session-hint { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; color: var(--accent); text-transform: uppercase; }
+
+.choice-list { display: flex; flex-direction: column; gap: 10px; }
+.choice-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  transition: border-color 150ms ease, background-color 150ms ease, opacity 150ms ease, transform 120ms var(--ease-out);
+}
+.choice-btn:hover:not(:disabled) { border-color: var(--accent); }
+.choice-btn:active:not(:disabled) { transform: scale(0.985); }
+.choice-btn:disabled { cursor: default; }
+.choice-no {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.choice-btn[data-state="selected"] { border-color: var(--accent); background: var(--accent-soft); }
+.choice-btn[data-state="correct"] { border-color: var(--ok); background: var(--ok-soft); color: var(--ok-text); }
+.choice-btn[data-state="correct"] .choice-no { color: var(--ok-text); background: transparent; }
+.choice-btn[data-state="wrong"] { border-color: var(--bad); background: var(--bad-soft); color: var(--bad-text); animation: choice-shake 360ms var(--ease-out); }
+.choice-btn[data-state="wrong"] .choice-no { color: var(--bad-text); background: transparent; }
+.choice-btn[data-state="dim"] { opacity: 0.5; }
+@keyframes choice-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(3px); }
+}
+
+.session-inline-error {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: var(--radius-control);
+  background: var(--bad-soft);
+  border: 1px solid var(--bad-border);
+  color: var(--bad-text);
+  font-size: 14px;
+}
+
+.feedback-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+  border: 1px solid;
+  border-bottom: 0;
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 -14px 32px -14px rgba(0, 0, 0, 0.3);
+  transform: translateY(100%);
+  transition: transform 200ms var(--ease-out);
+}
+.feedback-sheet.is-open { transform: translateY(0); }
+.feedback-sheet--correct { background: var(--ok-soft); border-color: var(--ok-border); color: var(--ok-text); }
+.feedback-sheet--wrong { background: var(--bad-soft); border-color: var(--bad-border); color: var(--bad-text); }
+.feedback-sheet .sheet-body { color: var(--text); }
+.feedback-sheet .sheet-sub { color: var(--text-2); }
+.sheet-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--surface);
+  border: 1px solid currentColor;
+}
+
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr)); gap: 8px; width: 100%; }
+.stat-cell { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px 8px; text-align: center; }
+.stat-value { font-size: 1.25rem; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+.stat-label { font-size: 12px; color: var(--muted); }
+.wrong-list { width: 100%; text-align: left; display: flex; flex-direction: column; gap: 6px; }
+.wrong-row { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 12px; background: var(--bad-soft); color: var(--bad-text); font-size: 14px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .feedback-sheet, .progress-fill, .choice-btn { transition: none; }
+  .choice-btn[data-state="wrong"] { animation: none; }
+}

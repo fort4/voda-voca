@@ -1,0 +1,51 @@
+/*
+ * 2026-11-05 - voda-voca - 즉시 피드백 하단 시트: 정오답, 뜻, 예문과 해석, 발음 듣기, 다음 버튼 (아래에서 올라온다)
+ * 파일 위치: src/frontend/js/views/components/feedback-sheet.js
+ */
+
+import { button, h, icon } from "../../core/dom.js";
+import { feedbackTone } from "../../core/session-view-model.js";
+
+/**
+ * 해설 시트를 만든다. 맨 아래에 고정되고 200ms 트랜지션으로 올라온다 (prefers-reduced-motion 이면 즉시).
+ * @param {{state: object, onNext: () => void, onSpeak: (text: string) => void}} opts
+ * @returns {HTMLElement|null} 해설을 보여 줄 상태가 아니면 null
+ */
+export function renderFeedbackSheet({ state, onNext, onSpeak }) {
+  const tone = feedbackTone(state);
+  if (!tone) return null;
+  const { feedback } = state;
+
+  const sheet = h(
+    "section",
+    { class: `feedback-sheet feedback-sheet--${tone.tone}`, role: "status", "aria-live": "assertive" },
+    h(
+      "div",
+      { class: "flex flex-wrap items-center gap-2" },
+      h("h2", { class: "text-xl font-extrabold tracking-tight" }, tone.title),
+      tone.badge ? h("span", { class: "sheet-pill" }, icon("sparkles", "h-3.5 w-3.5"), tone.badge) : null,
+      tone.streakText ? h("span", { class: "sheet-pill" }, tone.streakText) : null,
+    ),
+    h(
+      "div",
+      { class: "sheet-body mt-3 space-y-1" },
+      h(
+        "p",
+        { class: "flex items-center gap-2 text-lg font-bold" },
+        h("span", { class: "break-words" }, feedback.term),
+        h(
+          "button",
+          { type: "button", class: "press focus-ring inline-flex h-9 w-9 items-center justify-center rounded-lg", "aria-label": `${feedback.term} 발음 듣기`, onclick: () => onSpeak(feedback.term) },
+          icon("volume-2", "h-4 w-4"),
+        ),
+      ),
+      h("p", { class: "break-words text-base font-semibold" }, feedback.meaning),
+      feedback.example ? h("p", { class: "sheet-sub break-words pt-1 text-[15px] italic leading-relaxed" }, feedback.example) : null,
+      feedback.example_meaning ? h("p", { class: "sheet-sub break-words text-sm leading-relaxed" }, feedback.example_meaning) : null,
+    ),
+    h("div", { class: "mt-4" }, button({ variant: "primary", full: true, onClick: onNext, "data-autofocus": "true" }, `${tone.buttonLabel} (Enter)`)),
+  );
+  // 다음 프레임에 열어야 translateY(100%) → 0 트랜지션이 보인다.
+  requestAnimationFrame(() => sheet.classList.add("is-open"));
+  return sheet;
+}
