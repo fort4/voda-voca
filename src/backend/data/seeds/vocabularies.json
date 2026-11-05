@@ -1,0 +1,26 @@
+[
+  {
+    "slug": "beginner-200",
+    "title": "초급 필수 영단어 200",
+    "category": "ELEMENTARY",
+    "level": 1,
+    "description": "일상에서 가장 자주 쓰는 기초 어휘",
+    "sort_order": 1
+  },
+  {
+    "slug": "intermediate-200",
+    "title": "중급 핵심 영단어 200",
+    "category": "SECONDARY",
+    "level": 2,
+    "description": "교과서와 시험에 자주 나오는 핵심 어휘",
+    "sort_order": 2
+  },
+  {
+    "slug": "advanced-200",
+    "title": "고급 심화 영단어 200",
+    "category": "CSAT",
+    "level": 3,
+    "description": "고난도 독해를 위한 심화 어휘",
+    "sort_order": 3
+  }
+]

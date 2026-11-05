@@ -1,0 +1,1202 @@
+[
+  {
+    "term": "abandon",
+    "meaning": "버리다, 포기하다",
+    "example": "The crew had to abandon the sinking ship.",
+    "example_meaning": "선원들은 가라앉는 배를 버려야 했다."
+  },
+  {
+    "term": "abstract",
+    "meaning": "추상적인",
+    "example": "Justice is an abstract concept that people debate.",
+    "example_meaning": "정의는 사람들이 논쟁하는 추상적인 개념이다."
+  },
+  {
+    "term": "acquire",
+    "meaning": "획득하다, 습득하다",
+    "example": "She acquired a deep knowledge of ancient history.",
+    "example_meaning": "그녀는 고대 역사에 대한 깊은 지식을 얻었다."
+  },
+  {
+    "term": "adamant",
+    "meaning": "완강한, 단호한",
+    "example": "He was adamant that the decision was final.",
+    "example_meaning": "그는 그 결정이 최종적인 것이라며 완강했다."
+  },
+  {
+    "term": "adversity",
+    "meaning": "역경, 逆境",
+    "example": "Her courage shone brightest in adversity.",
+    "example_meaning": "그녀의 용기는 역경 속에서 가장 빛났다."
+  },
+  {
+    "term": "advocate",
+    "meaning": "옹호하다, 옹호자",
+    "example": "She is a strong advocate for children's rights.",
+    "example_meaning": "그녀는 아동 권리를 강하게 옹호하는 사람이다."
+  },
+  {
+    "term": "aesthetic",
+    "meaning": "미적인, 심미적인",
+    "example": "The building has a clean and aesthetic design.",
+    "example_meaning": "그 건물은 깔끔하고 미적인 디자인을 가지고 있다."
+  },
+  {
+    "term": "alleviate",
+    "meaning": "완화하다, 덜다",
+    "example": "The new medicine can alleviate the pain quickly.",
+    "example_meaning": "새 약은 통증을 빠르게 완화할 수 있다."
+  },
+  {
+    "term": "ambiguous",
+    "meaning": "모호한, 애매한",
+    "example": "The instructions were ambiguous and confusing.",
+    "example_meaning": "지시 사항이 모호하고 혼란스러웠다."
+  },
+  {
+    "term": "ameliorate",
+    "meaning": "개선하다, 나아지게 하다",
+    "example": "New policies aim to ameliorate living conditions.",
+    "example_meaning": "새로운 정책은 생활 여건을 개선하는 것을 목표로 한다."
+  },
+  {
+    "term": "ambivalent",
+    "meaning": "양가적인, 복잡한 감정의",
+    "example": "I feel ambivalent about moving to a new city.",
+    "example_meaning": "새로운 도시로 이사하는 것에 대해 마음이 엇갈린다."
+  },
+  {
+    "term": "anomaly",
+    "meaning": "이상 현상, 변칙",
+    "example": "The data showed an anomaly in the results.",
+    "example_meaning": "데이터에서 결과와 어긋나는 이상 현상이 나타났다."
+  },
+  {
+    "term": "antagonist",
+    "meaning": "적대자, 반대자",
+    "example": "The villain is the main antagonist of the story.",
+    "example_meaning": "그 악당이 이야기의 주된 적대자다."
+  },
+  {
+    "term": "apathy",
+    "meaning": "무관심, 냉담",
+    "example": "Voter apathy is a serious problem in many countries.",
+    "example_meaning": "많은 나라에서 유권자의 무관심은 심각한 문제다."
+  },
+  {
+    "term": "arbitrary",
+    "meaning": "임의적인, 자의적인",
+    "example": "The rules seemed arbitrary and unfair.",
+    "example_meaning": "규칙이 자의적이고 불공정해 보였다."
+  },
+  {
+    "term": "arduous",
+    "meaning": "고된, 힘든",
+    "example": "Climbing the mountain was an arduous journey.",
+    "example_meaning": "그 산을 오르는 것은 고된 여정이었다."
+  },
+  {
+    "term": "articulate",
+    "meaning": "명확하게 표현하다, 능변의",
+    "example": "She is able to articulate her ideas clearly.",
+    "example_meaning": "그녀는 자신의 생각을 분명하게 표현할 수 있다."
+  },
+  {
+    "term": "ascertain",
+    "meaning": "확인하다, 알아내다",
+    "example": "We need to ascertain the facts before deciding.",
+    "example_meaning": "결정하기 전에 사실 여부를 확인해야 한다."
+  },
+  {
+    "term": "audacious",
+    "meaning": "대담한, 뻔뻔한",
+    "example": "It was an audacious plan to climb the cliff.",
+    "example_meaning": "절벽을 오르겠다는 계획은 대담했다."
+  },
+  {
+    "term": "austere",
+    "meaning": "금욕적인, 검소한",
+    "example": "The monks lived an austere life in the monastery.",
+    "example_meaning": "수도사들은 수도원에서 검소하고 엄격한 삶을 살았다."
+  },
+  {
+    "term": "authentic",
+    "meaning": "진짜의, 진정한",
+    "example": "The restaurant serves authentic Italian pasta.",
+    "example_meaning": "그 식당은 정통 이탈리아 파스타를 낸다."
+  },
+  {
+    "term": "benevolent",
+    "meaning": "자비로운, 인자한",
+    "example": "The benevolent old man fed the hungry children.",
+    "example_meaning": "자비로운 노인이 배고픈 아이들에게 음식을 주었다."
+  },
+  {
+    "term": "bias",
+    "meaning": "편견, 편향",
+    "example": "The survey may contain a bias toward younger people.",
+    "example_meaning": "그 설문은 젊은 층에 치우쳐 있을 수 있다."
+  },
+  {
+    "term": "candid",
+    "meaning": "솔직한, 숨김없는",
+    "example": "She gave me a candid opinion about my essay.",
+    "example_meaning": "그녀는 내 에세이에 대해 솔직한 의견을 주었다."
+  },
+  {
+    "term": "catalyst",
+    "meaning": "촉매, 계기",
+    "example": "The new law was a catalyst for social change.",
+    "example_meaning": "새 법은 사회 변화의 촉매가 되었다."
+  },
+  {
+    "term": "cease",
+    "meaning": "그치다, 중단하다",
+    "example": "The rain will cease before noon.",
+    "example_meaning": "비는 정오 전에 그칠 것이다."
+  },
+  {
+    "term": "circumvent",
+    "meaning": "우회하다, 피하다",
+    "example": "They found a way to circumvent the strict rules.",
+    "example_meaning": "그들은 엄격한 규칙을 우회할 방법을 찾았다."
+  },
+  {
+    "term": "coherent",
+    "meaning": "일관성 있는, 조리 있는",
+    "example": "Please write a coherent summary of the article.",
+    "example_meaning": "기사의 내용을 일관성 있게 요약해 주세요."
+  },
+  {
+    "term": "commence",
+    "meaning": "시작하다",
+    "example": "The ceremony will commence at ten o'clock.",
+    "example_meaning": "식은 열 시에 시작될 것이다."
+  },
+  {
+    "term": "compelling",
+    "meaning": "설득력 있는, 강렬한",
+    "example": "The lawyer made a compelling argument.",
+    "example_meaning": "변호사는 설득력 있는 주장을 펼쳤다."
+  },
+  {
+    "term": "complacent",
+    "meaning": "자만하는, 안주하는",
+    "example": "Don't become complacent just because you succeeded.",
+    "example_meaning": "성공했다고 해서 안주하지 마라."
+  },
+  {
+    "term": "concede",
+    "meaning": "인정하다, 양보하다",
+    "example": "He conceded that his plan had flaws.",
+    "example_meaning": "그는 자신의 계획에 결함이 있음을 인정했다."
+  },
+  {
+    "term": "conform",
+    "meaning": "따르다, 순응하다",
+    "example": "Some people feel pressure to conform to trends.",
+    "example_meaning": "일부 사람들은 유행에 따라야 한다는 압박을 느낀다."
+  },
+  {
+    "term": "connotation",
+    "meaning": "함축, 含意",
+    "example": "The word 'home' has a warm connotation.",
+    "example_meaning": "'집'이라는 단어에는 따뜻한 어감이 있다."
+  },
+  {
+    "term": "conspicuous",
+    "meaning": "눈에 띄는",
+    "example": "The red sign was conspicuous from far away.",
+    "example_meaning": "빨간 표지판은 멀리서도 눈에 띄었다."
+  },
+  {
+    "term": "constrain",
+    "meaning": "제약하다, 억제하다",
+    "example": "Limited funds constrain our research.",
+    "example_meaning": "제한된 자금이 우리 연구를 제약한다."
+  },
+  {
+    "term": "contempt",
+    "meaning": "경멸, 멸시",
+    "example": "She looked at him with contempt.",
+    "example_meaning": "그녀는 경멸하는 눈빛으로 그를 바라보았다."
+  },
+  {
+    "term": "contradict",
+    "meaning": "모순되다, 반박하다",
+    "example": "His story contradicts what he told us earlier.",
+    "example_meaning": "그의 이야기는 조금 전에 한 말과 모순된다."
+  },
+  {
+    "term": "conventional",
+    "meaning": "관습적인, 전통적인",
+    "example": "She prefers conventional methods of teaching.",
+    "example_meaning": "그녀는 전통적인 교수법을 선호한다."
+  },
+  {
+    "term": "conviction",
+    "meaning": "확신, 유죄 판결",
+    "example": "He spoke with great conviction about justice.",
+    "example_meaning": "그는 정의에 대해 강한 확신을 가지고 말했다."
+  },
+  {
+    "term": "credible",
+    "meaning": "신뢰할 만한",
+    "example": "The report came from a credible source.",
+    "example_meaning": "그 보고서는 믿을 만한 출처에서 나왔다."
+  },
+  {
+    "term": "criterion",
+    "meaning": "기준, 판단 근거",
+    "example": "Our main criterion for hiring is experience.",
+    "example_meaning": "우리가 채용하는 주요 기준은 경험이다."
+  },
+  {
+    "term": "crucial",
+    "meaning": "결정적인, 매우 중요한",
+    "example": "Sleep is crucial for good memory.",
+    "example_meaning": "좋은 기억력에는 수면이 매우 중요하다."
+  },
+  {
+    "term": "curb",
+    "meaning": "억제하다, 제한하다",
+    "example": "The government wants to curb pollution.",
+    "example_meaning": "정부는 오염을 억제하려 한다."
+  },
+  {
+    "term": "deceive",
+    "meaning": "속이다, 기만하다",
+    "example": "The advertisement tried to deceive customers.",
+    "example_meaning": "그 광고는 소비자를 속이려 했다."
+  },
+  {
+    "term": "decline",
+    "meaning": "감소하다, 거절하다",
+    "example": "The population of the village began to decline.",
+    "example_meaning": "그 마을의 인구가 줄어들기 시작했다."
+  },
+  {
+    "term": "deduce",
+    "meaning": "추론하다",
+    "example": "From the clues, the detective deduced the truth.",
+    "example_meaning": "단서를 통해 탐정은 진실을 추론했다."
+  },
+  {
+    "term": "defiant",
+    "meaning": "반항적인, 도전적인",
+    "example": "The defiant child refused to eat his dinner.",
+    "example_meaning": "반항적인 아이는 저녁을 먹지 않겠다고 버텼다."
+  },
+  {
+    "term": "deficit",
+    "meaning": "적자, 부족",
+    "example": "The country faces a large budget deficit.",
+    "example_meaning": "그 나라는 큰 재정 적자에 직면해 있다."
+  },
+  {
+    "term": "deliberate",
+    "meaning": "고의의, 신중한",
+    "example": "The mistake was deliberate, not accidental.",
+    "example_meaning": "그 실수는 우연이 아니라 고의였다."
+  },
+  {
+    "term": "demolish",
+    "meaning": "철거하다, 무너뜨리다",
+    "example": "The old factory will be demolished next year.",
+    "example_meaning": "낡은 공장은 내년에 철거될 예정이다."
+  },
+  {
+    "term": "denounce",
+    "meaning": "비난하다, 공개적으로 규탄하다",
+    "example": "The leader denounced the violence in public.",
+    "example_meaning": "지도자는 공개적으로 폭력을 규탄했다."
+  },
+  {
+    "term": "deprive",
+    "meaning": "빼앗다, 박탈하다",
+    "example": "Drought can deprive plants of water.",
+    "example_meaning": "가뭄은 식물에서 물을 빼앗을 수 있다."
+  },
+  {
+    "term": "derive",
+    "meaning": "얻다, 유래하다",
+    "example": "Many English words derive from Latin.",
+    "example_meaning": "많은 영어 단어는 라틴어에서 유래한다."
+  },
+  {
+    "term": "desolate",
+    "meaning": "황량한, 쓸쓸한",
+    "example": "The desolate beach was empty all winter.",
+    "example_meaning": "황량한 해변은 겨울 내내 비어 있었다."
+  },
+  {
+    "term": "detrimental",
+    "meaning": "해로운",
+    "example": "Lack of sleep is detrimental to your health.",
+    "example_meaning": "수면 부족은 건강에 해롭다."
+  },
+  {
+    "term": "devise",
+    "meaning": "고안하다, 궁리하다",
+    "example": "The engineers devised a new method for filtering water.",
+    "example_meaning": "엔지니어들은 물을 거르는 새로운 방법을 고안했다."
+  },
+  {
+    "term": "diligent",
+    "meaning": "근면한, 부지런한",
+    "example": "She is a diligent student who never misses a class.",
+    "example_meaning": "그녀는 수업을 한 번도 빠지지 않는 성실한 학생이다."
+  },
+  {
+    "term": "discreet",
+    "meaning": "신중한, 눈에 띄지 않는",
+    "example": "Please be discreet about the surprise party.",
+    "example_meaning": "깜짝 파티에 대해서는 조심스럽게 입을 다물어 주세요."
+  },
+  {
+    "term": "dogmatic",
+    "meaning": "독단적인",
+    "example": "His dogmatic attitude closed the door to debate.",
+    "example_meaning": "그의 독단적인 태도는 토론의 문을 닫아 버렸다."
+  },
+  {
+    "term": "dubious",
+    "meaning": "의심스러운, 미심쩍은",
+    "example": "The claim sounds dubious without evidence.",
+    "example_meaning": "증거도 없는 주장은 미심쩍게 들린다."
+  },
+  {
+    "term": "durable",
+    "meaning": "내구성 있는, 오래가는",
+    "example": "These boots are durable and waterproof.",
+    "example_meaning": "이 부츠는 튼튼하고 방수가 된다."
+  },
+  {
+    "term": "eloquent",
+    "meaning": "웅변의, 유창한",
+    "example": "The speaker gave an eloquent speech about peace.",
+    "example_meaning": "연설자는 평화에 대해 설득력 있게 연설했다."
+  },
+  {
+    "term": "elusive",
+    "meaning": "잡히지 않는, 포착하기 힘든",
+    "example": "The happiness he sought was elusive.",
+    "example_meaning": "그가 찾던 행복은 손에 잡히지 않았다."
+  },
+  {
+    "term": "embrace",
+    "meaning": "받아들이다, 껴안다",
+    "example": "She decided to embrace change and new challenges.",
+    "example_meaning": "그녀는 변화와 새로운 도전을 받아들이기로 했다."
+  },
+  {
+    "term": "eminent",
+    "meaning": "저명한, 뛰어난",
+    "example": "An eminent scientist gave the opening lecture.",
+    "example_meaning": "저명한 과학자가 개회 강연을 맡았다."
+  },
+  {
+    "term": "emulate",
+    "meaning": "모방하다, 본받다",
+    "example": "Young writers often emulate their favorite authors.",
+    "example_meaning": "젊은 작가들은 좋아하는 작가를 흉내 내는 경우가 많다."
+  },
+  {
+    "term": "endorse",
+    "meaning": "지지하다, 보증하다",
+    "example": "The mayor endorsed the new park project.",
+    "example_meaning": "시장은 새 공원 사업을 지지했다."
+  },
+  {
+    "term": "enigma",
+    "meaning": "수수께끼, 불가사의",
+    "example": "The ancient symbol remains an enigma to historians.",
+    "example_meaning": "그 고대 상징은 역사학자들에게 여전히 수수께끼다."
+  },
+  {
+    "term": "ephemeral",
+    "meaning": "덧없는, 순간적인",
+    "example": "The beauty of cherry blossoms is ephemeral.",
+    "example_meaning": "벚꽃의 아름다움은 덧없이 짧다."
+  },
+  {
+    "term": "equitable",
+    "meaning": "공평한",
+    "example": "The new system aims to be fair and equitable.",
+    "example_meaning": "새 제도는 공정하고 형평성 있게 운영되는 것을 목표로 한다."
+  },
+  {
+    "term": "eradicate",
+    "meaning": "근절하다",
+    "example": "Vaccines helped eradicate smallpox worldwide.",
+    "example_meaning": "백신은 전 세계에서 천연두를 근절하는 데 도움을 주었다."
+  },
+  {
+    "term": "erratic",
+    "meaning": "변덕스러운, 불규칙한",
+    "example": "The erratic weather made planning difficult.",
+    "example_meaning": "변덕스러운 날씨 때문에 계획을 세우기 어려웠다."
+  },
+  {
+    "term": "evade",
+    "meaning": "피하다, 회피하다",
+    "example": "He tried to evade questions about the accident.",
+    "example_meaning": "그는 사고에 관한 질문을 피하려 했다."
+  },
+  {
+    "term": "exacerbate",
+    "meaning": "악화시키다",
+    "example": "Stress can exacerbate many health problems.",
+    "example_meaning": "스트레스는 많은 건강 문제를 악화시킬 수 있다."
+  },
+  {
+    "term": "exemplify",
+    "meaning": "예시하다, 전형이 되다",
+    "example": "Her kindness will exemplify the spirit of the team.",
+    "example_meaning": "그녀의 친절함은 팀 정신을 잘 보여 준다."
+  },
+  {
+    "term": "exhaustive",
+    "meaning": "철저한, 완벽한",
+    "example": "The researchers conducted an exhaustive study.",
+    "example_meaning": "연구자들은 철저한 조사를 수행했다."
+  },
+  {
+    "term": "exonerate",
+    "meaning": "무죄를 입증하다",
+    "example": "New evidence exonerated the man after ten years.",
+    "example_meaning": "새 증거 덕분에 그 남자는 십 년 만에 누명을 벗었다."
+  },
+  {
+    "term": "explicit",
+    "meaning": "명시적인, 노골적인",
+    "example": "The contract gives explicit instructions for payment.",
+    "example_meaning": "계약서에는 지불 방식에 대한 명확한 지침이 있다."
+  },
+  {
+    "term": "extol",
+    "meaning": "칭찬하다, 찬양하다",
+    "example": "The critics extol the director's bold vision.",
+    "example_meaning": "평론가들은 감독의 대담한 비전을 극찬했다."
+  },
+  {
+    "term": "fallacy",
+    "meaning": "오류, 잘못된 믿음",
+    "example": "It is a fallacy that money guarantees happiness.",
+    "example_meaning": "돈이 행복을 보장한다는 생각은 오류다."
+  },
+  {
+    "term": "feasible",
+    "meaning": "실행 가능한",
+    "example": "Building the bridge in one year is not feasible.",
+    "example_meaning": "일 년 안에 다리를 짓는 것은 실현 가능하지 않다."
+  },
+  {
+    "term": "fervent",
+    "meaning": "열렬한, 열정적인",
+    "example": "He is a fervent supporter of the local team.",
+    "example_meaning": "그는 지역 팀의 열렬한 지지자다."
+  },
+  {
+    "term": "flaunt",
+    "meaning": "과시하다",
+    "example": "He liked to flaunt his expensive watch.",
+    "example_meaning": "그는 비싼 시계를 자랑하듯 드러내기를 좋아했다."
+  },
+  {
+    "term": "fluctuate",
+    "meaning": "변동하다, 오르내리다",
+    "example": "Prices fluctuate depending on the season.",
+    "example_meaning": "가격은 계절에 따라 오르내린다."
+  },
+  {
+    "term": "frugal",
+    "meaning": "검소한, 절약하는",
+    "example": "They lived a frugal life and saved most of their income.",
+    "example_meaning": "그들은 검소하게 살며 수입의 대부분을 저축했다."
+  },
+  {
+    "term": "gregarious",
+    "meaning": "사교적인, 붙임성 있는",
+    "example": "My gregarious cousin knows everyone at the party.",
+    "example_meaning": "사교적인 사촌은 파티에서 모든 사람을 안다."
+  },
+  {
+    "term": "hinder",
+    "meaning": "방해하다",
+    "example": "Heavy snow may hinder the rescue effort.",
+    "example_meaning": "폭설이 구조 작업을 방해할지도 모른다."
+  },
+  {
+    "term": "hypothesis",
+    "meaning": "가설",
+    "example": "The scientist tested her hypothesis with an experiment.",
+    "example_meaning": "그 과학자는 실험으로 자신의 가설을 검증했다."
+  },
+  {
+    "term": "iconic",
+    "meaning": "상징적인, 아이콘의",
+    "example": "The Eiffel Tower is an iconic landmark.",
+    "example_meaning": "에펠탑은 상징적인 명소다."
+  },
+  {
+    "term": "idiosyncratic",
+    "meaning": "특이한, 독특한",
+    "example": "Her idiosyncratic style makes her work recognizable.",
+    "example_meaning": "그녀의 독특한 스타일 덕분에 작품을 쉽게 알아볼 수 있다."
+  },
+  {
+    "term": "illicit",
+    "meaning": "불법의, 금지된",
+    "example": "The police seized illicit goods at the port.",
+    "example_meaning": "경찰은 항구에서 불법 물품을 압수했다."
+  },
+  {
+    "term": "immaculate",
+    "meaning": "흠 없는, 아주 깨끗한",
+    "example": "The house was immaculate after the cleaning.",
+    "example_meaning": "청소를 마친 뒤 집이 흠잡을 데 없이 깨끗했다."
+  },
+  {
+    "term": "impartial",
+    "meaning": "공정한, 편견 없는",
+    "example": "A good judge must remain impartial at all times.",
+    "example_meaning": "훌륭한 판사는 언제나 공정함을 유지해야 한다."
+  },
+  {
+    "term": "impetus",
+    "meaning": "추진력, 자극",
+    "example": "The disaster gave new impetus to reform.",
+    "example_meaning": "그 재난은 개혁에 새로운 추진력을 주었다."
+  },
+  {
+    "term": "implicit",
+    "meaning": "암묵적인, 함축된",
+    "example": "There is an implicit promise in their contract.",
+    "example_meaning": "그들의 계약에는 암묵적인 약속이 있다."
+  },
+  {
+    "term": "imply",
+    "meaning": "암시하다, 함축하다",
+    "example": "Her silence seemed to imply that she disagreed.",
+    "example_meaning": "그녀의 침묵은 동의하지 않는다는 뜻을 내포하는 것처럼 보였다."
+  },
+  {
+    "term": "incentive",
+    "meaning": "유인, 동기 부여",
+    "example": "Bonuses are an incentive for hard work.",
+    "example_meaning": "보너스는 열심히 일하도록 하는 유인이다."
+  },
+  {
+    "term": "incoherent",
+    "meaning": "앞뒤가 안 맞는, 횡설수설하는",
+    "example": "He gave an incoherent answer to the question.",
+    "example_meaning": "그는 질문에 앞뒤가 맞지 않는 대답을 했다."
+  },
+  {
+    "term": "inevitable",
+    "meaning": "피할 수 없는",
+    "example": "Change is inevitable in every society.",
+    "example_meaning": "모든 사회에서 변화는 피할 수 없다."
+  },
+  {
+    "term": "infer",
+    "meaning": "추론하다",
+    "example": "From his tone, I inferred that he was upset.",
+    "example_meaning": "그의 말투로 보아 그가 화가 났다고 나는 짐작했다."
+  },
+  {
+    "term": "ingenious",
+    "meaning": "독창적인, 교묘한",
+    "example": "The inventor came up with an ingenious solution.",
+    "example_meaning": "발명가는 기발한 해결책을 떠올렸다."
+  },
+  {
+    "term": "inherent",
+    "meaning": "내재된, 본래의",
+    "example": "Risk is inherent in any investment.",
+    "example_meaning": "모든 투자에는 위험이 내재해 있다."
+  },
+  {
+    "term": "innate",
+    "meaning": "타고난, 선천적인",
+    "example": "Some people have an innate talent for music.",
+    "example_meaning": "어떤 사람들은 음악에 타고난 재능이 있다."
+  },
+  {
+    "term": "insidious",
+    "meaning": "은밀히 해를 끼치는",
+    "example": "The disease can be insidious because it has no symptoms.",
+    "example_meaning": "그 질병은 증상이 없어서 은밀하게 퍼질 수 있다."
+  },
+  {
+    "term": "intricate",
+    "meaning": "복잡한, 정교한",
+    "example": "The lace has an intricate pattern of flowers.",
+    "example_meaning": "그 레이스에는 복잡하게 얽힌 꽃무늬가 있다."
+  },
+  {
+    "term": "inundate",
+    "meaning": "쇄도하다, 넘치게 하다",
+    "example": "The office was inundated with complaints.",
+    "example_meaning": "사무실에 불만 사항이 쏟아졌다."
+  },
+  {
+    "term": "jeopardize",
+    "meaning": "위태롭게 하다",
+    "example": "Careless driving can jeopardize your life.",
+    "example_meaning": "부주의한 운전은 생명을 위태롭게 할 수 있다."
+  },
+  {
+    "term": "laconic",
+    "meaning": "간결한, 말수가 적은",
+    "example": "His laconic reply ended the discussion.",
+    "example_meaning": "그의 간결한 대답에 토론이 끝났다."
+  },
+  {
+    "term": "lament",
+    "meaning": "탄식하다, 애도하다",
+    "example": "She lamented the loss of her childhood home.",
+    "example_meaning": "그녀는 어린 시절 살던 집을 잃은 것을 애통해했다."
+  },
+  {
+    "term": "legitimate",
+    "meaning": "합법적인, 정당한",
+    "example": "They raised legitimate concerns about the plan.",
+    "example_meaning": "그들은 그 계획에 대해 정당한 우려를 제기했다."
+  },
+  {
+    "term": "lucid",
+    "meaning": "명쾌한, 맑은",
+    "example": "The professor gave a lucid explanation of the theory.",
+    "example_meaning": "교수는 그 이론을 명쾌하게 설명했다."
+  },
+  {
+    "term": "malleable",
+    "meaning": "가소성의, 잘 휘는",
+    "example": "Young children's minds are highly malleable.",
+    "example_meaning": "어린아이들의 마음은 아주 쉽게 바뀐다."
+  },
+  {
+    "term": "mediocre",
+    "meaning": "평범한, 보통의",
+    "example": "The film was mediocre and quickly forgotten.",
+    "example_meaning": "그 영화는 평범했고 금방 잊혔다."
+  },
+  {
+    "term": "meticulous",
+    "meaning": "꼼꼼한, 세심한",
+    "example": "The accountant is meticulous with every number.",
+    "example_meaning": "그 회계사는 모든 숫자를 꼼꼼하게 살핀다."
+  },
+  {
+    "term": "mitigate",
+    "meaning": "완화하다",
+    "example": "Planting trees can mitigate the effects of pollution.",
+    "example_meaning": "나무를 심으면 오염의 영향을 줄일 수 있다."
+  },
+  {
+    "term": "monotonous",
+    "meaning": "단조로운, 지루한",
+    "example": "The monotonous work made the hours feel endless.",
+    "example_meaning": "단조로운 작업 때문에 시간이 끝도 없이 느껴졌다."
+  },
+  {
+    "term": "notorious",
+    "meaning": "악명 높은",
+    "example": "The city is notorious for its heavy traffic.",
+    "example_meaning": "그 도시는 심한 교통체증으로 악명이 높다."
+  },
+  {
+    "term": "novel",
+    "meaning": "새로운, 소설",
+    "example": "The company introduced a novel approach to recycling.",
+    "example_meaning": "그 회사는 재활용에 새로운 방식을 도입했다."
+  },
+  {
+    "term": "nuance",
+    "meaning": "미묘한 차이, 뉘앙스",
+    "example": "The translation lost the nuance of the original poem.",
+    "example_meaning": "번역에서 원시의 미묘한 뉘앙스가 사라졌다."
+  },
+  {
+    "term": "obscure",
+    "meaning": "모호한, 잘 알려지지 않은",
+    "example": "The meaning of the sentence remains obscure.",
+    "example_meaning": "이 문장의 의미는 여전히 불분명하다."
+  },
+  {
+    "term": "obsolete",
+    "meaning": "구식의, 쓸모없게 된",
+    "example": "Floppy disks are now obsolete.",
+    "example_meaning": "플로피디스크는 이제 쓸모없게 되었다."
+  },
+  {
+    "term": "ominous",
+    "meaning": "불길한",
+    "example": "Dark clouds gathered in an ominous way.",
+    "example_meaning": "검은 구름이 불길하게 모여들었다."
+  },
+  {
+    "term": "optimal",
+    "meaning": "최적의",
+    "example": "The optimal temperature for this plant is 20 degrees.",
+    "example_meaning": "이 식물에 가장 알맞은 온도는 20도다."
+  },
+  {
+    "term": "orthodox",
+    "meaning": "정통의, 전통적인",
+    "example": "She follows the orthodox method of painting.",
+    "example_meaning": "그녀는 정통적인 회화 방식을 따른다."
+  },
+  {
+    "term": "paradox",
+    "meaning": "역설",
+    "example": "It is a paradox that the more we know, the more we question.",
+    "example_meaning": "알면 알수록 더 많은 의문이 생긴다는 것은 역설이다."
+  },
+  {
+    "term": "paramount",
+    "meaning": "최고의, 가장 중요한",
+    "example": "Safety is of paramount importance on the site.",
+    "example_meaning": "현장에서는 안전이 무엇보다 중요하다."
+  },
+  {
+    "term": "pragmatic",
+    "meaning": "실용적인",
+    "example": "We need a pragmatic solution to the budget problem.",
+    "example_meaning": "예산 문제에는 실용적인 해결책이 필요하다."
+  },
+  {
+    "term": "precarious",
+    "meaning": "불안정한, 위태로운",
+    "example": "The climbers stood on a precarious ledge.",
+    "example_meaning": "등반가들은 위태로운 바위턱에 서 있었다."
+  },
+  {
+    "term": "premise",
+    "meaning": "전제, 前提",
+    "example": "The argument is based on a false premise.",
+    "example_meaning": "그 주장은 잘못된 전제에 바탕을 두고 있다."
+  },
+  {
+    "term": "prevalent",
+    "meaning": "널리 퍼진, 흔한",
+    "example": "Smartphone use is prevalent among teenagers.",
+    "example_meaning": "십 대들 사이에 스마트폰 사용이 널리 퍼져 있다."
+  },
+  {
+    "term": "procrastinate",
+    "meaning": "미루다",
+    "example": "I always procrastinate when it comes to taxes.",
+    "example_meaning": "나는 세금 문제가 나오면 늘 미룬다."
+  },
+  {
+    "term": "prodigy",
+    "meaning": "천재, 영재",
+    "example": "At age ten, she was a piano prodigy.",
+    "example_meaning": "열 살 때 그녀는 피아노 천재였다."
+  },
+  {
+    "term": "profound",
+    "meaning": "깊은, 심오한",
+    "example": "The book had a profound effect on my thinking.",
+    "example_meaning": "그 책은 내 생각에 깊은 영향을 주었다."
+  },
+  {
+    "term": "prolific",
+    "meaning": "다작의, 풍부한",
+    "example": "The novelist was prolific and wrote many books.",
+    "example_meaning": "그 소설가는 다작을 해서 많은 책을 썼다."
+  },
+  {
+    "term": "propensity",
+    "meaning": "성향, 경향",
+    "example": "He has a propensity for asking difficult questions.",
+    "example_meaning": "그는 어려운 질문을 던지는 경향이 있다."
+  },
+  {
+    "term": "prudent",
+    "meaning": "신중한, 현명한",
+    "example": "It is prudent to save money for emergencies.",
+    "example_meaning": "비상시를 위해 돈을 모아 두는 것은 신중한 일이다."
+  },
+  {
+    "term": "pseudonym",
+    "meaning": "필명, 가명",
+    "example": "The author wrote under a pseudonym.",
+    "example_meaning": "그 작가는 필명으로 글을 썼다."
+  },
+  {
+    "term": "reconcile",
+    "meaning": "화해시키다, 조화시키다",
+    "example": "They finally reconciled after years of conflict.",
+    "example_meaning": "그들은 여러 해의 갈등 끝에 마침내 화해했다."
+  },
+  {
+    "term": "reluctant",
+    "meaning": "내키지 않는, 꺼리는",
+    "example": "She was reluctant to admit her mistake.",
+    "example_meaning": "그녀는 자신의 실수를 인정하기를 꺼렸다."
+  },
+  {
+    "term": "rendezvous",
+    "meaning": "만남, 약속 장소",
+    "example": "We agreed to a rendezvous at the old bridge.",
+    "example_meaning": "우리는 낡은 다리에서 만나기로 약속했다."
+  },
+  {
+    "term": "replicate",
+    "meaning": "복제하다, 재현하다",
+    "example": "Other labs could not replicate the results.",
+    "example_meaning": "다른 연구실에서는 그 결과를 재현하지 못했다."
+  },
+  {
+    "term": "resilient",
+    "meaning": "회복력 있는, 탄력적인",
+    "example": "Children are often more resilient than adults expect.",
+    "example_meaning": "아이들은 어른의 예상보다 회복력이 강한 경우가 많다."
+  },
+  {
+    "term": "reticent",
+    "meaning": "말수가 적은, 내성적인",
+    "example": "He was reticent about his personal life.",
+    "example_meaning": "그는 자신의 사생활에 대해 말을 아꼈다."
+  },
+  {
+    "term": "rhetoric",
+    "meaning": "수사법, 미사여구",
+    "example": "The politician's rhetoric inspired the crowd.",
+    "example_meaning": "그 정치인의 수사법은 군중을 열광시켰다."
+  },
+  {
+    "term": "scrutinize",
+    "meaning": "면밀히 조사하다",
+    "example": "The editor scrutinized every sentence of the report.",
+    "example_meaning": "편집자는 보고서의 문장을 하나하나 면밀히 검토했다."
+  },
+  {
+    "term": "sedentary",
+    "meaning": "앉아 있는, 활동이 적은",
+    "example": "A sedentary lifestyle increases health risks.",
+    "example_meaning": "앉아서 지내는 생활 방식은 건강 위험을 높인다."
+  },
+  {
+    "term": "shrewd",
+    "meaning": "영리한, 빈틈없는",
+    "example": "The shrewd investor sold the stock at the right time.",
+    "example_meaning": "영리한 투자자는 적절한 때에 주식을 팔았다."
+  },
+  {
+    "term": "skeptical",
+    "meaning": "회의적인",
+    "example": "I am skeptical about the results of the poll.",
+    "example_meaning": "나는 그 여론조사 결과를 미심쩍게 본다."
+  },
+  {
+    "term": "solemn",
+    "meaning": "엄숙한, 진지한",
+    "example": "The ceremony was solemn and quiet.",
+    "example_meaning": "의식은 엄숙하고 조용했다."
+  },
+  {
+    "term": "sporadic",
+    "meaning": "산발적인, 드문드문한",
+    "example": "Sporadic showers fell throughout the afternoon.",
+    "example_meaning": "오후 내내 간헐적으로 소나기가 내렸다."
+  },
+  {
+    "term": "stagnant",
+    "meaning": "고인, 침체된",
+    "example": "The stagnant water attracted mosquitoes.",
+    "example_meaning": "고인 물에 모기가 꼬였다."
+  },
+  {
+    "term": "subsequent",
+    "meaning": "그다음의, 후속의",
+    "example": "Subsequent studies confirmed the first findings.",
+    "example_meaning": "이어진 연구들이 처음의 결과를 확인했다."
+  },
+  {
+    "term": "substantiate",
+    "meaning": "입증하다",
+    "example": "Please substantiate your claim with evidence.",
+    "example_meaning": "주장을 증거로 뒷받침해 주세요."
+  },
+  {
+    "term": "superficial",
+    "meaning": "피상적인, 표면적인",
+    "example": "His superficial knowledge of the topic was obvious.",
+    "example_meaning": "그 주제에 대한 그의 지식이 얕다는 것이 드러났다."
+  },
+  {
+    "term": "surmise",
+    "meaning": "짐작하다, 추측하다",
+    "example": "I surmise that the train has been delayed.",
+    "example_meaning": "기차가 연착된 것 같다고 짐작한다."
+  },
+  {
+    "term": "susceptible",
+    "meaning": "민감한, 취약한",
+    "example": "Older people are more susceptible to the flu.",
+    "example_meaning": "노인은 독감에 더 쉽게 걸린다."
+  },
+  {
+    "term": "tangible",
+    "meaning": "유형의, 실체가 있는",
+    "example": "The project produced tangible results within a year.",
+    "example_meaning": "그 프로젝트는 1년 만에 눈에 보이는 성과를 냈다."
+  },
+  {
+    "term": "tenacious",
+    "meaning": "끈질긴, 집요한",
+    "example": "The tenacious runner finished the race despite the injury.",
+    "example_meaning": "그 끈질긴 주자는 부상에도 불구하고 완주했다."
+  },
+  {
+    "term": "thwart",
+    "meaning": "좌절시키다, 방해하다",
+    "example": "The guards thwarted the attempt to escape.",
+    "example_meaning": "경비원들은 탈출 시도를 막았다."
+  },
+  {
+    "term": "transient",
+    "meaning": "일시적인, 덧없는",
+    "example": "Fame can be transient and fade quickly.",
+    "example_meaning": "명성은 덧없이 금방 사라질 수 있다."
+  },
+  {
+    "term": "tumultuous",
+    "meaning": "소란스러운, 격렬한",
+    "example": "The city had a tumultuous history of revolutions.",
+    "example_meaning": "그 도시는 격변의 혁명으로 얼룩진 역사를 가졌다."
+  },
+  {
+    "term": "ubiquitous",
+    "meaning": "어디에나 있는",
+    "example": "Mobile phones are ubiquitous in modern life.",
+    "example_meaning": "휴대전화는 현대 생활 어디에서나 볼 수 있다."
+  },
+  {
+    "term": "unprecedented",
+    "meaning": "전례 없는",
+    "example": "The sales growth was unprecedented in our history.",
+    "example_meaning": "판매 성장률은 우리 역사상 전례가 없었다."
+  },
+  {
+    "term": "uphold",
+    "meaning": "지지하다, 유지하다",
+    "example": "The court will uphold the original decision.",
+    "example_meaning": "법원은 원래의 판결을 지지할 것이다."
+  },
+  {
+    "term": "validate",
+    "meaning": "입증하다, 승인하다",
+    "example": "The experiment validated the theory.",
+    "example_meaning": "실험은 그 이론을 입증했다."
+  },
+  {
+    "term": "vehement",
+    "meaning": "격렬한, 강렬한",
+    "example": "She was vehement in her opposition to the plan.",
+    "example_meaning": "그녀는 그 계획에 격렬하게 반대했다."
+  },
+  {
+    "term": "versatile",
+    "meaning": "다재다능한, 다용도의",
+    "example": "A versatile actor can play many different roles.",
+    "example_meaning": "다재다능한 배우는 여러 가지 역할을 소화할 수 있다."
+  },
+  {
+    "term": "vindicate",
+    "meaning": "입증하다, 명예를 회복시키다",
+    "example": "The results vindicated his long-held theory.",
+    "example_meaning": "그 결과는 그의 오랜 이론이 옳았음을 입증했다."
+  },
+  {
+    "term": "vivid",
+    "meaning": "생생한, 선명한",
+    "example": "She has vivid memories of her childhood.",
+    "example_meaning": "그녀는 어린 시절에 대한 생생한 기억이 있다."
+  },
+  {
+    "term": "volatile",
+    "meaning": "변덕스러운, 불안정한",
+    "example": "The stock market can be volatile in times of crisis.",
+    "example_meaning": "위기 때에는 주식 시장이 불안정해질 수 있다."
+  },
+  {
+    "term": "wary",
+    "meaning": "조심하는, 경계하는",
+    "example": "Be wary of offers that seem too good to be true.",
+    "example_meaning": "너무 좋아 보이는 제안은 조심하라."
+  },
+  {
+    "term": "zealous",
+    "meaning": "열정적인, 열성적인",
+    "example": "The zealous volunteers worked late every night.",
+    "example_meaning": "열성적인 자원봉사자들은 매일 밤 늦게까지 일했다."
+  },
+  {
+    "term": "emancipate",
+    "meaning": "해방하다",
+    "example": "Education can emancipate people from ignorance.",
+    "example_meaning": "교육은 사람들을 무지에서 해방시킬 수 있다."
+  },
+  {
+    "term": "buttress",
+    "meaning": "뒷받침하다, 버팀대",
+    "example": "New evidence buttresses the author's argument.",
+    "example_meaning": "새 증거가 저자의 주장을 뒷받침한다."
+  },
+  {
+    "term": "cogent",
+    "meaning": "설득력 있는, 조리 있는",
+    "example": "She gave a cogent reason for changing the plan.",
+    "example_meaning": "그녀는 계획을 바꾸는 설득력 있는 이유를 제시했다."
+  },
+  {
+    "term": "dearth",
+    "meaning": "부족, 결핍",
+    "example": "There was a dearth of clean water in the village.",
+    "example_meaning": "그 마을에는 깨끗한 물이 부족했다."
+  },
+  {
+    "term": "eschew",
+    "meaning": "피하다, 삼가다",
+    "example": "The chef eschews frozen food and uses only fresh ingredients.",
+    "example_meaning": "그 요리사는 냉동 식품을 피하고 신선한 재료만 쓴다."
+  },
+  {
+    "term": "facetious",
+    "meaning": "익살맞은, 농담조의",
+    "example": "His facetious remark made everyone laugh.",
+    "example_meaning": "그의 농담조의 말에 모두가 웃었다."
+  },
+  {
+    "term": "garrulous",
+    "meaning": "수다스러운",
+    "example": "The garrulous old man talked for hours.",
+    "example_meaning": "수다스러운 노인은 몇 시간이나 이야기했다."
+  },
+  {
+    "term": "hackneyed",
+    "meaning": "진부한",
+    "example": "The speech was full of hackneyed phrases.",
+    "example_meaning": "그 연설에는 진부한 표현이 가득했다."
+  },
+  {
+    "term": "impeccable",
+    "meaning": "흠잡을 데 없는",
+    "example": "Her manners were impeccable at the dinner.",
+    "example_meaning": "저녁 식사 자리에서 그녀의 예절은 흠잡을 데가 없었다."
+  },
+  {
+    "term": "inscrutable",
+    "meaning": "헤아리기 어려운",
+    "example": "His expression remained inscrutable throughout the meeting.",
+    "example_meaning": "회의 내내 그의 표정은 도무지 읽을 수 없었다."
+  },
+  {
+    "term": "juxtapose",
+    "meaning": "나란히 놓다, 대비시키다",
+    "example": "The artist juxtaposes light and dark colors.",
+    "example_meaning": "그 화가는 밝은 색과 어두운 색을 나란히 놓는다."
+  },
+  {
+    "term": "kindle",
+    "meaning": "불붙이다, 일으키다",
+    "example": "The speech kindled a desire for change.",
+    "example_meaning": "그 연설은 변화에 대한 열망을 불러일으켰다."
+  },
+  {
+    "term": "lethargic",
+    "meaning": "무기력한",
+    "example": "The heat made everyone lethargic in the afternoon.",
+    "example_meaning": "무더위 때문에 오후에는 모두가 나른했다."
+  },
+  {
+    "term": "magnanimous",
+    "meaning": "관대한, 아량 있는",
+    "example": "The winner was magnanimous toward his opponents.",
+    "example_meaning": "승자는 상대에게 너그러웠다."
+  },
+  {
+    "term": "mundane",
+    "meaning": "평범한, 일상적인",
+    "example": "She prefers exciting trips to mundane routines.",
+    "example_meaning": "그녀는 평범한 일상보다 신나는 여행을 선호한다."
+  },
+  {
+    "term": "nebulous",
+    "meaning": "막연한, 흐릿한",
+    "example": "His plans for the future are still nebulous.",
+    "example_meaning": "그의 미래 계획은 아직 막연하다."
+  },
+  {
+    "term": "obstinate",
+    "meaning": "고집 센",
+    "example": "The obstinate mule refused to move.",
+    "example_meaning": "고집 센 노새는 움직이기를 거부했다."
+  },
+  {
+    "term": "pernicious",
+    "meaning": "해로운, 치명적인",
+    "example": "Rumors can have a pernicious effect on a community.",
+    "example_meaning": "소문은 공동체에 해로운 영향을 줄 수 있다."
+  },
+  {
+    "term": "pervasive",
+    "meaning": "널리 퍼진",
+    "example": "The smell of smoke was pervasive in the old house.",
+    "example_meaning": "오래된 집에는 연기 냄새가 구석구석 배어 있었다."
+  },
+  {
+    "term": "quintessential",
+    "meaning": "전형적인",
+    "example": "He is the quintessential English gentleman.",
+    "example_meaning": "그는 전형적인 영국 신사다."
+  },
+  {
+    "term": "recalcitrant",
+    "meaning": "반항적인, 말을 듣지 않는",
+    "example": "The recalcitrant student refused to follow the rules.",
+    "example_meaning": "말을 듣지 않는 학생은 규칙을 따르기를 거부했다."
+  },
+  {
+    "term": "sagacious",
+    "meaning": "현명한, 슬기로운",
+    "example": "The sagacious advisor gave wise counsel.",
+    "example_meaning": "현명한 조언자는 지혜로운 충고를 해 주었다."
+  },
+  {
+    "term": "tacit",
+    "meaning": "암묵적인",
+    "example": "There was a tacit agreement between the two countries.",
+    "example_meaning": "두 나라 사이에는 암묵적인 합의가 있었다."
+  },
+  {
+    "term": "upbraid",
+    "meaning": "꾸짖다",
+    "example": "The coach upbraided the team for their poor effort.",
+    "example_meaning": "코치는 형편없는 노력을 보인 팀을 꾸짖었다."
+  },
+  {
+    "term": "vacillate",
+    "meaning": "동요하다, 망설이다",
+    "example": "She vacillated between two job offers for weeks.",
+    "example_meaning": "그녀는 몇 주 동안 두 개의 일자리 제안 사이에서 망설였다."
+  },
+  {
+    "term": "winsome",
+    "meaning": "매력적인, 사랑스러운",
+    "example": "The winsome little girl charmed everyone.",
+    "example_meaning": "사랑스러운 어린 소녀가 모두를 매료시켰다."
+  },
+  {
+    "term": "altruistic",
+    "meaning": "이타적인",
+    "example": "She is altruistic and donates time every weekend.",
+    "example_meaning": "그녀는 이타적이어서 주말마다 시간을 기부한다."
+  }
+]

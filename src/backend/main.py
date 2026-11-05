@@ -18,11 +18,13 @@ from backend.routers.wordbook import router as wordbook_router
 from backend.routers.word import router as word_router
 from backend.routers.bookmark import router as bookmark_router
 from backend.routers.study import router as study_router
+from backend.services.system_seed import init_system_seeds
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-    """앱 종료 시 DB 커넥션 풀을 정리한다."""
+    """앱 시작 시 표준 단어장 시드를 적재하고(멱등), 종료 시 DB 커넥션 풀을 정리한다."""
+    await init_system_seeds()
     yield
     await dispose_engine()
 
