@@ -4,7 +4,7 @@
 | :--- | :--- |
 | 프로젝트 | voda-voca (보다보카, 웹 기반 단어장 서비스) |
 | 문서 종류 | 요구사항 명세서 (Requirement Spec, `개발방법론.md` §2.2) |
-| 버전 / 상태 | v2.1 / **승인 (Approved)** — 중앙 제공형 단어장 전환 반영 |
+| 버전 / 상태 | v2.1 / **승인 (Approved)** — 중앙 제공형 단어장 전환 반영. REQ-125 는 2026-11-05 에 v2.2 TTS 사양으로 개정 |
 | 작성일 | 2026-11-05 (v2.0: 2026-11-02) |
 | 산출물 경로 | `docs/voda-voca_Requirement_Spec_v2.1_261105.md` (이전 버전: `docs/old/voda-voca_Requirement_Spec_v2.0_261102.md` 외 보관) |
 
@@ -104,7 +104,7 @@
 | REQ-009 | 단어 목록 조회 및 검색 | M | **폐기** (v2.1) — 목록 조회는 REQ-141. 표제어 접두사 검색은 제공하지 않는다 |
 | REQ-010 | 단어 수정 | M | **폐기** (v2.1) |
 | REQ-011 | 단어 삭제 | M | **폐기** (v2.1) |
-| REQ-125 | 발음 청취 (TTS) | S | 학습 세션의 문항·카드 화면에 스피커 버튼을 두고, 브라우저 음성 합성(Web Speech API, 영어 en-US, 속도 0.9, 음높이 1.0)으로 표제어를 읽어 준다. 연속으로 누르면 이전 발음을 끊고 새로 읽는다. 음성을 지원하지 않는 브라우저에서는 예외를 던지지 않고 실패를 무시한다. 외부 음성 서비스와 API 키는 쓰지 않는다. |
+| REQ-125 | 발음 청취 (TTS) | S | 브라우저 음성 합성(Web Speech API)으로 **표제어와 예문**을 읽어 준다. 외부 음성 서비스와 API 키는 쓰지 않는다. ① **버튼 위치**: 학습 세션 헤더(표제어), 해설 시트(표제어·예문), 플래시카드 뒷면(예문), 단어 미리보기 시트(행마다 표제어·예문). 버튼은 44×44px 이상이다. ② **보이스**: 사용자 선택 UI 없이 자동 판별한다. en-US, en-GB, 그 밖의 en-* 순이며 같은 언어 안에서는 기기 내장(localService) 보이스를 먼저 쓴다. 보이스 목록이 늦게 채워지는 브라우저(`voiceschanged`)에서도 재생을 막지 않는다. ③ **속도**: 표제어 0.9, 예문 0.85, 음높이 1.0. ④ **재생 동작**: 소리는 사용자가 버튼을 누른 때에만 낸다(자동 재생 없음). 연속으로 누르면 이전 발음을 끊고 새로 읽는다. 문항 전환·해설 시트 닫힘·세션 중단/종료·단어 시트 닫힘·화면 이동·탭 숨김 시 재생을 멈춘다. ⑤ **재생 상태 표시**: 재생 중인 버튼만 강조하고(`aria-pressed`), 동작 줄이기 설정에서는 움직임 없이 색만 바꾼다. ⑥ **실패 처리**: 취소·중단(`canceled`/`interrupted`)은 정상 종료로 보고 조용히 넘긴다. 브라우저가 재생을 막았거나(`not-allowed`), 영어 보이스가 없거나, 음성 합성을 지원하지 않으면 예외 없이 실패하고 학습 세션당 최초 1회 토스트로 알린다. |
 
 ### 4.4 학습 (Study)
 
@@ -294,7 +294,7 @@ v1.0의 질의 사항 Q1~Q8에 대한 결정이다. 사용자가 명시적으로
 | REQ-122 | 회원 탈퇴 | M | API Integration Spec §3.1 | `src/backend/routers/auth.py`, `services/auth.py` | `test_auth_api.py` | 구현 완료 (v2.1: 표준 콘텐츠 보존) |
 | REQ-123 | 기본 단어장 자동 제공 | M | — | (삭제됨) | — | 폐기 (→ REQ-142) |
 | REQ-124 | 즉각 피드백과 해설 | M | 통합 설계안 §5.1 | `services/learning_session.py`, `schemas/learning_session.py`, `views/study-session-view.js` | `test_learning_session_api.py` | 구현 완료 (v2.1) |
-| REQ-125 | 발음 청취 (TTS) | S | UI/UX 설계서 | `src/frontend/js/core/tts.js`, `views/study-session-view.js` | TC-125 | 구현 완료 |
+| REQ-125 | 발음 청취 (TTS) | S | UI/UX 설계서 §3.6, §12.6 | `src/frontend/js/core/tts.js`, `core/speak-model.js`, `views/components/speak-button.js`, `views/components/{progress-header,feedback-sheet,word-sheet}.js`, `views/study-session-view.js`, `app.js` | TC-125 (`tests/tts.test.js`, `tts-state.test.js`, `speak-ui.test.js`) | 구현 완료 (v1.1 Phase 1, 예문·상태 표시·알림은 v2.2 에서 확장) |
 | REQ-126 | 다크 모드 | S | UI/UX 설계서 §12 | `src/frontend/js/core/theme.js`, `css/app.css`, `index.html` | TC-126 | 구현 완료 (v1.1 Phase 1) |
 | REQ-127 | 키보드 단축키 | S | UI/UX 설계서 | `core/shortcuts.js`, `core/session-view-model.js` | `src/frontend/tests/` | 구현 완료 (v2.1) |
 | REQ-128 | 단어장 단어 수 노출 | S | — | (삭제됨) | — | 폐기 (→ REQ-140) |
@@ -325,6 +325,7 @@ v1.0의 질의 사항 Q1~Q8에 대한 결정이다. 사용자가 명시적으로
 | :--- | :--- | :--- | :--- |
 | v0.1 | 2026-11-02 | 초안 작성 (요구사항 ID 체계 수립, 기능/비기능 목록, 추적 매트릭스) | Claude |
 | v1.0 | 2026-11-02 | 사용자 승인 후 `docs/`로 승격 (파일명 `Requirement_Spec` 규칙 적용) | Claude |
+| v2.1 개정 | 2026-11-05 | **REQ-125 개정** (v2.2 TTS): 표제어에 더해 **예문** 발음 지원, 버튼 위치(세션 헤더·해설 시트·플래시카드 뒷면·단어 미리보기 시트), 보이스 자동 판별(en-US > en-GB > en-*, localService 우선), 속도 단어 0.9/문장 0.85, 재생 상태 표시, 정지 시점, 재생 불가 시 세션당 1회 토스트. 나머지 요구사항 변경 없음 | Claude |
 | v2.1 | 2026-11-05 | 중앙 제공형 단어장 전환(D단계) 반영. **폐기**: REQ-004~011, 013, 123, 128, 130, 135, 136, 139 (A안: 번호 재사용 금지). **신설**: REQ-140~143 (표준 단어장 카탈로그·단어 목록·학습 단어장 선택·시드). **개정**: REQ-001, 003, 012, 014~019, 122, 124, 125, 127, 129, 131~134, 137 및 §1, §3, §5, §6 (세션 러너 규격, 출제 응답 정답 비노출·채점 응답 공개, 숙련 판정, 서버 집계 통계). 옛 `/api/study/flashcards`, `/api/study/quiz/*` 와 `wordbooks`·`words` 테이블 제거 | Claude |
 | v2.0 | 2026-11-02 | v2.0 정식 릴리즈 반영. REQ-131 대시보드 핵심 지표, REQ-132 최근 7일 학습 차트(오늘 뱃지), REQ-133 단어장 카드 진행률과 퀵 액션, REQ-134 계정 드롭다운, REQ-135 CSV 내보내기 확인 모달, REQ-136 단어장별 내보내기, REQ-137 정답 효과음(Web Audio), REQ-138 음소거 설정, REQ-139 CSV 가져오기 정합성 신설. 예문 뜻(`words.example_meaning`) 기능 반영 (v2 Phase 1). 데이터 설계 v2.0, API 연동 규격서 v2.0, UI/UX 설계서 v2.0과 정합 | Claude |
 | v1.5 | 2026-11-02 | v1.1 Phase 1·2 구현 반영. REQ-125 발음 청취(TTS), REQ-126 다크 모드, REQ-127 키보드 단축키, REQ-128 단어장 단어 수 노출, REQ-129 오답 복습 퀴즈(최근 100건, 4개 미만 차단), REQ-130 중급 1,000제 추천 프리셋 신설. 구현 상태는 §7 추적 매트릭스에 반영. 데이터 설계 v1.4, API 연동 규격서 v1.2, UI/UX 설계서 v1.2와 정합 | Claude |
