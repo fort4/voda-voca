@@ -183,6 +183,18 @@ a:focus-visible,
 .btn:disabled { cursor: not-allowed; opacity: 0.5; }
 .btn-full { width: 100%; }
 .btn-lg { min-height: 56px; font-size: var(--fs-lead); }
+/* 아이콘 전용 버튼: 44×44 정사각 터치 타깃 (REQ-114) */
+.btn-icon { width: 44px; height: 44px; padding: 0; }
+/* 발음 듣기: 재생 중에는 강조색 + 아이콘 맥동. 동작 줄이기를 켠 사용자에게는 색만 바꾼다 */
+.speak-btn.is-playing { --btn-fg: var(--accent); --btn-bg: var(--accent-soft); }
+.speak-btn.is-playing svg { animation: speak-pulse 900ms ease-in-out infinite; }
+@keyframes speak-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .speak-btn.is-playing svg { animation: none; }
+}
 /* 키보드 단축키 안내: 터치 기기에서는 쓸 일이 없으므로 숨긴다 */
 .kbd-hint { margin-left: var(--space-1); font-weight: 500; opacity: 0.75; }
 @media (hover: none) {

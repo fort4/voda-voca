@@ -7,6 +7,7 @@ import { api, setUnauthorizedHandler } from "./core/api.js";
 import { nicknameConfirmationMatches } from "./core/validate.js";
 import { button, clear, h, notice, refreshIcons, icon } from "./core/dom.js";
 import { createRouter, parseHash, safeNext } from "./core/router.js";
+import { noticeMessage, setSpeechNotifier, stopSpeaking } from "./core/tts.js";
 import { buildRoutes } from "./routes.js";
 import { getUser, setUser } from "./core/state.js";
 import { confirmDialog, toast } from "./core/toast.js";
@@ -342,7 +343,12 @@ async function boot() {
   renderUserbar();
   router.start();
   renderTabbar();
-  window.addEventListener("hashchange", () => { renderUserbar(); renderTabbar(); });
+  window.addEventListener("hashchange", () => { stopSpeaking(); renderUserbar(); renderTabbar(); });
+  // 발음 재생 불가 안내(자동재생 차단, 영어 음성 없음, 미지원)는 세션당 한 번 토스트로 알린다
+  setSpeechNotifier((reason) => toast(noticeMessage(reason), "warning"));
+  // 탭을 숨기거나 떠나면 발음을 멈춘다 (모바일에서 백그라운드 재생 방지)
+  document.addEventListener("visibilitychange", () => { if (document.hidden) stopSpeaking(); });
+  window.addEventListener("pagehide", stopSpeaking);
 }
 
 boot();

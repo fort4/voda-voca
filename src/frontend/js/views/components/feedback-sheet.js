@@ -4,14 +4,15 @@
  */
 
 import { button, h, icon, kbdHint } from "../../core/dom.js";
+import { speakButton } from "./speak-button.js";
 import { feedbackTone } from "../../core/session-view-model.js";
 
 /**
  * 해설 시트를 만든다. 맨 아래에 고정되고 200ms 트랜지션으로 올라온다 (prefers-reduced-motion 이면 즉시).
- * @param {{state: object, onNext: () => void, onSpeak: (text: string) => void}} opts
+ * @param {{state: object, onNext: () => void}} opts
  * @returns {HTMLElement|null} 해설을 보여 줄 상태가 아니면 null
  */
-export function renderFeedbackSheet({ state, onNext, onSpeak }) {
+export function renderFeedbackSheet({ state, onNext }) {
   const tone = feedbackTone(state);
   if (!tone) return null;
   const { feedback } = state;
@@ -33,14 +34,17 @@ export function renderFeedbackSheet({ state, onNext, onSpeak }) {
         "p",
         { class: "flex items-center gap-2 text-lg font-bold" },
         h("span", { class: "break-words" }, feedback.term),
-        h(
-          "button",
-          { type: "button", class: "press focus-ring inline-flex h-9 w-9 items-center justify-center rounded-lg", "aria-label": `${feedback.term} 발음 듣기`, onclick: () => onSpeak(feedback.term) },
-          icon("volume-2", "h-4 w-4"),
-        ),
+        speakButton({ text: feedback.term, kind: "word", key: `word:${feedback.term}` }),
       ),
       h("p", { class: "break-words text-base font-semibold" }, feedback.meaning),
-      feedback.example ? h("p", { class: "sheet-sub break-words pt-1 text-body italic leading-relaxed" }, feedback.example) : null,
+      feedback.example
+        ? h(
+            "div",
+            { class: "flex items-start gap-1" },
+            h("p", { class: "sheet-sub min-w-0 flex-1 break-words pt-1 text-body italic leading-relaxed" }, feedback.example),
+            speakButton({ text: feedback.example, kind: "sentence", key: `sentence:${feedback.term}` }),
+          )
+        : null,
       feedback.example_meaning ? h("p", { class: "sheet-sub break-words text-sm leading-relaxed" }, feedback.example_meaning) : null,
     ),
     h("div", { class: "mt-4" }, button({ variant: "primary", full: true, onClick: onNext, "data-autofocus": "true" }, tone.buttonLabel, kbdHint("Enter"))),

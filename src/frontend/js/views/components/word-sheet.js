@@ -5,6 +5,8 @@
 
 import { api } from "../../core/api.js";
 import { button, h, icon, refreshIcons } from "../../core/dom.js";
+import { stopSpeaking } from "../../core/tts.js";
+import { speakButton } from "./speak-button.js";
 
 const PAGE_SIZE = 30;
 
@@ -20,6 +22,7 @@ export function openWordSheet(vocabulary) {
   let loading = false;
 
   const close = () => {
+    stopSpeaking(); // 시트를 닫으면 재생 중인 발음도 멈춘다
     document.removeEventListener("keydown", onKey);
     overlay.remove();
     previousFocus?.focus?.();
@@ -63,5 +66,21 @@ export function openWordSheet(vocabulary) {
 
 /** @param {{term: string, meaning: string, example: string|null}} word */
 function wordRow(word) {
-  return h("div", { class: "rounded-xl bg-zinc-50 px-3 py-2" }, h("p", { class: "text-base font-semibold text-zinc-900" }, word.term), h("p", { class: "text-sm text-zinc-700" }, word.meaning), word.example ? h("p", { class: "mt-1 text-xs text-zinc-500" }, word.example) : null);
+  return h(
+    "div",
+    { class: "flex items-start gap-2 rounded-xl bg-zinc-50 px-3 py-2" },
+    h(
+      "div",
+      { class: "min-w-0 flex-1" },
+      h("p", { class: "text-base font-semibold text-zinc-900" }, word.term),
+      h("p", { class: "text-sm text-zinc-700" }, word.meaning),
+      word.example ? h("p", { class: "mt-1 text-xs text-zinc-500" }, word.example) : null,
+    ),
+    h(
+      "div",
+      { class: "flex shrink-0 items-center" },
+      speakButton({ text: word.term, kind: "word", key: `word:${word.term}` }),
+      word.example ? speakButton({ text: word.example, kind: "sentence", key: `sentence:${word.term}` }) : null,
+    ),
+  );
 }

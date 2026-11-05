@@ -11,10 +11,11 @@ import { VIEW_ACTION, choiceStates, errorCopy, flashcardFaces, sessionKeyAction 
 import { isButtonTarget, modalIsOpen, shortcutsBlocked } from "../core/shortcuts.js";
 import { playCorrect } from "../core/sound.js";
 import { confirmDialog } from "../core/toast.js";
-import { speak } from "../core/tts.js";
+import { resetSpeechNotice, stopSpeaking } from "../core/tts.js";
 import { renderFeedbackSheet } from "./components/feedback-sheet.js";
 import { renderProgressHeader } from "./components/progress-header.js";
 import { renderSessionResult } from "./components/session-result.js";
+import { speakButton } from "./components/speak-button.js";
 
 /** CSS 의 card-exit-* 애니메이션 길이(ms)와 같아야 한다 */
 const CARD_EXIT_MS = 180;
@@ -43,7 +44,9 @@ export function studySessionView(root, ctx) {
         flipKey = key;
         flipped = false;
         leaving = null;
+        stopSpeaking(); // 문항이 바뀌면 이전 문항의 발음을 끊는다
       }
+      if (action.type === ACTION.NEXT || action.type === ACTION.ABORT) stopSpeaking(); // 시트를 닫거나 세션을 중단할 때
       if (state.error) leaving = null; // 전송 실패 시 카드를 다시 보여 준다
       if (action.type === ACTION.ANSWER_RECEIVED && state.feedback?.is_correct) playCorrect();
       // 나가는 카드는 연출이 끝날 때까지 그대로 두고, 끝나면 서버 응답을 기다리지 않고 다음 카드를 미리 보여 준다
@@ -87,6 +90,7 @@ export function studySessionView(root, ctx) {
         driver.dispatch(action);
         return;
       case ACTION.START:
+        resetSpeechNotice();
         driver.dispatch({ ...action, mode: driver.getState().mode });
         return;
       default:
@@ -163,19 +167,18 @@ export function studySessionView(root, ctx) {
   function renderQuestion(state) {
     const item = currentItem(state);
     const sheetOpen = state.phase === PHASE.FEEDBACK_SHOWING && state.mode === "quiz";
-    const speakTerm = () => speak(item.term);
     return h(
       "div",
       { class: `session-screen${sheetOpen ? " has-sheet" : ""}` },
       renderProgressHeader({
         progress: progressOf(state),
         onAbort: () => act({ type: VIEW_ACTION.REQUEST_ABORT }),
-        onSpeak: speakTerm,
+        speakText: item.term,
       }),
       state.mode === "flashcard" ? renderFlashcard(state, item) : renderQuizCard(item),
       state.error ? renderInlineError(state.error) : null,
       state.mode === "quiz" ? renderChoices(state, item) : renderFlashcardButtons(state),
-      sheetOpen ? renderFeedbackSheet({ state, onNext: () => act({ type: ACTION.NEXT }), onSpeak: speak }) : null,
+      sheetOpen ? renderFeedbackSheet({ state, onNext: () => act({ type: ACTION.NEXT }) }) : null,
     );
   }
 
@@ -225,11 +228,19 @@ export function studySessionView(root, ctx) {
         "div",
         { class: "flip-face flip-back" },
         h("p", { class: "session-term" }, faces.back.meaning),
-        faces.back.example ? h("p", { class: "session-context" }, faces.back.example) : null,
+        faces.back.example
+          ? h(
+              "div",
+              { class: "flex items-center gap-1" },
+              h("p", { class: "session-context" }, faces.back.example),
+              speakButton({ text: faces.back.example, kind: "sentence", key: `sentence:${faces.front.term}` }),
+            )
+          : null,
         faces.back.exampleMeaning ? h("p", { class: "session-context" }, faces.back.exampleMeaning) : null,
       ),
     );
     refs.card = card;
+    card.querySelector(".flip-back").inert = !(flipped && !preview); // 앞면일 땐 뒷면의 발음 버튼이 탭 순서에 끼지 않게
     let motion = "";
     const shownKey = preview ? `${state.sessionId}:${state.index + 1}` : flipKey;
     if (leaving && !preview) motion = " card-gone"; // 마지막 카드: 다음 카드가 없으니 결과 화면을 기다린다
@@ -251,6 +262,8 @@ export function studySessionView(root, ctx) {
   /** 카드를 뒤집어도 화면을 다시 그리지 않는다 (뒤집기 애니메이션이 끊기지 않도록 클래스만 바꾼다). */
   function syncFlashcard() {
     refs.card?.classList.toggle("is-flipped", flipped);
+    const back = refs.card?.querySelector(".flip-back");
+    if (back) back.inert = !flipped;
     for (const control of [refs.known, refs.unsure]) if (control) control.disabled = refs.busy || !flipped;
   }
 
@@ -265,12 +278,14 @@ export function studySessionView(root, ctx) {
   }
 
   document.addEventListener("keydown", onKeydown);
+  resetSpeechNotice(); // 새 학습 세션: 재생 불가 안내를 다시 한 번 허용한다
   driver.dispatch({ type: ACTION.START, mode, source: ctx.query.source, includeMemorized: ctx.query.include_memorized === "1" });
 
   return () => {
     document.removeEventListener("keydown", onKeydown);
     clearTimeout(advanceTimer);
     clearTimeout(paintTimer);
+    stopSpeaking(); // 화면을 떠나면 발음도 멈춘다
     driver.dispose();
   };
 }

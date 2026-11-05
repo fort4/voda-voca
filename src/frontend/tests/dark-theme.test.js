@@ -85,11 +85,11 @@ export function componentsWithoutDarkSupport(css) {
   const darkStart = css.indexOf("html.dark {");
   const dark = css.slice(darkStart);
   const bad = [];
-  for (const m of css.matchAll(/(^|\n)((?:\.(?:btn|card|chip)[\w-]*[^{}\n]*,?\s*)+)\{([^}]*)\}/g)) {
+  for (const m of css.matchAll(/(^|\n)((?:\.(?:btn|card|chip|speak)[\w-]*[^{}\n]*,?\s*)+)\{([^}]*)\}/g)) {
     const selector = m[2].trim();
     const body = m[3].replace(/var\([^)]*\)/g, "");
     if (!/#[0-9a-fA-F]{3,8}\b|rgba?\(/.test(body)) continue;
-    const firstClass = selector.match(/\.((?:btn|card|chip)[\w-]*)/)[1];
+    const firstClass = selector.match(/\.((?:btn|card|chip|speak)[\w-]*)/)[1];
     if (!dark.includes(`html.dark .${firstClass}`)) bad.push(selector);
   }
   return bad;
