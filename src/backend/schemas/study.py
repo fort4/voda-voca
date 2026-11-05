@@ -24,7 +24,7 @@ class FlashcardOut(BaseModel):
     """카드 한 장. 앞면은 term, 뒷면은 meaning/example 이다 (앞·뒤 전환은 클라이언트가 한다)."""
 
     word_id: int
-    wordbook_id: int
+    vocabulary_id: int
     term: str
     meaning: str
     example: str | None
@@ -41,9 +41,9 @@ class FlashcardPage(BaseModel):
 
 
 class QuizCreate(BaseModel):
-    """출제 원천은 단어장, 북마크, 오답 복습 중 정확히 하나여야 한다."""
+    """출제 원천은 표준 단어장, 북마크, 오답 복습 중 정확히 하나여야 한다."""
 
-    wordbook_id: int | None = Field(default=None, description="출제할 단어장 ID (wordbook_id 가 있으면 단어장 퀴즈)")
+    vocabulary_id: int | None = Field(default=None, description="출제할 표준 단어장 ID (vocabulary_id 가 있으면 단어장 퀴즈)")
     bookmarks: bool = Field(default=False, description="true 면 본인 북마크 단어로 출제")
     wrong_only: bool = Field(default=False, description="true 면 최근 학습 기록(100건)에서 틀린 단어로 출제 (오답 복습)")
     count: int = Field(
@@ -55,9 +55,9 @@ class QuizCreate(BaseModel):
 
     @model_validator(mode="after")
     def _exactly_one_source(self) -> Self:
-        chosen = [self.wordbook_id is not None, self.bookmarks, self.wrong_only]
+        chosen = [self.vocabulary_id is not None, self.bookmarks, self.wrong_only]
         if sum(chosen) != 1:
-            raise ValueError("wordbook_id, bookmarks=true, wrong_only=true 중 하나만 지정해야 합니다.")
+            raise ValueError("vocabulary_id, bookmarks=true, wrong_only=true 중 하나만 지정해야 합니다.")
         return self
 
 
@@ -154,7 +154,7 @@ class QuizSessionDetailOut(BaseModel):
 
     session_id: int
     source: str
-    wordbook_id: int | None
+    vocabulary_id: int | None
     is_submitted: bool
     expires_at: datetime
     total: int
@@ -178,8 +178,8 @@ class DayActivityOut(BaseModel):
     is_today: bool
 
 
-class WordbookProgressOut(BaseModel):
-    wordbook_id: int
+class VocabularyProgressOut(BaseModel):
+    vocabulary_id: int
     word_count: int
     learned_words: int = Field(description="한 번이라도 맞힌 단어 수")
     percent: int = Field(description="learned_words / word_count (0~100, 반올림)")
@@ -193,8 +193,8 @@ class StudyStatsOut(BaseModel):
     accuracy: float | None = Field(description="누적 정답률 (0~100, 소수 첫째 자리). 푼 문항이 없으면 null")
     streak_days: int = Field(description="연속 학습일 (한국 날짜). 오늘 아직 안 풀었으면 어제부터 센다")
     weekly: list[DayActivityOut] = Field(description="오늘을 포함한 최근 7일, 오래된 날부터")
-    total_words: int = Field(description="모든 단어장의 단어 수 합계")
-    wordbook_progress: list[WordbookProgressOut]
+    total_words: int = Field(description="모든 표준 단어장의 단어 수 합계")
+    vocabulary_progress: list[VocabularyProgressOut]
     wrong_word_count: int = Field(description="오답 복습 대상 단어 수 (단어별 마지막 결과가 오답)")
 
 
@@ -203,7 +203,7 @@ class StudyStatsOut(BaseModel):
 
 class StudyLogOut(BaseModel):
     word_id: int
-    wordbook_id: int = Field(description="단어가 속한 단어장 ID (진행률 계산용)")
+    vocabulary_id: int = Field(description="단어가 속한 표준 단어장 ID (진행률 계산용)")
     term: str
     is_correct: bool
     created_at: datetime

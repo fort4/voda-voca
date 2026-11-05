@@ -2,6 +2,7 @@
 # 파일 위치: src/backend/tests/helpers.py
 
 import uuid
+from dataclasses import dataclass
 
 import httpx
 
@@ -9,9 +10,6 @@ from backend.core.deps import SESSION_COOKIE_NAME
 
 PASSWORD = "correct-horse-1"
 
-# 가입하면 자동으로 생기는 기본 단어장 3종 (초/중/고 200제). 목록 개수 검증에 쓴다.
-DEFAULT_WORDBOOK_NAMES = ("초급 필수 영단어 200", "중급 핵심 영단어 200", "고급 심화 영단어 200")
-DEFAULT_WORDBOOK_COUNT = len(DEFAULT_WORDBOOK_NAMES)
 TEST_NICKNAME_PREFIX = "tvoda-"
 
 
@@ -35,3 +33,18 @@ async def signup_and_login(client: httpx.AsyncClient, nickname: str | None = Non
     token = login.cookies[SESSION_COOKIE_NAME]
     client.cookies.clear()
     return nickname, token
+
+
+@dataclass(frozen=True)
+class TestVocabulary:
+    """테스트용 표준 단어장. slug 가 tvoda- 로 시작하므로 conftest 가 테스트 뒤에 지운다."""
+
+    __test__ = False  # pytest 가 테스트 클래스로 수집하지 않게 한다
+
+    id: int
+    slug: str
+    title: str
+    word_ids: dict[str, int]  # term -> system_words.id
+
+
+TEST_VOCABULARY_SLUG_PREFIX = "tvoda-"

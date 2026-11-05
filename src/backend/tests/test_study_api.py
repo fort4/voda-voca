@@ -2,20 +2,21 @@
 # 파일 위치: src/backend/tests/test_study_api.py
 
 import asyncio
+import uuid
 from collections.abc import AsyncIterator
 from datetime import timedelta
 
 import httpx
 import pytest
 import pytest_asyncio
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select, update
 
 from backend.db.session import get_session_factory
 from backend.main import app
-from backend.models import QuizSession, StudyLog, User
+from backend.models import QuizSession, StudyLog, SystemVocabulary, SystemWord, User
 from backend.models.base import utcnow
 from backend.routers import study as study_router
-from backend.tests.helpers import auth_headers, signup_and_login
+from backend.tests.helpers import TEST_VOCABULARY_SLUG_PREFIX, auth_headers, signup_and_login
 
 
 @pytest_asyncio.fixture
@@ -28,32 +29,64 @@ async def client() -> AsyncIterator[httpx.AsyncClient]:
 # --- 공통 헬퍼 ---
 
 
-async def make_wordbook(client: httpx.AsyncClient, token: str, name: str = "단어장") -> int:
-    response = await client.post("/api/wordbooks", json={"name": name}, headers=auth_headers(token))
-    assert response.status_code == 201, response.text
-    return response.json()["id"]
+async def make_vocab(client: httpx.AsyncClient, token: str, name: str = "단어장") -> int:
+    """표준 단어장(공용 콘텐츠)을 DB 에 직접 만든다. client, token 은 기존 호출부와 맞추기 위한 인자다."""
+    async with get_session_factory()() as db:
+        vocabulary = SystemVocabulary(
+            slug=f"{TEST_VOCABULARY_SLUG_PREFIX}{uuid.uuid4().hex[:10]}", title=name, category="ELEMENTARY", level=1
+        )
+        db.add(vocabulary)
+        await db.commit()
+        return vocabulary.id
 
 
 async def make_word(
-    client: httpx.AsyncClient, token: str, wordbook_id: int, term: str, meaning: str
+    client: httpx.AsyncClient,
+    token: str,
+    vocabulary_id: int,
+    term: str,
+    meaning: str,
+    example: str | None = None,
+    example_meaning: str | None = None,
 ) -> int:
-    response = await client.post(
-        f"/api/wordbooks/{wordbook_id}/words",
-        json={"term": term, "meaning": meaning},
-        headers=auth_headers(token),
-    )
-    assert response.status_code == 201, response.text
-    return response.json()["id"]
+    async with get_session_factory()() as db:
+        order = await db.scalar(
+            select(func.count()).select_from(SystemWord).where(SystemWord.vocabulary_id == vocabulary_id)
+        )
+        word = SystemWord(
+            vocabulary_id=vocabulary_id,
+            term=term,
+            meaning=meaning,
+            example=example,
+            example_meaning=example_meaning if example else None,
+            order_index=order or 0,
+        )
+        db.add(word)
+        await db.commit()
+        return word.id
+
+
+async def set_example(word_id: int, example: str) -> None:
+    async with get_session_factory()() as db:
+        await db.execute(update(SystemWord).where(SystemWord.id == word_id).values(example=example))
+        await db.commit()
+
+
+async def delete_word(word_id: int) -> None:
+    """표준 단어는 사용자가 지울 수 없으므로 DB 에서 직접 지운다 (시드 정리 같은 운영 상황의 재현)."""
+    async with get_session_factory()() as db:
+        await db.execute(delete(SystemWord).where(SystemWord.id == word_id))
+        await db.commit()
 
 
 async def make_words(
-    client: httpx.AsyncClient, token: str, wordbook_id: int, count: int, prefix: str = "w"
+    client: httpx.AsyncClient, token: str, vocabulary_id: int, count: int, prefix: str = "w"
 ) -> dict[int, str]:
     """단어를 count 개 만들고 {word_id: meaning} 을 돌려준다. 뜻은 모두 다르다."""
     result: dict[int, str] = {}
     for i in range(count):
         meaning = f"{prefix}-뜻-{i}"
-        word_id = await make_word(client, token, wordbook_id, f"{prefix}term{i:02d}", meaning)
+        word_id = await make_word(client, token, vocabulary_id, f"{prefix}term{i:02d}", meaning)
         result[word_id] = meaning
     return result
 
@@ -99,15 +132,15 @@ async def study_log_count() -> int:
 
 
 @pytest.mark.asyncio
-async def test_flashcards_by_wordbook_include_bookmark_flag(client: httpx.AsyncClient) -> None:
+async def test_flashcards_by_vocabulary_include_bookmark_flag(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     words = await make_words(client, token, wb, 3)
     first = next(iter(words))
     await client.put(f"/api/bookmarks/{first}", headers=auth_headers(token))
 
     response = await client.get(
-        "/api/study/flashcards", params={"wordbook_id": wb}, headers=auth_headers(token)
+        "/api/study/flashcards", params={"vocabulary_id": wb}, headers=auth_headers(token)
     )
     assert response.status_code == 200, response.text
     body = response.json()
@@ -121,8 +154,8 @@ async def test_flashcards_by_wordbook_include_bookmark_flag(client: httpx.AsyncC
 @pytest.mark.asyncio
 async def test_flashcards_bookmarked_only_returns_own_bookmarks(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb_a = await make_wordbook(client, token, "A")
-    wb_b = await make_wordbook(client, token, "B")
+    wb_a = await make_vocab(client, token, "A")
+    wb_b = await make_vocab(client, token, "B")
     a_words = await make_words(client, token, wb_a, 2, prefix="a")
     b_words = await make_words(client, token, wb_b, 2, prefix="b")
     picked = [next(iter(a_words)), next(iter(b_words))]
@@ -145,14 +178,11 @@ async def test_flashcards_without_source_is_422(client: httpx.AsyncClient) -> No
 
 
 @pytest.mark.asyncio
-async def test_flashcards_other_users_wordbook_is_404(client: httpx.AsyncClient) -> None:
-    _, owner = await signup_and_login(client)
-    _, intruder = await signup_and_login(client)
-    wb = await make_wordbook(client, owner)
-    await make_words(client, owner, wb, 2)
+async def test_flashcards_unknown_vocabulary_is_404(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
 
     response = await client.get(
-        "/api/study/flashcards", params={"wordbook_id": wb}, headers=auth_headers(intruder)
+        "/api/study/flashcards", params={"vocabulary_id": 999999999}, headers=auth_headers(token)
     )
     assert response.status_code == 404
 
@@ -160,12 +190,12 @@ async def test_flashcards_other_users_wordbook_is_404(client: httpx.AsyncClient)
 @pytest.mark.asyncio
 async def test_flashcards_shuffle_returns_the_same_set(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     words = await make_words(client, token, wb, 8)
 
     response = await client.get(
         "/api/study/flashcards",
-        params={"wordbook_id": wb, "shuffle": "true"},
+        params={"vocabulary_id": wb, "shuffle": "true"},
         headers=auth_headers(token),
     )
     assert response.status_code == 200
@@ -176,14 +206,14 @@ async def test_flashcards_shuffle_returns_the_same_set(client: httpx.AsyncClient
 async def test_flashcards_offset_continues_in_term_order(client: httpx.AsyncClient) -> None:
     """limit 보다 큰 세트도 offset 으로 이어 받으면 빠짐없이, 겹침 없이 모두 받는다 (한도에서 잘리던 문제)."""
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     words = await make_words(client, token, wb, 5)
 
     collected: list[int] = []
     for offset in (0, 2, 4):
         response = await client.get(
             "/api/study/flashcards",
-            params={"wordbook_id": wb, "limit": 2, "offset": offset},
+            params={"vocabulary_id": wb, "limit": 2, "offset": offset},
             headers=auth_headers(token),
         )
         assert response.status_code == 200, response.text
@@ -193,7 +223,7 @@ async def test_flashcards_offset_continues_in_term_order(client: httpx.AsyncClie
 
     assert len(collected) == 5 and set(collected) == set(words)
     full = await client.get(
-        "/api/study/flashcards", params={"wordbook_id": wb}, headers=auth_headers(token)
+        "/api/study/flashcards", params={"vocabulary_id": wb}, headers=auth_headers(token)
     )
     assert collected == [item["word_id"] for item in full.json()["items"]], "표제어 순서가 유지되어야 한다"
 
@@ -201,11 +231,11 @@ async def test_flashcards_offset_continues_in_term_order(client: httpx.AsyncClie
 @pytest.mark.asyncio
 async def test_flashcards_offset_past_the_end_is_empty_not_an_error(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     await make_words(client, token, wb, 3)
 
     response = await client.get(
-        "/api/study/flashcards", params={"wordbook_id": wb, "offset": 10}, headers=auth_headers(token)
+        "/api/study/flashcards", params={"vocabulary_id": wb, "offset": 10}, headers=auth_headers(token)
     )
     assert response.status_code == 200
     assert response.json() == {"items": [], "total": 3}
@@ -214,16 +244,16 @@ async def test_flashcards_offset_past_the_end_is_empty_not_an_error(client: http
 @pytest.mark.asyncio
 async def test_flashcards_offset_with_shuffle_or_negative_is_422(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     await make_words(client, token, wb, 3)
 
     shuffled = await client.get(
         "/api/study/flashcards",
-        params={"wordbook_id": wb, "shuffle": "true", "offset": 1},
+        params={"vocabulary_id": wb, "shuffle": "true", "offset": 1},
         headers=auth_headers(token),
     )
     negative = await client.get(
-        "/api/study/flashcards", params={"wordbook_id": wb, "offset": -1}, headers=auth_headers(token)
+        "/api/study/flashcards", params={"vocabulary_id": wb, "offset": -1}, headers=auth_headers(token)
     )
     assert shuffled.status_code == 422
     assert negative.status_code == 422
@@ -233,16 +263,16 @@ async def test_flashcards_offset_with_shuffle_or_negative_is_422(client: httpx.A
 
 
 @pytest.mark.asyncio
-async def test_quiz_fills_distractors_from_the_whole_pool_when_wordbook_meanings_are_identical(
+async def test_quiz_fills_distractors_from_the_whole_pool_when_vocabulary_meanings_are_identical(
     client: httpx.AsyncClient,
 ) -> None:
-    """원천 단어장의 뜻이 모두 같아도, 사용자 전체 단어(기본 단어장 포함)에서 오답을 채운다."""
+    """원천 단어장의 뜻이 모두 같아도, 다른 표준 단어장의 단어에서 오답을 채운다."""
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     for i in range(4):
         await make_word(client, token, wb, f"same{i}", "똑같은뜻")
 
-    response = await create_quiz(client, token, {"wordbook_id": wb, "count": 4})
+    response = await create_quiz(client, token, {"vocabulary_id": wb, "count": 4})
     assert response.status_code == 201, response.text
     body = response.json()
     session = await load_session(body["session_id"])
@@ -255,10 +285,10 @@ async def test_quiz_fills_distractors_from_the_whole_pool_when_wordbook_meanings
 @pytest.mark.asyncio
 async def test_quiz_needs_at_least_four_words(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     await make_words(client, token, wb, 3)
 
-    response = await create_quiz(client, token, {"wordbook_id": wb})
+    response = await create_quiz(client, token, {"vocabulary_id": wb})
     assert response.status_code == 400
     assert "4개 이상" in response.json()["detail"]
 
@@ -266,14 +296,14 @@ async def test_quiz_needs_at_least_four_words(client: httpx.AsyncClient) -> None
 @pytest.mark.asyncio
 async def test_quiz_count_is_min_of_request_and_available(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     await make_words(client, token, wb, 6)
 
-    capped = await create_quiz(client, token, {"wordbook_id": wb, "count": 10})
+    capped = await create_quiz(client, token, {"vocabulary_id": wb, "count": 10})
     assert capped.status_code == 201, capped.text
     assert len(capped.json()["questions"]) == 6
 
-    small = await create_quiz(client, token, {"wordbook_id": wb, "count": 2})
+    small = await create_quiz(client, token, {"vocabulary_id": wb, "count": 2})
     assert len(small.json()["questions"]) == 2
 
 
@@ -281,12 +311,12 @@ async def test_quiz_count_is_min_of_request_and_available(client: httpx.AsyncCli
 async def test_quiz_response_carries_answer_key_and_example_for_instant_feedback(client: httpx.AsyncClient) -> None:
     """즉각 피드백: 문항마다 정답 인덱스와 해설 예문을 준다. 값은 저장된 세션과 같아야 한다."""
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     words = await make_words(client, token, wb, 5)
     for word_id in words:
-        await client.patch(f"/api/wordbooks/{wb}/words/{word_id}", json={"example": f"Example of {words[word_id]}."}, headers=auth_headers(token))
+        await set_example(word_id, f"Example of {words[word_id]}.")
 
-    response = await create_quiz(client, token, {"wordbook_id": wb})
+    response = await create_quiz(client, token, {"vocabulary_id": wb})
     body = response.json()
     assert "expires_at" in body and body["expires_at"].endswith("Z")
     session = await load_session(body["session_id"])
@@ -300,11 +330,11 @@ async def test_quiz_response_carries_answer_key_and_example_for_instant_feedback
 
 
 @pytest.mark.asyncio
-async def test_distractors_come_from_the_original_wordbook_first(client: httpx.AsyncClient) -> None:
-    """북마크 퀴즈의 오답은 단어가 속한 원본 단어장에서 먼저 뽑힌다 (결정 3)."""
+async def test_distractors_come_from_the_original_vocabulary_first(client: httpx.AsyncClient) -> None:
+    """북마크 퀴즈의 오답은 단어가 속한 원본 표준 단어장에서 먼저 뽑힌다 (결정 3)."""
     _, token = await signup_and_login(client)
-    wb_a = await make_wordbook(client, token, "A")
-    wb_b = await make_wordbook(client, token, "B")
+    wb_a = await make_vocab(client, token, "A")
+    wb_b = await make_vocab(client, token, "B")
     a_words = await make_words(client, token, wb_a, 4, prefix="a")
     b_words = await make_words(client, token, wb_b, 4, prefix="b")
     for word_id in [*a_words, *b_words]:
@@ -322,7 +352,7 @@ async def test_distractors_come_from_the_original_wordbook_first(client: httpx.A
 @pytest.mark.asyncio
 async def test_bookmark_quiz_needs_four_bookmarks(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     words = await make_words(client, token, wb, 5)
     for word_id in list(words)[:3]:
         await client.put(f"/api/bookmarks/{word_id}", headers=auth_headers(token))
@@ -335,7 +365,7 @@ async def test_bookmark_quiz_needs_four_bookmarks(client: httpx.AsyncClient) -> 
     assert ok.status_code == 201, ok.text
     session = await load_session(ok.json()["session_id"])
     assert session.source == "bookmarks"
-    assert session.wordbook_id is None
+    assert session.vocabulary_id is None
 
 
 @pytest.mark.asyncio
@@ -343,9 +373,9 @@ async def test_bookmark_quiz_needs_four_bookmarks(client: httpx.AsyncClient) -> 
     "body",
     [
         {},
-        {"wordbook_id": 1, "bookmarks": True},
-        {"count": 0, "wordbook_id": 1},
-        {"count": 51, "wordbook_id": 1},
+        {"vocabulary_id": 1, "bookmarks": True},
+        {"count": 0, "vocabulary_id": 1},
+        {"count": 51, "vocabulary_id": 1},
     ],
 )
 async def test_quiz_rejects_invalid_body(client: httpx.AsyncClient, body: dict) -> None:
@@ -355,13 +385,10 @@ async def test_quiz_rejects_invalid_body(client: httpx.AsyncClient, body: dict) 
 
 
 @pytest.mark.asyncio
-async def test_quiz_other_users_wordbook_is_404(client: httpx.AsyncClient) -> None:
-    _, owner = await signup_and_login(client)
-    _, intruder = await signup_and_login(client)
-    wb = await make_wordbook(client, owner)
-    await make_words(client, owner, wb, 4)
+async def test_quiz_unknown_vocabulary_is_404(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
 
-    response = await create_quiz(client, intruder, {"wordbook_id": wb})
+    response = await create_quiz(client, token, {"vocabulary_id": 999999999})
     assert response.status_code == 404
 
 
@@ -371,9 +398,9 @@ async def test_quiz_other_users_wordbook_is_404(client: httpx.AsyncClient) -> No
 @pytest.mark.asyncio
 async def test_submit_grades_and_records_one_log_per_question(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     words = await make_words(client, token, wb, 4)
-    created = (await create_quiz(client, token, {"wordbook_id": wb})).json()
+    created = (await create_quiz(client, token, {"vocabulary_id": wb})).json()
     session = await load_session(created["session_id"])
     before = await study_log_count()
 
@@ -406,9 +433,9 @@ async def test_submit_grades_and_records_one_log_per_question(client: httpx.Asyn
 @pytest.mark.asyncio
 async def test_submit_twice_is_409_and_logs_are_not_duplicated(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     await make_words(client, token, wb, 4)
-    created = (await create_quiz(client, token, {"wordbook_id": wb})).json()
+    created = (await create_quiz(client, token, {"vocabulary_id": wb})).json()
     answers = correct_answers(await load_session(created["session_id"]))
 
     first = await submit(client, token, created["session_id"], answers)
@@ -424,9 +451,9 @@ async def test_submit_twice_is_409_and_logs_are_not_duplicated(client: httpx.Asy
 @pytest.mark.asyncio
 async def test_concurrent_submits_only_one_succeeds(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     await make_words(client, token, wb, 4)
-    created = (await create_quiz(client, token, {"wordbook_id": wb})).json()
+    created = (await create_quiz(client, token, {"vocabulary_id": wb})).json()
     answers = correct_answers(await load_session(created["session_id"]))
 
     before = await study_log_count()
@@ -441,9 +468,9 @@ async def test_concurrent_submits_only_one_succeeds(client: httpx.AsyncClient) -
 @pytest.mark.asyncio
 async def test_submit_after_expiry_is_400(client: httpx.AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     await make_words(client, token, wb, 4)
-    created = (await create_quiz(client, token, {"wordbook_id": wb})).json()
+    created = (await create_quiz(client, token, {"vocabulary_id": wb})).json()
     answers = correct_answers(await load_session(created["session_id"]))
 
     later = utcnow() + timedelta(minutes=31)
@@ -457,9 +484,9 @@ async def test_submit_after_expiry_is_400(client: httpx.AsyncClient, monkeypatch
 @pytest.mark.asyncio
 async def test_submit_just_before_expiry_is_accepted(client: httpx.AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     await make_words(client, token, wb, 4)
-    created = (await create_quiz(client, token, {"wordbook_id": wb})).json()
+    created = (await create_quiz(client, token, {"vocabulary_id": wb})).json()
     answers = correct_answers(await load_session(created["session_id"]))
 
     almost = utcnow() + timedelta(minutes=29, seconds=59)
@@ -471,9 +498,9 @@ async def test_submit_just_before_expiry_is_accepted(client: httpx.AsyncClient, 
 @pytest.mark.asyncio
 async def test_submit_with_bad_answer_set_is_400(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     await make_words(client, token, wb, 4)
-    created = (await create_quiz(client, token, {"wordbook_id": wb})).json()
+    created = (await create_quiz(client, token, {"vocabulary_id": wb})).json()
     answers = correct_answers(await load_session(created["session_id"]))
 
     # 일부 문항만 보내는 것은 이제 정상이다 (이슈 #8 부분 완료). 중복·모르는 문항만 거부한다.
@@ -491,9 +518,9 @@ async def test_submit_with_bad_answer_set_is_400(client: httpx.AsyncClient) -> N
 @pytest.mark.asyncio
 async def test_submit_with_out_of_range_choice_is_422(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     await make_words(client, token, wb, 4)
-    created = (await create_quiz(client, token, {"wordbook_id": wb})).json()
+    created = (await create_quiz(client, token, {"vocabulary_id": wb})).json()
 
     answers = [{"question_id": i, "choice_index": 4} for i in range(4)]
     response = await submit(client, token, created["session_id"], answers)
@@ -504,9 +531,9 @@ async def test_submit_with_out_of_range_choice_is_422(client: httpx.AsyncClient)
 async def test_submit_other_users_session_is_404(client: httpx.AsyncClient) -> None:
     _, owner = await signup_and_login(client)
     _, intruder = await signup_and_login(client)
-    wb = await make_wordbook(client, owner)
+    wb = await make_vocab(client, owner)
     await make_words(client, owner, wb, 4)
-    created = (await create_quiz(client, owner, {"wordbook_id": wb})).json()
+    created = (await create_quiz(client, owner, {"vocabulary_id": wb})).json()
     answers = correct_answers(await load_session(created["session_id"]))
 
     response = await submit(client, intruder, created["session_id"], answers)
@@ -517,15 +544,14 @@ async def test_submit_other_users_session_is_404(client: httpx.AsyncClient) -> N
 async def test_deleted_word_blocks_submit_without_partial_write(client: httpx.AsyncClient) -> None:
     """문항 단어가 중간에 삭제되면 409. 세션은 제출되지 않고 이력도 한 줄도 남지 않는다 (REQ-106)."""
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     words = await make_words(client, token, wb, 4)
-    created = (await create_quiz(client, token, {"wordbook_id": wb, "count": 4})).json()
+    created = (await create_quiz(client, token, {"vocabulary_id": wb, "count": 4})).json()
     answers = correct_answers(await load_session(created["session_id"]))
     before = await study_log_count()
 
     victim = next(iter(words))
-    deleted = await client.delete(f"/api/wordbooks/{wb}/words/{victim}", headers=auth_headers(token))
-    assert deleted.status_code == 204
+    await delete_word(victim)
 
     response = await submit(client, token, created["session_id"], answers)
     assert response.status_code == 409
@@ -540,10 +566,10 @@ async def test_deleted_word_blocks_submit_without_partial_write(client: httpx.As
 @pytest.mark.asyncio
 async def test_logs_are_newest_first_and_limited(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     await make_words(client, token, wb, 4)
     for _ in range(2):
-        created = (await create_quiz(client, token, {"wordbook_id": wb})).json()
+        created = (await create_quiz(client, token, {"vocabulary_id": wb})).json()
         answers = correct_answers(await load_session(created["session_id"]))
         assert (await submit(client, token, created["session_id"], answers)).status_code == 200
 
@@ -555,16 +581,16 @@ async def test_logs_are_newest_first_and_limited(client: httpx.AsyncClient) -> N
     assert stamps == sorted(stamps, reverse=True)
     assert all(item["created_at"].endswith("Z") for item in items)
     assert all(item["is_correct"] is True for item in items)
-    assert all(item["wordbook_id"] == wb for item in items)  # 진행률 계산이 단어장을 알아야 한다
+    assert all(item["vocabulary_id"] == wb for item in items)  # 진행률 계산이 단어장을 알아야 한다
 
 
 @pytest.mark.asyncio
 async def test_logs_are_scoped_to_the_requesting_user(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
     _, other = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     await make_words(client, token, wb, 4)
-    created = (await create_quiz(client, token, {"wordbook_id": wb})).json()
+    created = (await create_quiz(client, token, {"vocabulary_id": wb})).json()
     await submit(client, token, created["session_id"], correct_answers(await load_session(created["session_id"])))
 
     response = await client.get("/api/study/logs", headers=auth_headers(other))
@@ -600,7 +626,7 @@ async def _user_id_for_token(client: httpx.AsyncClient, token: str) -> int:
 @pytest.mark.asyncio
 async def test_wrong_quiz_under_four_wrong_words_is_400_with_the_count(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     words = await make_words(client, token, wb, 6)
     user_id = await _user_id_for_token(client, token)
     for word_id in list(words)[:3]:
@@ -614,7 +640,7 @@ async def test_wrong_quiz_under_four_wrong_words_is_400_with_the_count(client: h
 @pytest.mark.asyncio
 async def test_wrong_quiz_uses_distinct_wrong_words_and_records_source_wrong(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     words = await make_words(client, token, wb, 6)
     user_id = await _user_id_for_token(client, token)
     wrong = list(words)[:4]
@@ -629,7 +655,7 @@ async def test_wrong_quiz_uses_distinct_wrong_words_and_records_source_wrong(cli
     assert len(body["questions"]) == 4
     session = await load_session(body["session_id"])
     assert session.source == "wrong"
-    assert session.wordbook_id is None
+    assert session.vocabulary_id is None
     assert {q["word_id"] for q in session.questions} == set(wrong)
 
 
@@ -637,7 +663,7 @@ async def test_wrong_quiz_uses_distinct_wrong_words_and_records_source_wrong(cli
 async def test_wrong_quiz_has_no_log_window_old_wrong_words_still_count(client: httpx.AsyncClient) -> None:
     """오답 판정은 단어별 마지막 결과다. 최근 100건 창이 없어서, 오래전에 틀리고 다시 풀지 않은 단어도 대상이다 (이슈 #3)."""
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     words = await make_words(client, token, wb, 5)
     user_id = await _user_id_for_token(client, token)
     wrong = list(words)[:4]
@@ -654,10 +680,10 @@ async def test_wrong_quiz_has_no_log_window_old_wrong_words_still_count(client: 
 
 
 @pytest.mark.asyncio
-async def test_wrong_quiz_source_is_exclusive_with_wordbook_and_bookmarks(client: httpx.AsyncClient) -> None:
+async def test_wrong_quiz_source_is_exclusive_with_vocabulary_and_bookmarks(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
-    assert (await create_quiz(client, token, {"wrong_only": True, "wordbook_id": wb})).status_code == 422
+    wb = await make_vocab(client, token)
+    assert (await create_quiz(client, token, {"wrong_only": True, "vocabulary_id": wb})).status_code == 422
     assert (await create_quiz(client, token, {"wrong_only": True, "bookmarks": True})).status_code == 422
 
 
@@ -665,19 +691,18 @@ async def test_wrong_quiz_source_is_exclusive_with_wordbook_and_bookmarks(client
 async def test_quiz_question_includes_example_meaning_or_null_when_there_is_no_example(client: httpx.AsyncClient) -> None:
     """출제 응답의 문항에 예문 뜻이 실린다. 예문이 없는 단어는 해석이 있어도 null 이다."""
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     expected: dict[int, str | None] = {}
     for i in range(4):
-        payload = {"term": f"tr{i}", "meaning": f"뜻-{i}"}
         if i < 3:
-            payload.update(example=f"Example {i}.", example_meaning=f"해석 {i}")
+            word_id = await make_word(client, token, wb, f"tr{i}", f"뜻-{i}", f"Example {i}.", f"해석 {i}")
+            expected[word_id] = f"해석 {i}"
         else:
-            payload.update(example_meaning="예문이 없으면 버려진다")
-        response = await client.post(f"/api/wordbooks/{wb}/words", json=payload, headers=auth_headers(token))
-        assert response.status_code == 201, response.text
-        expected[response.json()["id"]] = payload.get("example_meaning") if i < 3 else None
+            # 예문이 없으면 예문 뜻은 저장되지 않는다 (make_word 가 버린다)
+            word_id = await make_word(client, token, wb, f"tr{i}", f"뜻-{i}", None, "예문이 없으면 버려진다")
+            expected[word_id] = None
 
-    body = (await create_quiz(client, token, {"wordbook_id": wb})).json()
+    body = (await create_quiz(client, token, {"vocabulary_id": wb})).json()
     session = await load_session(body["session_id"])
     assert len(body["questions"]) == 4
     for stored, shown in zip(session.questions, body["questions"], strict=True):
@@ -688,13 +713,8 @@ async def test_quiz_question_includes_example_meaning_or_null_when_there_is_no_e
 @pytest.mark.asyncio
 async def test_flashcards_expose_example_meaning(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
-    response = await client.post(
-        f"/api/wordbooks/{wb}/words",
-        json={"term": "card", "meaning": "카드", "example": "A card.", "example_meaning": "카드 한 장."},
-        headers=auth_headers(token),
-    )
-    assert response.status_code == 201, response.text
+    wb = await make_vocab(client, token)
+    await make_word(client, token, wb, "card", "카드", "A card.", "카드 한 장.")
 
-    page = (await client.get("/api/study/flashcards", params={"wordbook_id": wb}, headers=auth_headers(token))).json()
+    page = (await client.get("/api/study/flashcards", params={"vocabulary_id": wb}, headers=auth_headers(token))).json()
     assert page["items"][0]["example_meaning"] == "카드 한 장."

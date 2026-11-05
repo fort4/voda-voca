@@ -12,11 +12,11 @@ from backend.services import study as study_service
 from backend.services.study import QuizAnswerError
 
 
-def _word(word_id: int, wordbook_id: int, meaning: str) -> SimpleNamespace:
-    """서비스가 쓰는 속성(id, wordbook_id, term, meaning)만 가진 가짜 단어."""
+def _word(word_id: int, vocabulary_id: int, meaning: str) -> SimpleNamespace:
+    """서비스가 쓰는 속성(id, vocabulary_id, term, meaning)만 가진 가짜 단어."""
     return SimpleNamespace(
         id=word_id,
-        wordbook_id=wordbook_id,
+        vocabulary_id=vocabulary_id,
         term=f"t{word_id}",
         meaning=meaning,
         example=None,
@@ -74,7 +74,7 @@ def test_question_carries_the_example_and_its_translation_or_none() -> None:
     def word(word_id: int, example: str | None, translation: str | None) -> SimpleNamespace:
         return SimpleNamespace(
             id=word_id,
-            wordbook_id=10,
+            vocabulary_id=10,
             term=f"t{word_id}",
             meaning=f"뜻{word_id}",
             example=example,
@@ -145,9 +145,9 @@ def test_validate_answers_rejects_duplicate_or_unknown(answers: list[QuizAnswer]
 @pytest.mark.parametrize(
     ("payload", "valid"),
     [
-        ({"wordbook_id": 1}, True),
+        ({"vocabulary_id": 1}, True),
         ({"bookmarks": True}, True),
-        ({"wordbook_id": 1, "bookmarks": True}, False),
+        ({"vocabulary_id": 1, "bookmarks": True}, False),
         ({}, False),
     ],
 )
@@ -160,7 +160,7 @@ def test_quiz_create_accepts_exactly_one_source_only(payload: dict, valid: bool)
 
 
 def test_quiz_create_defaults_count_to_ten() -> None:
-    assert QuizCreate(wordbook_id=1).count == 10
+    assert QuizCreate(vocabulary_id=1).count == 10
 
 
 def test_quiz_answer_choice_index_must_be_within_four_choices() -> None:
@@ -221,6 +221,7 @@ def _submit_row() -> SimpleNamespace:
 
     return SimpleNamespace(
         is_submitted=False,
+        mode="quiz",
         expires_at=utcnow() + timedelta(minutes=10),
         questions=[{"question_id": 0, "word_id": 7, "term": "t", "choices": ["a", "b", "c", "d"], "correct_index": 0}],
         answers={},

@@ -41,11 +41,11 @@ from backend.services.study import (
     QuizSourceTooSmallError,
     QuizWordMissingError,
 )
-from backend.services.wordbook import WordbookNotFoundError
+from backend.services.errors import VocabularyNotFoundError
 
 router = APIRouter(prefix="/api/study", tags=["study"])
 
-WORDBOOK_NOT_FOUND = HTTPException(
+VOCABULARY_NOT_FOUND = HTTPException(
     status_code=status.HTTP_404_NOT_FOUND,
     detail="단어장을 찾을 수 없습니다.",
 )
@@ -70,7 +70,7 @@ def _now() -> datetime:
 
 @router.get("/flashcards", response_model=FlashcardPage)
 async def get_flashcards(
-    wordbook_id: int | None = Query(default=None, description="이 단어장의 카드만"),
+    vocabulary_id: int | None = Query(default=None, description="이 표준 단어장의 카드만"),
     bookmarked: bool = Query(default=False, description="true 면 본인 북마크 카드만"),
     shuffle: bool = Query(default=False, description="true 면 무작위 순서"),
     limit: int = Query(default=FLASHCARD_LIMIT_DEFAULT, ge=1, le=FLASHCARD_LIMIT_MAX),
@@ -82,17 +82,17 @@ async def get_flashcards(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session),
 ) -> FlashcardPage:
-    if wordbook_id is None and not bookmarked:
+    if vocabulary_id is None and not bookmarked:
         raise HTTPException(
             status_code=422,
-            detail="wordbook_id 또는 bookmarked=true 중 하나를 지정해야 합니다.",
+            detail="vocabulary_id 또는 bookmarked=true 중 하나를 지정해야 합니다.",
         )
     try:
         rows, total = await study_service.list_flashcards(
-            db, user.id, wordbook_id, bookmarked, shuffle, limit, offset
+            db, user.id, vocabulary_id, bookmarked, shuffle, limit, offset
         )
-    except WordbookNotFoundError as exc:
-        raise WORDBOOK_NOT_FOUND from exc
+    except VocabularyNotFoundError as exc:
+        raise VOCABULARY_NOT_FOUND from exc
     except FlashcardOffsetWithShuffleError as exc:
         raise HTTPException(
             status_code=422,
@@ -102,7 +102,7 @@ async def get_flashcards(
     items = [
         FlashcardOut(
             word_id=word.id,
-            wordbook_id=word.wordbook_id,
+            vocabulary_id=word.vocabulary_id,
             term=word.term,
             meaning=word.meaning,
             example=word.example,
@@ -128,14 +128,14 @@ async def create_quiz_session(
         session = await study_service.create_quiz(
             db,
             user.id,
-            wordbook_id=body.wordbook_id,
+            vocabulary_id=body.vocabulary_id,
             bookmarks=body.bookmarks,
             count=body.count,
             wrong_only=body.wrong_only,
             now=_now(),
         )
-    except WordbookNotFoundError as exc:
-        raise WORDBOOK_NOT_FOUND from exc
+    except VocabularyNotFoundError as exc:
+        raise VOCABULARY_NOT_FOUND from exc
     except QuizSourceTooSmallError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
@@ -264,11 +264,11 @@ async def list_study_logs(
         items=[
             StudyLogOut(
                 word_id=word_id,
-                wordbook_id=wordbook_id,
+                vocabulary_id=vocabulary_id,
                 term=term,
                 is_correct=is_correct,
                 created_at=created_at,
             )
-            for word_id, wordbook_id, term, is_correct, created_at in rows
+            for word_id, vocabulary_id, term, is_correct, created_at in rows
         ]
     )

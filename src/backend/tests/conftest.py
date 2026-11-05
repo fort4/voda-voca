@@ -1,7 +1,8 @@
 # 2026-11-02 - voda-voca - 테스트 공통 fixture: 엔진 정리, 빠른 bcrypt, 테스트 계정 정리
 # 파일 위치: src/backend/tests/conftest.py
 
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterator, Sequence
+import uuid
 
 import pytest
 import pytest_asyncio
@@ -10,7 +11,8 @@ from sqlalchemy import delete
 from backend.core.config import get_settings
 from backend.core.rate_limit import login_rate_limiter
 from backend.db.session import dispose_engine, get_session_factory
-from backend.models import User
+from backend.models import SystemVocabulary, SystemWord, User
+from backend.tests.helpers import TEST_VOCABULARY_SLUG_PREFIX, TestVocabulary
 
 # 테스트 계정 닉네임 패턴. 정리(cleanup) 시 이 패턴만 지운다.
 TEST_NICKNAME_LIKE = "tvoda-%"
@@ -57,3 +59,61 @@ async def _delete_test_users() -> None:
     async with get_session_factory()() as session:
         await session.execute(delete(User).where(User.nickname.like(TEST_NICKNAME_LIKE)))
         await session.commit()
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def _cleanup_test_vocabularies() -> AsyncIterator[None]:
+    """테스트가 만든 표준 단어장(slug 가 tvoda- 로 시작)을 테스트 전후로 지운다 (단어·북마크·이력은 CASCADE)."""
+    await _delete_test_vocabularies()
+    yield
+    await _delete_test_vocabularies()
+
+
+async def _delete_test_vocabularies() -> None:
+    async with get_session_factory()() as session:
+        await session.execute(
+            delete(SystemVocabulary).where(SystemVocabulary.slug.like(f"{TEST_VOCABULARY_SLUG_PREFIX}%"))
+        )
+        await session.commit()
+
+
+@pytest_asyncio.fixture
+async def make_vocabulary() -> AsyncIterator[Callable[..., Awaitable[TestVocabulary]]]:
+    """표준 단어장을 만드는 팩토리. 단어는 term 목록으로 주고, 뜻과 예문은 term 에서 만든다.
+
+    사용: vocab = await make_vocabulary(["apple", "banana", "cherry", "date"])
+    표준 단어장은 공용 콘텐츠라 사용자가 만들 수 없으므로, 테스트는 DB 에 직접 넣는다. 테스트가 끝나면 지운다.
+    """
+
+    async def _make(
+        terms: Sequence[str],
+        *,
+        title: str = "테스트 단어장",
+        category: str = "ELEMENTARY",
+        level: int = 1,
+    ) -> TestVocabulary:
+        slug = f"{TEST_VOCABULARY_SLUG_PREFIX}{uuid.uuid4().hex[:10]}"
+        async with get_session_factory()() as session:
+            vocabulary = SystemVocabulary(
+                slug=slug, title=title, category=category, level=level, total_words=len(terms)
+            )
+            session.add(vocabulary)
+            await session.flush()
+            words = [
+                SystemWord(
+                    vocabulary_id=vocabulary.id,
+                    term=term,
+                    meaning=f"{term}의 뜻",
+                    example=f"I like {term}.",
+                    example_meaning=f"나는 {term}을(를) 좋아한다.",
+                    order_index=index,
+                )
+                for index, term in enumerate(terms)
+            ]
+            session.add_all(words)
+            await session.commit()
+            return TestVocabulary(
+                id=vocabulary.id, slug=slug, title=title, word_ids={w.term: w.id for w in words}
+            )
+
+    yield _make

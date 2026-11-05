@@ -1,4 +1,4 @@
-# 2026-11-03 - voda-voca - 학습 통계 집계: 누적 정답률, 연속 학습일, 최근 7일 활동, 단어장 진행률, 오답 단어 (이슈 #3)
+# 2026-11-05 - voda-voca - 학습 통계 집계: 누적 정답률, 연속 학습일, 최근 7일 활동, 표준 단어장 진행률, 오답 단어 (이슈 #3)
 # 파일 위치: src/backend/services/stats.py
 """모든 학습 지표를 study_logs 에서 읽는 시점에 집계한다. 최근 N건 제한은 없다.
 
@@ -11,8 +11,8 @@ from datetime import date, datetime, time, timedelta
 from sqlalchemy import Integer, case, func, literal_column, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import StudyLog, Word, Wordbook
-from backend.schemas.study import DayActivityOut, StudyStatsOut, WordbookProgressOut
+from backend.models import StudyLog, SystemVocabulary, SystemWord
+from backend.schemas.study import DayActivityOut, StudyStatsOut, VocabularyProgressOut
 
 KST_OFFSET = timedelta(hours=9)  # 학습일 경계는 한국 시각 자정이다 (DB 에는 UTC 로 저장)
 WEEK_DAYS = 7
@@ -97,34 +97,36 @@ async def _weekly(db: AsyncSession, user_id: int, today: date) -> list[DayActivi
     ]
 
 
-async def _wordbook_progress(db: AsyncSession, user_id: int) -> list[WordbookProgressOut]:
-    """단어장별 진행률: 한 번이라도 맞힌 단어 수 / 단어 수. 맞힌 뒤 틀려도 학습한 단어로 센다."""
+async def _vocabulary_progress(db: AsyncSession, user_id: int) -> list[VocabularyProgressOut]:
+    """표준 단어장별 진행률: 한 번이라도 맞힌 단어 수 / 단어 수. 맞힌 뒤 틀려도 학습한 단어로 센다.
+
+    표준 단어장은 모든 사용자가 공유하므로 전체 목록(sort_order, id 순)을 보여 주고, 맞힌 수만 사용자별로 센다.
+    """
     sizes = (
         await db.execute(
-            select(Wordbook.id, func.count(Word.id))
-            .outerjoin(Word, Word.wordbook_id == Wordbook.id)
-            .where(Wordbook.user_id == user_id)
-            .group_by(Wordbook.id)
-            .order_by(Wordbook.id)
+            select(SystemVocabulary.id, func.count(SystemWord.id))
+            .outerjoin(SystemWord, SystemWord.vocabulary_id == SystemVocabulary.id)
+            .group_by(SystemVocabulary.id, SystemVocabulary.sort_order)
+            .order_by(SystemVocabulary.sort_order, SystemVocabulary.id)
         )
     ).all()
     learned = dict(
         (
             await db.execute(
-                select(Word.wordbook_id, func.count(func.distinct(Word.id)))
-                .join(StudyLog, StudyLog.word_id == Word.id)
+                select(SystemWord.vocabulary_id, func.count(func.distinct(SystemWord.id)))
+                .join(StudyLog, StudyLog.word_id == SystemWord.id)
                 .where(StudyLog.user_id == user_id, StudyLog.is_correct.is_(True))
-                .group_by(Word.wordbook_id)
+                .group_by(SystemWord.vocabulary_id)
             )
         ).all()
     )
     result = []
-    for wordbook_id, word_count in sizes:
-        learned_words = int(learned.get(wordbook_id, 0))
+    for vocabulary_id, word_count in sizes:
+        learned_words = int(learned.get(vocabulary_id, 0))
         percent = min(100, int(learned_words * 100 / word_count + 0.5)) if word_count else 0
         result.append(
-            WordbookProgressOut(
-                wordbook_id=wordbook_id, word_count=int(word_count), learned_words=learned_words, percent=percent
+            VocabularyProgressOut(
+                vocabulary_id=vocabulary_id, word_count=int(word_count), learned_words=learned_words, percent=percent
             )
         )
     return result
@@ -134,7 +136,7 @@ async def get_study_stats(db: AsyncSession, user_id: int, now: datetime) -> Stud
     """대시보드·이력·퀴즈 설정 화면이 쓰는 학습 지표 전체."""
     today = kst_today(now)
     answered, correct = await _answer_totals(db, user_id)
-    progress = await _wordbook_progress(db, user_id)
+    progress = await _vocabulary_progress(db, user_id)
     return StudyStatsOut(
         answered=answered,
         correct=correct,
@@ -142,6 +144,6 @@ async def get_study_stats(db: AsyncSession, user_id: int, now: datetime) -> Stud
         streak_days=await _streak_days(db, user_id, today),
         weekly=await _weekly(db, user_id, today),
         total_words=sum(p.word_count for p in progress),
-        wordbook_progress=progress,
+        vocabulary_progress=progress,
         wrong_word_count=len(await wrong_word_ids(db, user_id)),
     )

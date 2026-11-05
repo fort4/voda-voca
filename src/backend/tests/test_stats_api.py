@@ -10,10 +10,10 @@ import pytest_asyncio
 
 from backend.db.session import get_session_factory
 from backend.main import app
-from backend.models import StudyLog, Word
+from backend.models import StudyLog, SystemWord
 from backend.routers import study as study_router
 from backend.tests.helpers import auth_headers, signup_and_login
-from backend.tests.test_study_api import _user_id_for_token, create_quiz, make_wordbook, make_words
+from backend.tests.test_study_api import _user_id_for_token, create_quiz, make_vocab, make_words
 
 # 고정 "지금": UTC 2026-11-04 02:00 = 한국 시각 2026-11-04 11:00. 한국 날짜 기준 "오늘"은 11-04 다.
 FIXED_NOW = datetime(2026, 11, 4, 2, 0, 0)
@@ -45,10 +45,10 @@ async def seed_logs(user_id: int, rows: list[tuple[int, bool, datetime]]) -> Non
         await db.commit()
 
 
-async def insert_words(wordbook_id: int, count: int) -> list[int]:
+async def insert_words(vocabulary_id: int, count: int) -> list[int]:
     """API 호출 없이 단어를 한꺼번에 넣는다 (대형 단어장 시나리오용)."""
     async with get_session_factory()() as db:
-        words = [Word(wordbook_id=wordbook_id, term=f"bulk{i:04d}", meaning=f"대량-{i}") for i in range(count)]
+        words = [SystemWord(vocabulary_id=vocabulary_id, term=f"bulk{i:04d}", meaning=f"대량-{i}") for i in range(count)]
         db.add_all(words)
         await db.commit()
         return [w.id for w in words]
@@ -60,8 +60,8 @@ async def get_stats(client: httpx.AsyncClient, token: str) -> dict:
     return response.json()
 
 
-def progress_of(stats: dict, wordbook_id: int) -> dict:
-    return next(p for p in stats["wordbook_progress"] if p["wordbook_id"] == wordbook_id)
+def progress_of(stats: dict, vocabulary_id: int) -> dict:
+    return next(p for p in stats["vocabulary_progress"] if p["vocabulary_id"] == vocabulary_id)
 
 
 # --- 기본 ---
@@ -81,9 +81,9 @@ async def test_new_user_has_empty_stats(client: httpx.AsyncClient) -> None:
     assert (stats["answered"], stats["correct"], stats["streak_days"], stats["wrong_word_count"]) == (0, 0, 0, 0)
     assert stats["accuracy"] is None, "푼 문항이 없으면 정답률은 없다 (0% 가 아니다)"
     assert len(stats["weekly"]) == 7 and all(day["count"] == 0 for day in stats["weekly"])
-    assert len(stats["wordbook_progress"]) == 3, "가입하면 기본 단어장 3종이 생긴다"
-    assert all(p["learned_words"] == 0 and p["percent"] == 0 for p in stats["wordbook_progress"])
-    assert stats["total_words"] == sum(p["word_count"] for p in stats["wordbook_progress"]) > 0
+    assert len(stats["vocabulary_progress"]) >= 3, "표준 단어장(초급·중급·고급 200제)은 모든 사용자에게 보인다"
+    assert all(p["learned_words"] == 0 and p["percent"] == 0 for p in stats["vocabulary_progress"])
+    assert stats["total_words"] == sum(p["word_count"] for p in stats["vocabulary_progress"]) >= 600
 
 
 # --- 누적 정답률 (최근 100건 제한이 없다) ---
@@ -92,7 +92,7 @@ async def test_new_user_has_empty_stats(client: httpx.AsyncClient) -> None:
 @pytest.mark.asyncio
 async def test_accuracy_is_cumulative_not_limited_to_the_last_100_logs(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     word = next(iter(await make_words(client, token, wb, 4)))
     user_id = await _user_id_for_token(client, token)
     # 150건: 처음 120건 정답, 마지막 30건 오답. 최근 100건만 보면 정답률이 훨씬 낮게 나온다.
@@ -112,7 +112,7 @@ async def test_accuracy_is_cumulative_not_limited_to_the_last_100_logs(client: h
 async def test_streak_counts_consecutive_days_even_with_over_100_logs_per_week(client: httpx.AsyncClient) -> None:
     """하루 30건씩 5일이면 150건이다. 최근 100건만 보면 연속 학습일이 3~4일로 줄어든다."""
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     word = next(iter(await make_words(client, token, wb, 4)))
     user_id = await _user_id_for_token(client, token)
     rows = [
@@ -128,7 +128,7 @@ async def test_streak_counts_consecutive_days_even_with_over_100_logs_per_week(c
 @pytest.mark.asyncio
 async def test_streak_continues_from_yesterday_when_today_is_not_studied_yet(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     word = next(iter(await make_words(client, token, wb, 4)))
     user_id = await _user_id_for_token(client, token)
     await seed_logs(user_id, [(word, True, kst_noon(TODAY - timedelta(days=d))) for d in (1, 2, 3)])
@@ -139,7 +139,7 @@ async def test_streak_continues_from_yesterday_when_today_is_not_studied_yet(cli
 @pytest.mark.asyncio
 async def test_streak_breaks_on_a_missing_day_and_is_zero_after_two_idle_days(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     word = next(iter(await make_words(client, token, wb, 4)))
     user_id = await _user_id_for_token(client, token)
     # 오늘과 3일 전만 학습: 어제와 그제가 비어 있어 연속은 1일.
@@ -147,7 +147,7 @@ async def test_streak_breaks_on_a_missing_day_and_is_zero_after_two_idle_days(cl
     assert (await get_stats(client, token))["streak_days"] == 1
 
     _, other = await signup_and_login(client)
-    other_wb = await make_wordbook(client, other)
+    other_wb = await make_vocab(client, other)
     other_word = next(iter(await make_words(client, other, other_wb, 4)))
     other_id = await _user_id_for_token(client, other)
     await seed_logs(other_id, [(other_word, True, kst_noon(TODAY - timedelta(days=2)))])  # 그제만
@@ -160,7 +160,7 @@ async def test_streak_breaks_on_a_missing_day_and_is_zero_after_two_idle_days(cl
 @pytest.mark.asyncio
 async def test_weekly_is_seven_days_oldest_first_with_distinct_words_per_day(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     words = list(await make_words(client, token, wb, 4))
     user_id = await _user_id_for_token(client, token)
     await seed_logs(
@@ -186,7 +186,7 @@ async def test_weekly_is_seven_days_oldest_first_with_distinct_words_per_day(cli
 async def test_day_boundary_is_korean_midnight(client: httpx.AsyncClient) -> None:
     """UTC 11-03 15:00 = 한국 11-04 00:00. 그 1초 전은 한국 11-03 이다."""
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     words = list(await make_words(client, token, wb, 4))
     user_id = await _user_id_for_token(client, token)
     await seed_logs(
@@ -209,7 +209,7 @@ async def test_day_boundary_is_korean_midnight(client: httpx.AsyncClient) -> Non
 @pytest.mark.asyncio
 async def test_progress_counts_words_ever_answered_correctly_beyond_100_logs(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     user_id = await _user_id_for_token(client, token)
     ids = await insert_words(wb, 150)
     rows: list[tuple[int, bool, datetime]] = []
@@ -229,7 +229,7 @@ async def test_progress_counts_words_ever_answered_correctly_beyond_100_logs(cli
 @pytest.mark.asyncio
 async def test_progress_is_100_percent_when_every_word_was_answered_correctly(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     words = list(await make_words(client, token, wb, 4))
     user_id = await _user_id_for_token(client, token)
     await seed_logs(user_id, [(w, True, kst_noon(TODAY)) for w in words])
@@ -243,7 +243,7 @@ async def test_progress_is_100_percent_when_every_word_was_answered_correctly(cl
 @pytest.mark.asyncio
 async def test_wrong_word_is_one_whose_latest_result_is_wrong(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     w1, w2, w3, w4 = list(await make_words(client, token, wb, 4))
     user_id = await _user_id_for_token(client, token)
     t = kst_noon(TODAY)
@@ -265,7 +265,7 @@ async def test_wrong_word_is_one_whose_latest_result_is_wrong(client: httpx.Asyn
 @pytest.mark.asyncio
 async def test_old_wrong_words_still_count_without_any_log_window(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     words = list(await make_words(client, token, wb, 5))
     user_id = await _user_id_for_token(client, token)
     t = kst_noon(TODAY)
@@ -280,7 +280,7 @@ async def test_old_wrong_words_still_count_without_any_log_window(client: httpx.
 async def test_wrong_review_quiz_uses_the_same_rule_and_shrinks_as_words_are_corrected(client: httpx.AsyncClient) -> None:
     """오답 복습에서 맞히면 대상에서 빠지고, 4개 미만이 되면 더는 시작할 수 없다."""
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     words = list(await make_words(client, token, wb, 6))
     user_id = await _user_id_for_token(client, token)
     t = kst_noon(TODAY)
@@ -307,7 +307,7 @@ async def test_wrong_review_quiz_uses_the_same_rule_and_shrinks_as_words_are_cor
 async def test_stats_are_isolated_per_user(client: httpx.AsyncClient) -> None:
     _, mine = await signup_and_login(client)
     _, theirs = await signup_and_login(client)
-    wb = await make_wordbook(client, theirs)
+    wb = await make_vocab(client, theirs)
     words = list(await make_words(client, theirs, wb, 4))
     their_id = await _user_id_for_token(client, theirs)
     await seed_logs(their_id, [(w, False, kst_noon(TODAY)) for w in words])
@@ -316,4 +316,5 @@ async def test_stats_are_isolated_per_user(client: httpx.AsyncClient) -> None:
 
     assert (stats["answered"], stats["streak_days"], stats["wrong_word_count"]) == (0, 0, 0)
     assert all(day["count"] == 0 for day in stats["weekly"])
-    assert wb not in [p["wordbook_id"] for p in stats["wordbook_progress"]], "남의 단어장은 보이지 않는다"
+    # 표준 단어장은 공용이라 목록에는 보이지만, 남의 학습은 내 진행률에 반영되지 않는다.
+    assert progress_of(stats, wb)["learned_words"] == 0

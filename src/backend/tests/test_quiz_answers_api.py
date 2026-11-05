@@ -18,8 +18,9 @@ from backend.tests.helpers import auth_headers, signup_and_login
 from backend.tests.test_study_api import (
     correct_answers,
     create_quiz,
+    delete_word,
     load_session,
-    make_wordbook,
+    make_vocab,
     make_words,
     study_log_count,
     submit,
@@ -35,9 +36,9 @@ async def client() -> AsyncIterator[httpx.AsyncClient]:
 
 async def start_quiz(client: httpx.AsyncClient, token: str, count: int = 4) -> tuple[dict, dict[int, str]]:
     """단어 4개짜리 단어장으로 퀴즈를 출제한다. (출제 응답, {word_id: 뜻}) 를 돌려준다."""
-    wb = await make_wordbook(client, token)
+    wb = await make_vocab(client, token)
     words = await make_words(client, token, wb, 4)
-    response = await create_quiz(client, token, {"wordbook_id": wb, "count": count})
+    response = await create_quiz(client, token, {"vocabulary_id": wb, "count": count})
     assert response.status_code == 201, response.text
     return response.json(), words
 
@@ -180,12 +181,7 @@ async def test_deleted_word_blocks_only_that_answer(client: httpx.AsyncClient) -
     _, token = await signup_and_login(client)
     created, words = await start_quiz(client, token)
     victim = created["questions"][0]
-    wordbook_id = (await load_session(created["session_id"])).wordbook_id
-    deleted = await client.delete(
-        f"/api/wordbooks/{wordbook_id}/words/{victim_word_id(await load_session(created['session_id']), victim)}",
-        headers=auth_headers(token),
-    )
-    assert deleted.status_code == 204
+    await delete_word(victim_word_id(await load_session(created["session_id"]), victim))
 
     blocked = await answer(client, token, created["session_id"], victim["question_id"], 0)
     other = created["questions"][1]

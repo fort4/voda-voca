@@ -1,4 +1,4 @@
-# 2026-11-02 - voda-voca - 북마크 API 통합 테스트 (실제 MySQL): 멱등 등록/해제, 소유권 404, CASCADE, bookmarked 플래그
+# 2026-11-05 - voda-voca - 북마크 API 통합 테스트 (실제 MySQL): 표준 단어 대상 멱등 등록/해제, 사용자 격리, CASCADE
 # 파일 위치: src/backend/tests/test_bookmark_api.py
 
 import asyncio
@@ -7,12 +7,14 @@ from collections.abc import AsyncIterator
 import httpx
 import pytest
 import pytest_asyncio
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 
 from backend.db.session import get_session_factory
 from backend.main import app
-from backend.models import Bookmark
+from backend.models import Bookmark, SystemVocabulary, SystemWord
 from backend.tests.helpers import auth_headers, signup_and_login
+
+TERMS = ["apple", "banana", "cherry"]
 
 
 @pytest_asyncio.fixture
@@ -22,27 +24,11 @@ async def client() -> AsyncIterator[httpx.AsyncClient]:
         yield c
 
 
-async def make_wordbook(client: httpx.AsyncClient, token: str, name: str = "단어장") -> int:
-    response = await client.post("/api/wordbooks", json={"name": name}, headers=auth_headers(token))
-    assert response.status_code == 201, response.text
-    return response.json()["id"]
-
-
-async def make_word(client: httpx.AsyncClient, token: str, wordbook_id: int, term: str) -> int:
-    response = await client.post(
-        f"/api/wordbooks/{wordbook_id}/words",
-        json={"term": term, "meaning": "뜻"},
-        headers=auth_headers(token),
-    )
-    assert response.status_code == 201, response.text
-    return response.json()["id"]
-
-
 async def put(client: httpx.AsyncClient, token: str, word_id: int) -> httpx.Response:
     return await client.put(f"/api/bookmarks/{word_id}", headers=auth_headers(token))
 
 
-async def delete(client: httpx.AsyncClient, token: str, word_id: int) -> httpx.Response:
+async def delete_bookmark(client: httpx.AsyncClient, token: str, word_id: int) -> httpx.Response:
     return await client.delete(f"/api/bookmarks/{word_id}", headers=auth_headers(token))
 
 
@@ -54,50 +40,51 @@ async def bookmark_list(client: httpx.AsyncClient, token: str, **params) -> dict
 
 async def bookmark_rows_for(word_id: int) -> int:
     async with get_session_factory()() as session:
-        return await session.scalar(
-            select(func.count()).select_from(Bookmark).where(Bookmark.word_id == word_id)
-        )
+        return await session.scalar(select(func.count()).select_from(Bookmark).where(Bookmark.word_id == word_id))
 
 
 # --- 등록과 해제: 멱등성 (REQ-017) ---
 
 
 @pytest.mark.asyncio
-async def test_put_registers_bookmark_and_list_shows_it(client: httpx.AsyncClient) -> None:
+async def test_put_registers_bookmark_and_list_shows_it(client: httpx.AsyncClient, make_vocabulary) -> None:
+    vocab = await make_vocabulary(TERMS, title="토익 기초")
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token, "토익")
-    word = await make_word(client, token, wb, "apple")
+    word = vocab.word_ids["apple"]
 
     assert (await put(client, token, word)).status_code == 204
     body = await bookmark_list(client, token)
     assert body["total"] == 1
     item = body["items"][0]
     assert item["word_id"] == word
-    assert item["wordbook_id"] == wb
-    assert item["wordbook_name"] == "토익"
+    assert item["vocabulary_id"] == vocab.id
+    assert item["vocabulary_title"] == "토익 기초"
     assert item["term"] == "apple"
+    assert item["meaning"] == "apple의 뜻"
+    assert item["example"] == "I like apple."
+    assert item["example_meaning"] == "나는 apple을(를) 좋아한다."
     assert item["bookmarked_at"].endswith("Z")
+    assert "wordbook_id" not in item and "wordbook_name" not in item
 
 
 @pytest.mark.asyncio
-async def test_put_is_idempotent(client: httpx.AsyncClient) -> None:
+async def test_put_is_idempotent(client: httpx.AsyncClient, make_vocabulary) -> None:
+    vocab = await make_vocabulary(TERMS)
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
-    word = await make_word(client, token, wb, "apple")
+    word = vocab.word_ids["apple"]
 
-    assert (await put(client, token, word)).status_code == 204
-    assert (await put(client, token, word)).status_code == 204
-    assert (await put(client, token, word)).status_code == 204
+    for _ in range(3):
+        assert (await put(client, token, word)).status_code == 204
     assert await bookmark_rows_for(word) == 1
     assert (await bookmark_list(client, token))["total"] == 1
 
 
 @pytest.mark.asyncio
-async def test_concurrent_puts_create_exactly_one_row(client: httpx.AsyncClient) -> None:
+async def test_concurrent_puts_create_exactly_one_row(client: httpx.AsyncClient, make_vocabulary) -> None:
     """동시에 같은 단어를 등록해도 모두 204 이고 행은 하나다 (uk_bookmarks_user_word)."""
+    vocab = await make_vocabulary(TERMS)
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
-    word = await make_word(client, token, wb, "apple")
+    word = vocab.word_ids["apple"]
 
     responses = await asyncio.gather(*(put(client, token, word) for _ in range(5)))
     assert [r.status_code for r in responses] == [204] * 5
@@ -105,64 +92,67 @@ async def test_concurrent_puts_create_exactly_one_row(client: httpx.AsyncClient)
 
 
 @pytest.mark.asyncio
-async def test_delete_removes_bookmark_and_is_idempotent(client: httpx.AsyncClient) -> None:
+async def test_delete_removes_bookmark_and_is_idempotent(client: httpx.AsyncClient, make_vocabulary) -> None:
+    vocab = await make_vocabulary(TERMS)
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
-    word = await make_word(client, token, wb, "apple")
+    word = vocab.word_ids["apple"]
     await put(client, token, word)
 
-    assert (await delete(client, token, word)).status_code == 204
-    assert (await delete(client, token, word)).status_code == 204  # 두 번째 해제도 성공
+    assert (await delete_bookmark(client, token, word)).status_code == 204
+    assert (await delete_bookmark(client, token, word)).status_code == 204  # 두 번째 해제도 성공
     assert await bookmark_rows_for(word) == 0
 
 
 @pytest.mark.asyncio
-async def test_delete_without_bookmark_is_204(client: httpx.AsyncClient) -> None:
+async def test_delete_without_bookmark_is_204(client: httpx.AsyncClient, make_vocabulary) -> None:
+    vocab = await make_vocabulary(TERMS)
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
-    word = await make_word(client, token, wb, "apple")
-    assert (await delete(client, token, word)).status_code == 204
+    assert (await delete_bookmark(client, token, vocab.word_ids["apple"])).status_code == 204
 
 
-# --- 소유권 격리 (REQ-003, 404 일원화) ---
-
-
-@pytest.mark.asyncio
-async def test_put_on_other_users_word_is_404_same_as_missing(client: httpx.AsyncClient) -> None:
-    _, owner = await signup_and_login(client)
-    _, intruder = await signup_and_login(client)
-    wb = await make_wordbook(client, owner)
-    word = await make_word(client, owner, wb, "secret")
-
-    foreign = await put(client, intruder, word)
-    missing = await put(client, intruder, 999999999)
-
-    assert foreign.status_code == missing.status_code == 404
-    assert foreign.json() == missing.json()
-    assert await bookmark_rows_for(word) == 0
+# --- 공용 단어와 사용자 격리 ---
 
 
 @pytest.mark.asyncio
-async def test_intruder_delete_does_not_touch_owners_bookmark(client: httpx.AsyncClient) -> None:
+async def test_unknown_word_is_404(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
+    response = await put(client, token, 999999999)
+    assert response.status_code == 404
+    assert response.json() == {"detail": "단어를 찾을 수 없습니다."}
+
+
+@pytest.mark.asyncio
+async def test_any_user_can_bookmark_the_same_shared_word(client: httpx.AsyncClient, make_vocabulary) -> None:
+    """표준 단어는 모든 사용자가 공유한다. 북마크는 사용자별로 따로 생긴다."""
+    vocab = await make_vocabulary(TERMS)
+    _, a = await signup_and_login(client)
+    _, b = await signup_and_login(client)
+    word = vocab.word_ids["apple"]
+
+    assert (await put(client, a, word)).status_code == 204
+    assert (await put(client, b, word)).status_code == 204
+    assert await bookmark_rows_for(word) == 2
+
+
+@pytest.mark.asyncio
+async def test_other_users_delete_does_not_touch_my_bookmark(client: httpx.AsyncClient, make_vocabulary) -> None:
+    vocab = await make_vocabulary(TERMS)
     _, owner = await signup_and_login(client)
-    _, intruder = await signup_and_login(client)
-    wb = await make_wordbook(client, owner)
-    word = await make_word(client, owner, wb, "secret")
+    _, other = await signup_and_login(client)
+    word = vocab.word_ids["apple"]
     await put(client, owner, word)
 
-    response = await delete(client, intruder, word)
-    assert response.status_code == 204  # 존재 여부를 드러내지 않도록 항상 204
+    assert (await delete_bookmark(client, other, word)).status_code == 204
     assert await bookmark_rows_for(word) == 1
     assert (await bookmark_list(client, owner))["total"] == 1
 
 
 @pytest.mark.asyncio
-async def test_list_shows_only_own_bookmarks(client: httpx.AsyncClient) -> None:
+async def test_list_shows_only_own_bookmarks(client: httpx.AsyncClient, make_vocabulary) -> None:
+    vocab = await make_vocabulary(TERMS)
     _, a = await signup_and_login(client)
     _, b = await signup_and_login(client)
-    wb_a = await make_wordbook(client, a)
-    word_a = await make_word(client, a, wb_a, "alpha")
-    await put(client, a, word_a)
+    await put(client, a, vocab.word_ids["apple"])
 
     assert (await bookmark_list(client, b))["items"] == []
 
@@ -171,14 +161,11 @@ async def test_list_shows_only_own_bookmarks(client: httpx.AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_list_is_newest_first_and_paginated(client: httpx.AsyncClient) -> None:
+async def test_list_is_newest_first_and_paginated(client: httpx.AsyncClient, make_vocabulary) -> None:
+    vocab = await make_vocabulary(["first", "second", "third"])
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
-    words = []
     for term in ["first", "second", "third"]:
-        word = await make_word(client, token, wb, term)
-        words.append(word)
-        await put(client, token, word)
+        await put(client, token, vocab.word_ids[term])
         await asyncio.sleep(0.01)  # created_at 이 구분되도록 간격을 둔다
 
     body = await bookmark_list(client, token)
@@ -199,88 +186,37 @@ async def test_list_rejects_out_of_range_paging(client: httpx.AsyncClient, param
     assert response.status_code == 422
 
 
-# --- CASCADE (REQ-007, REQ-011) ---
+# --- CASCADE ---
 
 
 @pytest.mark.asyncio
-async def test_deleting_word_removes_its_bookmark(client: httpx.AsyncClient) -> None:
+async def test_deleting_a_word_removes_its_bookmarks(client: httpx.AsyncClient, make_vocabulary) -> None:
+    vocab = await make_vocabulary(TERMS)
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
-    word = await make_word(client, token, wb, "apple")
+    word = vocab.word_ids["apple"]
     await put(client, token, word)
 
-    response = await client.delete(f"/api/wordbooks/{wb}/words/{word}", headers=auth_headers(token))
-    assert response.status_code == 204
+    async with get_session_factory()() as session:
+        await session.execute(delete(SystemWord).where(SystemWord.id == word))
+        await session.commit()
     assert (await bookmark_list(client, token))["total"] == 0
 
 
 @pytest.mark.asyncio
-async def test_deleting_wordbook_removes_bookmarks_of_its_words(client: httpx.AsyncClient) -> None:
+async def test_deleting_a_vocabulary_removes_bookmarks_of_its_words_only(client: httpx.AsyncClient, make_vocabulary) -> None:
+    doomed = await make_vocabulary(["a1", "a2"])
+    kept = await make_vocabulary(["k1"])
     _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
-    keep_wb = await make_wordbook(client, token, "남길 단어장")
     for term in ["a1", "a2"]:
-        await put(client, token, await make_word(client, token, wb, term))
-    kept = await make_word(client, token, keep_wb, "k1")
-    await put(client, token, kept)
+        await put(client, token, doomed.word_ids[term])
+    await put(client, token, kept.word_ids["k1"])
 
-    response = await client.delete(f"/api/wordbooks/{wb}", headers=auth_headers(token))
-    assert response.status_code == 204
+    async with get_session_factory()() as session:
+        await session.execute(delete(SystemVocabulary).where(SystemVocabulary.id == doomed.id))
+        await session.commit()
 
     body = await bookmark_list(client, token)
     assert [i["term"] for i in body["items"]] == ["k1"]
-    assert body["items"][0]["word_id"] == kept
-
-
-# --- 단어 목록의 bookmarked 플래그 정합성 ---
-
-
-@pytest.mark.asyncio
-async def test_word_list_bookmarked_flag_matches_bookmarks(client: httpx.AsyncClient) -> None:
-    _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
-    ids = {term: await make_word(client, token, wb, term) for term in ["apple", "banana", "cherry"]}
-    await put(client, token, ids["apple"])
-    await put(client, token, ids["cherry"])
-
-    flags = {
-        item["term"]: item["bookmarked"]
-        for item in (await client.get(f"/api/wordbooks/{wb}/words", headers=auth_headers(token))).json()["items"]
-    }
-    assert flags == {"apple": True, "banana": False, "cherry": True}
-
-    await delete(client, token, ids["apple"])
-    flags = {
-        item["term"]: item["bookmarked"]
-        for item in (await client.get(f"/api/wordbooks/{wb}/words", headers=auth_headers(token))).json()["items"]
-    }
-    assert flags == {"apple": False, "banana": False, "cherry": True}
-
-
-@pytest.mark.asyncio
-async def test_bookmarked_flag_is_consistent_with_prefix_search(client: httpx.AsyncClient) -> None:
-    _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
-    apple = await make_word(client, token, wb, "apple")
-    await make_word(client, token, wb, "apricot")
-    await put(client, token, apple)
-
-    items = (await client.get(f"/api/wordbooks/{wb}/words", params={"q": "ap"}, headers=auth_headers(token))).json()["items"]
-    assert {i["term"]: i["bookmarked"] for i in items} == {"apple": True, "apricot": False}
-
-
-@pytest.mark.asyncio
-async def test_bookmarked_flag_on_get_patch_and_create(client: httpx.AsyncClient) -> None:
-    _, token = await signup_and_login(client)
-    wb = await make_wordbook(client, token)
-    word = await make_word(client, token, wb, "apple")
-    url = f"/api/wordbooks/{wb}/words/{word}"
-
-    assert (await client.get(url, headers=auth_headers(token))).json()["bookmarked"] is False
-    await put(client, token, word)
-    assert (await client.get(url, headers=auth_headers(token))).json()["bookmarked"] is True
-    patched = await client.patch(url, json={"meaning": "사과"}, headers=auth_headers(token))
-    assert patched.json()["bookmarked"] is True
 
 
 @pytest.mark.asyncio
