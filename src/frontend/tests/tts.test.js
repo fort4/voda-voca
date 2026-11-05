@@ -5,7 +5,8 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createSpeaker, TTS_DEFAULTS } from "../js/core/tts.js";
+import { createSpeaker, pickVoice, TTS_DEFAULTS } from "../js/core/tts.js";
+import { FakeSynth, FakeUtterance as HelperUtterance, fakeVoice } from "./helpers/fake-speech.js";
 
 class FakeUtterance {
   constructor(text) {
@@ -105,4 +106,93 @@ test("cancel 은 합성기의 cancel 을 부르고, 미지원이면 아무 일�
   createSpeaker({ synth, UtteranceCtor: FakeUtterance, warn: () => {} }).cancel();
   assert.deepEqual(synth.log, [["cancel"]]);
   assert.doesNotThrow(() => createSpeaker({ synth: undefined, UtteranceCtor: undefined, warn: () => {} }).cancel());
+});
+
+// ---------- v2.2 보이스 선택: en-US > en-GB > en-* (같은 언어 안에서는 localService 우선) ----------
+
+test("pickVoice: 빈 목록이나 목록이 아닌 값은 null", () => {
+  assert.equal(pickVoice([]), null);
+  assert.equal(pickVoice(undefined), null);
+  assert.equal(pickVoice(null), null);
+});
+
+test("pickVoice: en-US 가 en-GB 보다 우선한다 (목록 순서와 무관)", () => {
+  const gb = fakeVoice("Daniel", "en-GB", true);
+  const us = fakeVoice("Samantha", "en-US", false);
+  assert.equal(pickVoice([gb, us]), us);
+  assert.equal(pickVoice([us, gb]), us);
+});
+
+test("pickVoice: 같은 언어에서는 localService(오프라인 가능) 보이스를 먼저 고른다", () => {
+  const cloud = fakeVoice("Google US English", "en-US", false);
+  const local = fakeVoice("Samantha", "en-US", true);
+  assert.equal(pickVoice([cloud, local]), local);
+  assert.equal(pickVoice([local, cloud]), local);
+});
+
+test("pickVoice: en-US 가 없으면 en-GB, 그것도 없으면 아무 en-* 보이스", () => {
+  const gb = fakeVoice("Daniel", "en-GB");
+  const au = fakeVoice("Karen", "en-AU", true);
+  const ko = fakeVoice("Yuna", "ko-KR", true);
+  assert.equal(pickVoice([ko, au, gb]), gb);
+  assert.equal(pickVoice([ko, au]), au, "en-* 폴백");
+  assert.equal(pickVoice([ko]), null, "영어 보이스가 없으면 null");
+});
+
+test("pickVoice: Android 식 언어 표기(en_US)와 대소문자 차이를 정규화한다", () => {
+  const android = fakeVoice("en-us-x-tpf-local", "en_US", true);
+  const lower = fakeVoice("x", "EN-gb");
+  assert.equal(pickVoice([lower, android]), android);
+  assert.equal(pickVoice([lower]), lower);
+});
+
+test("pickVoice: 'en' 으로 시작하지만 영어가 아닌 언어(예: eng 가 아닌 'enx')는 고르지 않는다", () => {
+  assert.equal(pickVoice([fakeVoice("x", "enx-ZZ")]), null);
+  assert.equal(pickVoice([fakeVoice("x", "en")]) !== null, true, "언어 코드만 'en' 인 보이스는 영어");
+});
+
+test("보이스가 이미 있으면 생성 시점에 고르고, utterance 에 보이스와 그 언어(하이픈 표기)를 넣는다", () => {
+  const synth = new FakeSynth({ voices: [fakeVoice("Daniel", "en_GB", true)] });
+  const speaker = createSpeaker({ synth, UtteranceCtor: HelperUtterance, warn: () => {} });
+  assert.equal(speaker.getVoice().name, "Daniel");
+  speaker.speak("apple");
+  assert.equal(synth.lastUtterance.voice.name, "Daniel");
+  assert.equal(synth.lastUtterance.lang, "en-GB", "en_GB 가 아니라 en-GB 로 넘긴다");
+});
+
+test("voiceschanged 지연 로딩: 처음엔 보이스가 없어도 재생되고, 이벤트 뒤에는 보이스를 쓴다", () => {
+  const synth = new FakeSynth({ voices: [] });
+  const speaker = createSpeaker({ synth, UtteranceCtor: HelperUtterance, warn: () => {} });
+  assert.equal(speaker.getVoice(), null);
+  assert.equal(speaker.speak("apple"), true, "보이스 준비를 기다리며 재생을 막지 않는다");
+  assert.equal(synth.lastUtterance.voice, undefined, "보이스가 없으면 voice 를 건드리지 않고 lang 에 맡긴다");
+  assert.equal(synth.lastUtterance.lang, "en-US");
+
+  synth.setVoices([fakeVoice("Samantha", "en-US", true)]);
+  assert.equal(speaker.getVoice(), null, "이벤트 전에는 아직 모른다");
+  synth.emitVoicesChanged();
+  assert.equal(speaker.getVoice().name, "Samantha");
+  speaker.speak("banana");
+  assert.equal(synth.lastUtterance.voice.name, "Samantha");
+});
+
+test("voiceschanged 가 오지 않는 브라우저(Safari 등)도 다음 재생 때 목록을 다시 읽는다", () => {
+  const synth = new FakeSynth({ voices: [] });
+  const speaker = createSpeaker({ synth, UtteranceCtor: HelperUtterance, warn: () => {} });
+  synth.setVoices([fakeVoice("Samantha", "en-US", true)]); // 이벤트 없이 목록만 채워짐
+  speaker.speak("apple");
+  assert.equal(synth.lastUtterance.voice.name, "Samantha");
+});
+
+test("addEventListener 가 없으면 onvoiceschanged 속성으로 구독한다", () => {
+  const synth = { cancel() {}, speak() {}, getVoices: () => [], onvoiceschanged: null };
+  createSpeaker({ synth, UtteranceCtor: HelperUtterance, warn: () => {} });
+  assert.equal(typeof synth.onvoiceschanged, "function");
+});
+
+test("getVoices 가 예외를 던져도 생성과 재생이 깨지지 않는다", () => {
+  const synth = { cancel() {}, speak() {}, getVoices() { throw new Error("boom"); } };
+  const speaker = createSpeaker({ synth, UtteranceCtor: HelperUtterance, warn: () => {} });
+  assert.equal(speaker.getVoice(), null);
+  assert.equal(speaker.speak("apple"), true);
 });
