@@ -3,7 +3,7 @@
  * 파일 위치: src/frontend/js/views/components/feedback-sheet.js
  */
 
-import { button, h, icon } from "../../core/dom.js";
+import { button, h, icon, kbdHint } from "../../core/dom.js";
 import { feedbackTone } from "../../core/session-view-model.js";
 
 /**
@@ -43,7 +43,7 @@ export function renderFeedbackSheet({ state, onNext, onSpeak }) {
       feedback.example ? h("p", { class: "sheet-sub break-words pt-1 text-body italic leading-relaxed" }, feedback.example) : null,
       feedback.example_meaning ? h("p", { class: "sheet-sub break-words text-sm leading-relaxed" }, feedback.example_meaning) : null,
     ),
-    h("div", { class: "mt-4" }, button({ variant: "primary", full: true, onClick: onNext, "data-autofocus": "true" }, `${tone.buttonLabel} (Enter)`)),
+    h("div", { class: "mt-4" }, button({ variant: "primary", full: true, onClick: onNext, "data-autofocus": "true" }, tone.buttonLabel, kbdHint("Enter"))),
   );
   // 다음 프레임에 열어야 translateY(100%) → 0 트랜지션이 보인다.
   requestAnimationFrame(() => sheet.classList.add("is-open"));

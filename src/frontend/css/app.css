@@ -56,6 +56,12 @@
   --radius-sm: 8px;
   --radius-pill: 999px;
 
+  /* 레이아웃 여백: 모바일(360~412px) 기본은 컴팩트. 640px 이상은 아래 미디어 쿼리에서 확장한다 */
+  --page-px: var(--space-4);
+  --page-pt: var(--space-4);
+  --stack-gap: var(--space-4);
+  --card-pad: var(--space-4);
+
   /* 컴포넌트 색 토큰: 버튼은 채움색(bg)과 3D 가장자리(edge)를 짝으로 둔다. 다크는 html.dark 에서 교체한다 */
   --on-accent: #ffffff;
   --btn-primary-bg: #4f46e5;    /* indigo-600 */
@@ -176,6 +182,12 @@ a:focus-visible,
 }
 .btn:disabled { cursor: not-allowed; opacity: 0.5; }
 .btn-full { width: 100%; }
+.btn-lg { min-height: 56px; font-size: var(--fs-lead); }
+/* 키보드 단축키 안내: 터치 기기에서는 쓸 일이 없으므로 숨긴다 */
+.kbd-hint { margin-left: var(--space-1); font-weight: 500; opacity: 0.75; }
+@media (hover: none) {
+  .kbd-hint { display: none; }
+}
 
 .btn-primary { --btn-bg: var(--btn-primary-bg); --btn-fg: var(--on-accent); --btn-hover: var(--btn-primary-hover); --btn-edge: var(--btn-primary-edge); }
 .btn-danger { --btn-bg: var(--btn-danger-bg); --btn-fg: var(--on-accent); --btn-hover: var(--btn-danger-hover); --btn-edge: var(--btn-danger-edge); }
@@ -191,7 +203,7 @@ a:focus-visible,
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
-  padding: var(--space-4);
+  padding: var(--card-pad);
 }
 .card-raised { box-shadow: var(--shadow-raised); }
 .card-flat { box-shadow: none; }
@@ -234,6 +246,23 @@ a:focus-visible,
   font-size: var(--fs-micro);
   font-weight: 600;
   line-height: var(--lh-normal);
+}
+
+/* ---------- 레이아웃: 페이지 여백과 세로 리듬 ---------- */
+.page { padding: var(--page-pt) var(--page-px) 6rem; } /* 아래 6rem 은 하단 탭바 높이 확보 */
+.page-x { padding-inline: var(--page-px); }
+.stack > * + * { margin-top: var(--stack-gap); }
+
+/* 태블릿·데스크톱(sm, 640px+): 여백과 학습 단어 크기를 한 단계 키운다 */
+@media (min-width: 640px) {
+  :root {
+    --page-px: var(--space-6);
+    --page-pt: var(--space-8);
+    --stack-gap: var(--space-6);
+    --card-pad: var(--space-6);
+    --fs-display: 2.5rem;
+    --fs-title: 1.75rem;
+  }
 }
 
 /* ---------- 상단 헤더 ---------- */
@@ -522,8 +551,8 @@ html.dark {
   --accent-soft: rgba(99, 102, 241, 0.16);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow-raised: 0 14px 30px -12px rgba(0, 0, 0, 0.7), 0 2px 6px -2px rgba(0, 0, 0, 0.5);
-  --btn-primary-bg: #6366f1;    /* indigo-500: 기존 bg-indigo-600 다크 값과 동일 */
-  --btn-primary-hover: #818cf8; /* indigo-400 */
+  --btn-primary-bg: #5b5ff0;    /* 흰 글자 대비 AA(4.5:1) 확보. 기존 #6366f1 은 4.47:1 */
+  --btn-primary-hover: #4f46e5; /* indigo-600: 흰 글자 대비를 유지하려고 호버는 더 어둡게 */
   --btn-primary-edge: #4338ca;  /* indigo-700 */
   --btn-danger-bg: #dc2626;
   --btn-danger-hover: #ef4444;  /* red-500 */
@@ -694,7 +723,7 @@ html.dark {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  min-height: calc(100dvh - 6.5rem);
+  min-height: calc(100dvh - 5.5rem - var(--page-pt)); /* 상단바 3.5rem + 여백 2rem + 페이지 위 여백 */
 }
 .session-screen.has-sheet { padding-bottom: 17rem; } /* 피드백 시트가 선택지를 가리지 않게 */
 
@@ -726,8 +755,11 @@ html.dark {
   gap: 12px;
   text-align: center;
 }
-.session-term { font-size: var(--fs-display); font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; word-break: break-word; color: var(--text); }
-.session-context { font-size: var(--fs-lead); line-height: 1.6; color: var(--text-2); word-break: break-word; }
+@media (min-width: 640px) {
+  .session-card { padding: 40px 32px; }
+}
+.session-term { font-size: var(--fs-display); font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; overflow-wrap: anywhere; color: var(--text); }
+.session-context { font-size: var(--fs-lead); line-height: 1.6; color: var(--text-2); overflow-wrap: anywhere; }
 .session-hint { font-size: var(--fs-micro); font-weight: 600; letter-spacing: 0.04em; color: var(--accent); text-transform: uppercase; }
 
 .choice-list { display: flex; flex-direction: column; gap: 10px; }

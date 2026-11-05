@@ -59,3 +59,13 @@ export function vocabularyCard(v) {
     isActive: p.is_active === true,
   };
 }
+
+/**
+ * 카드의 버튼 위계. 화면의 주 행동(primary)은 하나여야 하므로,
+ * 목록의 '선택' 은 secondary 로 낮추고 학습 중인 단어장의 '홈에서 학습' 만 primary 로 둔다.
+ * @param {{isActive: boolean}} card
+ * @returns {{preview: string, main: string}}
+ */
+export function cardActionVariants(card) {
+  return { preview: "ghost", main: card.isActive ? "primary" : "secondary" };
+}

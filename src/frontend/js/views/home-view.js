@@ -32,18 +32,18 @@ function renderHome(data, ctx, getMode, setMode) {
   const m = homeModel(data);
   return h(
     "div",
-    { class: "space-y-4 pb-4" },
+    { class: "stack pb-4" },
     h(
       "section",
-      { class: "surface rise-in space-y-3 p-5" },
+      { class: "card rise-in space-y-3" },
       h("p", { class: "text-sm font-medium text-zinc-500" }, "학습 중인 단어장"),
       m.hasActive
         ? [
-            h("h1", { class: "text-xl font-extrabold tracking-tight text-zinc-900" }, m.vocabularyTitle),
+            h("h1", { class: "text-heading tracking-tight text-zinc-900" }, m.vocabularyTitle),
             progressBar(m.progressPercent, "단어장 진행률"),
             h("p", { class: "text-sm text-zinc-600" }, m.progressText),
           ]
-        : [h("h1", { class: "text-xl font-extrabold tracking-tight text-zinc-900" }, "단어장을 골라 주세요"), h("p", { class: "text-sm text-zinc-600" }, m.emptyHint)],
+        : [h("h1", { class: "text-heading tracking-tight text-zinc-900" }, "단어장을 골라 주세요"), h("p", { class: "text-sm text-zinc-600" }, m.emptyHint)],
       button({ variant: "ghost", onClick: () => ctx.navigate("/explore") }, icon("search", "h-4 w-4"), m.hasActive ? "단어장 바꾸기" : "단어장 고르기"),
     ),
     goalCard(m),
@@ -51,7 +51,7 @@ function renderHome(data, ctx, getMode, setMode) {
       "section",
       { class: "space-y-3" },
       renderModeToggle({ value: getMode(), onChange: setMode }),
-      button({ variant: "primary", full: true, disabled: !m.canStart, style: "min-height: 56px",onClick: () => openSession(ctx.navigate, getMode()) }, icon("play", "h-5 w-5"), `${SESSION_SIZE}문항 학습 시작`),
+      button({ variant: "primary", full: true, disabled: !m.canStart, size: "lg", onClick: () => openSession(ctx.navigate, getMode()) }, icon("play", "h-5 w-5"), `${SESSION_SIZE}문항 학습 시작`),
     ),
   );
 }
@@ -67,7 +67,7 @@ function goalCard(m) {
         ];
   return h(
     "section",
-    { class: "surface rise-in space-y-3 p-5" },
+    { class: "card rise-in space-y-3" },
     h("div", { class: "flex items-center justify-between" }, h("p", { class: "text-sm font-medium text-zinc-500" }, "오늘의 목표"), m.streakText ? h("span", { class: "text-sm font-semibold text-indigo-600" }, `🔥 ${m.streakText}`) : null),
     body,
   );

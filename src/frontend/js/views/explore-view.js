@@ -5,7 +5,7 @@
 
 import { api } from "../core/api.js";
 import { button, clear, h, icon, refreshIcons } from "../core/dom.js";
-import { categoryOptions, filterVocabularies, levelOptions, vocabularyCard } from "../core/explore-model.js";
+import { categoryOptions, filterVocabularies, levelOptions, cardActionVariants, vocabularyCard } from "../core/explore-model.js";
 import { toast } from "../core/toast.js";
 import { mountLoader } from "./components/loader.js";
 import { progressBar } from "./components/progress-bar.js";
@@ -28,7 +28,7 @@ class ExplorePanel {
     this.busyId = null;
     this.chips = h("div", { class: "space-y-2" });
     this.cards = h("div", { class: "space-y-3" });
-    this.element = h("div", { class: "space-y-4 pb-4" }, h("h1", { class: "text-xl font-extrabold tracking-tight text-zinc-900" }, "단어장 탐색"), this.chips, this.cards);
+    this.element = h("div", { class: "stack pb-4" }, h("h1", { class: "text-title tracking-tight text-zinc-900" }, "단어장 탐색"), this.chips, this.cards);
     this.paint();
   }
 
@@ -58,9 +58,10 @@ class ExplorePanel {
 
   card(vocabulary) {
     const c = vocabularyCard(vocabulary);
+    const actions = cardActionVariants(c);
     return h(
       "article",
-      { class: "surface rise-in space-y-3 p-4" },
+      { class: "card rise-in space-y-3" },
       h("div", { class: "flex items-start justify-between gap-2" }, h("h2", { class: "min-w-0 text-base font-bold text-zinc-900" }, c.title), c.isActive ? h("span", { class: "shrink-0 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-600" }, "학습 중") : null),
       h("p", { class: "text-xs text-zinc-500" }, `${c.categoryLabel} · ${c.levelLabel} · ${c.wordCountText}`),
       c.description ? h("p", { class: "text-sm text-zinc-700" }, c.description) : null,
@@ -69,8 +70,8 @@ class ExplorePanel {
       h(
         "div",
         { class: "grid grid-cols-2 gap-2" },
-        button({ variant: "secondary", onClick: () => openWordSheet(vocabulary) }, icon("eye", "h-4 w-4"), "미리보기"),
-        c.isActive ? button({ variant: "ghost", onClick: () => this.ctx.navigate("/") }, icon("check", "h-4 w-4"), "홈에서 학습") : button({ variant: "primary", disabled: this.busyId !== null, onClick: () => this.activate(vocabulary) }, "이 단어장으로 학습"),
+        button({ variant: actions.preview, onClick: () => openWordSheet(vocabulary) }, icon("eye", "h-4 w-4"), "미리보기"),
+        c.isActive ? button({ variant: actions.main, onClick: () => this.ctx.navigate("/") }, icon("check", "h-4 w-4"), "홈에서 학습") : button({ variant: actions.main, disabled: this.busyId !== null, onClick: () => this.activate(vocabulary) }, "이 단어장으로 학습"),
       ),
     );
   }

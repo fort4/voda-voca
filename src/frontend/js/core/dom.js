@@ -123,28 +123,38 @@ const BUTTON_VARIANTS = ["primary", "secondary", "danger", "ghost", "danger-soft
 /**
  * 버튼의 클래스 문자열. 규격(높이·반경·글자·3D 눌림)은 app.css 의 .btn 컴포넌트가 정한다.
  * 알 수 없는 variant 는 primary 로 본다. DOM 없이 단위 테스트할 수 있게 button() 에서 분리했다.
- * @param {{variant?: string, full?: boolean}} opts
+ * @param {{variant?: string, full?: boolean, size?: "md" | "lg"}} opts
  * @returns {string}
  */
-export function buttonClass({ variant = "primary", full = false } = {}) {
+export function buttonClass({ variant = "primary", full = false, size = "md" } = {}) {
   const v = BUTTON_VARIANTS.includes(variant) ? variant : "primary";
-  return `btn btn-${v} focus-ring${full ? " btn-full" : ""}`;
+  return `btn btn-${v} focus-ring${size === "lg" ? " btn-lg" : ""}${full ? " btn-full" : ""}`;
+}
+
+/**
+ * 키보드 단축키 안내(예: "Enter"). 터치 기기에서는 쓸 일이 없어 CSS(.kbd-hint)가 숨긴다.
+ * 스크린리더에는 읽히지 않게 aria-hidden 으로 둔다.
+ * @param {string} keys
+ * @returns {HTMLSpanElement}
+ */
+export function kbdHint(keys) {
+  return h("span", { class: "kbd-hint", "aria-hidden": "true" }, `(${keys})`);
 }
 
 /**
  * 버튼. 최소 44×44px 터치 타깃, 누르면 눌리는 3D 인터랙션, 키보드 포커스 링 (디자인 시스템: app.css 의 .btn).
  * variant: primary(인디고 채움) | secondary(표면 + 보더) | danger(빨강 채움) | ghost(글자만) | danger-soft(연한 빨강)
- * @param {{variant?: string, type?: string, onClick?: (e: Event) => void, disabled?: boolean, full?: boolean}} opts
+ * @param {{variant?: string, type?: string, onClick?: (e: Event) => void, disabled?: boolean, full?: boolean, size?: "md" | "lg"}} opts
  * @param {...any} children
  * @returns {HTMLButtonElement}
  */
-export function button({ variant = "primary", type = "button", onClick, disabled = false, full = false, ...rest }, ...children) {
+export function button({ variant = "primary", type = "button", onClick, disabled = false, full = false, size = "md", ...rest }, ...children) {
   return /** @type {HTMLButtonElement} */ (
     h(
       "button",
       {
         type,
-        class: buttonClass({ variant, full }),
+        class: buttonClass({ variant, full, size }),
         onclick: onClick,
         disabled,
         ...rest,

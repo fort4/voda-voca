@@ -26,7 +26,7 @@ export function statsView(root, ctx) {
 }
 
 function card(label, value, hint) {
-  return h("div", { class: "surface p-4" }, h("p", { class: "text-xs font-medium text-zinc-500" }, label), h("p", { class: "mt-1 text-2xl font-extrabold tracking-tight text-zinc-900" }, value), hint ? h("p", { class: "text-xs text-zinc-500" }, hint) : null);
+  return h("div", { class: "card" }, h("p", { class: "text-xs font-medium text-zinc-500" }, label), h("p", { class: "mt-1 text-2xl font-extrabold tracking-tight text-zinc-900" }, value), hint ? h("p", { class: "text-xs text-zinc-500" }, hint) : null);
 }
 
 function renderStats(m, ctx) {
@@ -40,7 +40,7 @@ function renderStats(m, ctx) {
   }
   return h(
     "div",
-    { class: "space-y-4 pb-4" },
+    { class: "stack pb-4" },
     h(
       "div",
       { class: "grid grid-cols-2 gap-3" },
@@ -49,10 +49,10 @@ function renderStats(m, ctx) {
       card("전체 단어", m.totalWords, "제공 단어장 합계"),
       card("복습할 오답", `${m.wrongWordCount}개`, "마지막 결과가 오답"),
     ),
-    h("section", { class: "surface space-y-2 p-4" }, h("div", { class: "flex items-baseline justify-between" }, h("h2", { class: "text-base font-bold text-zinc-900" }, "최근 7일"), h("span", { class: "text-sm text-zinc-500" }, `${m.weekTotal}개`)), renderWeeklyChart(m.weekly)),
+    h("section", { class: "card space-y-2" }, h("div", { class: "flex items-baseline justify-between" }, h("h2", { class: "text-base font-bold text-zinc-900" }, "최근 7일"), h("span", { class: "text-sm text-zinc-500" }, `${m.weekTotal}개`)), renderWeeklyChart(m.weekly)),
     h(
       "section",
-      { class: "surface space-y-4 p-4" },
+      { class: "card space-y-4" },
       h("h2", { class: "text-base font-bold text-zinc-900" }, "단어장별 진행률"),
       m.vocabulariesActiveFirst.map((v) =>
         h("div", { class: "space-y-1.5" }, h("div", { class: "flex items-center justify-between gap-2" }, h("p", { class: "min-w-0 truncate text-sm font-semibold text-zinc-800" }, v.isActive ? [h("span", { class: "mr-1.5 text-indigo-600" }, "학습 중"), v.title] : v.title), h("span", { class: "text-sm text-zinc-500" }, `${v.percent}%`)), progressBar(v.percent, `${v.title} 진행률`), h("p", { class: "text-xs text-zinc-500" }, v.text)),

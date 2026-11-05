@@ -4,7 +4,7 @@
  */
 
 import { api } from "../core/api.js";
-import { button, clear, h, notice, refreshIcons, skeleton } from "../core/dom.js";
+import { button, clear, h, kbdHint, notice, refreshIcons, skeleton } from "../core/dom.js";
 import { createSessionDriver } from "../core/session-driver.js";
 import { ACTION, PHASE, currentItem, progressOf, summaryOf } from "../core/session-runner.js";
 import { VIEW_ACTION, choiceStates, errorCopy, flashcardFaces, sessionKeyAction } from "../core/session-view-model.js";
@@ -242,8 +242,8 @@ export function studySessionView(root, ctx) {
 
   function renderFlashcardButtons(state) {
     const busy = state.phase !== PHASE.QUESTION_ACTIVE || Boolean(state.pending) || Boolean(state.error);
-    refs.unsure = button({ variant: "secondary", full: true, disabled: busy || !flipped, onClick: () => act({ type: ACTION.EVALUATE_FLASHCARD, known: false }) }, "헷갈려요 (←)");
-    refs.known = button({ variant: "primary", full: true, disabled: busy || !flipped, onClick: () => act({ type: ACTION.EVALUATE_FLASHCARD, known: true }) }, "알아요 (→)");
+    refs.unsure = button({ variant: "secondary", full: true, disabled: busy || !flipped, onClick: () => act({ type: ACTION.EVALUATE_FLASHCARD, known: false }) }, "헷갈려요", kbdHint("←"));
+    refs.known = button({ variant: "primary", full: true, disabled: busy || !flipped, onClick: () => act({ type: ACTION.EVALUATE_FLASHCARD, known: true }) }, "알아요", kbdHint("→"));
     refs.busy = busy;
     return h("div", { class: "grid grid-cols-2 gap-3" }, refs.unsure, refs.known);
   }
