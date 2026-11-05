@@ -71,3 +71,45 @@ test("화면 코드가 쓰는 모든 색 클래스에는 다크 오버라이드�
     "다크 오버라이드가 없는 색 클래스가 있다. css/app.css 의 다크 구간에 규칙을 더하거나, 양쪽 테마에서 읽히는 색이면 THEME_NEUTRAL 에 올려라",
   );
 });
+
+// ---------- 공통 컴포넌트(.btn/.card/.chip) 다크 모드 누락 방지 (v2.2 4단계) ----------
+
+/**
+ * app.css 에서 `.btn*`, `.card*`, `.chip*` 규칙 중 색을 리터럴(#hex, rgb(), rgba())로 쓰는 것을 찾는다.
+ * 컴포넌트는 var(--토큰) 만 써서 html.dark 의 토큰 교체로 다크가 따라오게 해야 한다.
+ * 리터럴 색이 불가피하면 html.dark 에 같은 클래스 규칙을 두어야 한다.
+ * @param {string} css app.css 전체
+ * @returns {string[]} 다크 대응이 없는 선택자
+ */
+export function componentsWithoutDarkSupport(css) {
+  const darkStart = css.indexOf("html.dark {");
+  const dark = css.slice(darkStart);
+  const bad = [];
+  for (const m of css.matchAll(/(^|\n)((?:\.(?:btn|card|chip)[\w-]*[^{}\n]*,?\s*)+)\{([^}]*)\}/g)) {
+    const selector = m[2].trim();
+    const body = m[3].replace(/var\([^)]*\)/g, "");
+    if (!/#[0-9a-fA-F]{3,8}\b|rgba?\(/.test(body)) continue;
+    const firstClass = selector.match(/\.((?:btn|card|chip)[\w-]*)/)[1];
+    if (!dark.includes(`html.dark .${firstClass}`)) bad.push(selector);
+  }
+  return bad;
+}
+
+test("componentsWithoutDarkSupport: 리터럴 색을 쓰면서 다크 규칙이 없는 컴포넌트를 잡아낸다 (검사기 자체 점검)", () => {
+  const css = ".btn-x { background: #fff; }\n.btn-y { background: var(--surface); box-shadow: 0 3px 0 var(--e); }\n.chip-z { color: rgb(0,0,0); }\nhtml.dark {\n}\nhtml.dark .chip-z { color: #fff; }";
+  assert.deepEqual(componentsWithoutDarkSupport(css), [".btn-x"]);
+});
+
+test(".btn/.card/.chip 컴포넌트는 리터럴 색 없이 토큰만 쓰거나, 쓰면 다크 규칙이 있다", () => {
+  const css = readFileSync(join(ROOT, "css/app.css"), "utf8");
+  assert.ok(/\n\.btn\s*\{/.test(css), "app.css 에서 .btn 컴포넌트를 찾지 못했다. 검사 정규식을 확인하라");
+  assert.deepEqual(componentsWithoutDarkSupport(css), []);
+});
+
+test("다크 구간은 버튼 토큰(--btn-*, --on-accent)을 교체한다", () => {
+  const css = readFileSync(join(ROOT, "css/app.css"), "utf8");
+  const dark = css.slice(css.indexOf("html.dark {"));
+  for (const token of ["--btn-primary-bg", "--btn-primary-edge", "--btn-danger-bg", "--btn-danger-edge", "--hover-bg"]) {
+    assert.ok(dark.includes(token), `html.dark 에서 ${token} 을 정의해야 한다`);
+  }
+});

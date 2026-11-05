@@ -89,7 +89,7 @@ function openAccountMenu(anchor) {
         "div",
         { class: "min-w-0" },
         h("p", { class: "truncate text-sm font-semibold text-zinc-900" }, user.nickname),
-        h("span", { class: "inline-flex rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700" }, "학습자"),
+        h("span", { class: "chip-sm" }, "학습자"),
       ),
     ),
     h("div", { class: "dropdown-divider" }),

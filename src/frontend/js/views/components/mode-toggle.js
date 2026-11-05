@@ -21,7 +21,7 @@ export function renderModeToggle({ value, onChange }) {
       "button",
       {
         type: "button",
-        class: "press focus-ring min-h-[44px] rounded-lg px-3 text-[15px] font-semibold",
+        class: "press focus-ring min-h-[44px] rounded-lg px-3 text-body font-semibold",
         "aria-pressed": String(mode.id === value),
         onclick: () => {
           onChange(mode.id);
@@ -35,7 +35,7 @@ export function renderModeToggle({ value, onChange }) {
     buttons.forEach((el, i) => {
       const on = MODES[i].id === selected;
       el.setAttribute("aria-pressed", String(on));
-      el.className = `press focus-ring min-h-[44px] rounded-lg px-3 text-[15px] font-semibold ${on ? "bg-white text-indigo-600 shadow-sm" : "text-zinc-600"}`;
+      el.className = `press focus-ring min-h-[44px] rounded-lg px-3 text-body font-semibold ${on ? "bg-white text-indigo-600 shadow-sm" : "text-zinc-600"}`;
     });
   }
   paint(value);

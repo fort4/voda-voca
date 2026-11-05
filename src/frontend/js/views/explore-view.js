@@ -51,7 +51,7 @@ class ExplorePanel {
       { class: "flex items-center gap-2 overflow-x-auto pb-1", role: "group", "aria-label": `${label} 필터` },
       options.map((option) => {
         const on = String(this.filter[key]) === String(option.value);
-        return h("button", { type: "button", "aria-pressed": String(on), class: `press focus-ring min-h-[40px] shrink-0 rounded-full px-4 text-sm font-semibold ${on ? "bg-indigo-600 text-white" : "surface text-zinc-700"}`, onclick: () => { this.filter = { ...this.filter, [key]: option.value }; this.paint(); } }, option.label);
+        return h("button", { type: "button", "aria-pressed": String(on), class: "chip focus-ring", onclick: () => { this.filter = { ...this.filter, [key]: option.value }; this.paint(); } }, option.label);
       }),
     );
   }

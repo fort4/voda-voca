@@ -117,27 +117,34 @@ export function notice({ iconName, title, text, action }) {
   );
 }
 
+/** button() 이 지원하는 variant. 값은 app.css 의 .btn-<variant> 와 1:1 이다. */
+const BUTTON_VARIANTS = ["primary", "secondary", "danger", "ghost", "danger-soft"];
+
 /**
- * 버튼. 최소 44×44px 터치 타깃, 누르면 살짝 눌리는 마이크로 인터랙션, 키보드 포커스 링 (디자인 시스템: app.css).
- * variant: primary(인디고 채움) | secondary(표면 + 보더) | danger(빨강 채움) | ghost(글자만)
+ * 버튼의 클래스 문자열. 규격(높이·반경·글자·3D 눌림)은 app.css 의 .btn 컴포넌트가 정한다.
+ * 알 수 없는 variant 는 primary 로 본다. DOM 없이 단위 테스트할 수 있게 button() 에서 분리했다.
+ * @param {{variant?: string, full?: boolean}} opts
+ * @returns {string}
+ */
+export function buttonClass({ variant = "primary", full = false } = {}) {
+  const v = BUTTON_VARIANTS.includes(variant) ? variant : "primary";
+  return `btn btn-${v} focus-ring${full ? " btn-full" : ""}`;
+}
+
+/**
+ * 버튼. 최소 44×44px 터치 타깃, 누르면 눌리는 3D 인터랙션, 키보드 포커스 링 (디자인 시스템: app.css 의 .btn).
+ * variant: primary(인디고 채움) | secondary(표면 + 보더) | danger(빨강 채움) | ghost(글자만) | danger-soft(연한 빨강)
  * @param {{variant?: string, type?: string, onClick?: (e: Event) => void, disabled?: boolean, full?: boolean}} opts
  * @param {...any} children
  * @returns {HTMLButtonElement}
  */
 export function button({ variant = "primary", type = "button", onClick, disabled = false, full = false, ...rest }, ...children) {
-  const variants = {
-    primary: "bg-indigo-600 text-white shadow-sm hover:bg-indigo-700",
-    secondary: "surface text-zinc-800 hover:bg-zinc-50",
-    danger: "bg-red-600 text-white shadow-sm hover:bg-red-700",
-    ghost: "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900",
-    "danger-soft": "bg-red-50 text-red-700 ring-1 ring-red-200 hover:bg-red-100",
-  };
   return /** @type {HTMLButtonElement} */ (
     h(
       "button",
       {
         type,
-        class: `press focus-ring inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 rounded-xl px-4 text-[15px] font-semibold tracking-tight transition disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant] ?? variants.primary} ${full ? "w-full" : ""}`,
+        class: buttonClass({ variant, full }),
         onclick: onClick,
         disabled,
         ...rest,

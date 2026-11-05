@@ -40,7 +40,7 @@ export function renderFeedbackSheet({ state, onNext, onSpeak }) {
         ),
       ),
       h("p", { class: "break-words text-base font-semibold" }, feedback.meaning),
-      feedback.example ? h("p", { class: "sheet-sub break-words pt-1 text-[15px] italic leading-relaxed" }, feedback.example) : null,
+      feedback.example ? h("p", { class: "sheet-sub break-words pt-1 text-body italic leading-relaxed" }, feedback.example) : null,
       feedback.example_meaning ? h("p", { class: "sheet-sub break-words text-sm leading-relaxed" }, feedback.example_meaning) : null,
     ),
     h("div", { class: "mt-4" }, button({ variant: "primary", full: true, onClick: onNext, "data-autofocus": "true" }, `${tone.buttonLabel} (Enter)`)),

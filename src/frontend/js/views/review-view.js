@@ -60,7 +60,7 @@ class ReviewPanel {
   tab(tab, sources) {
     const on = tab.id === this.active;
     const count = sources.find((s) => s.id === tab.id).count;
-    return h("button", { type: "button", role: "tab", "aria-selected": String(on), class: `press focus-ring min-h-[44px] rounded-lg px-3 text-[15px] font-semibold ${on ? "bg-white text-indigo-600 shadow-sm" : "text-zinc-600"}`, onclick: () => { this.active = tab.id; this.paint(); } }, `${tab.label} ${count ?? ""}`.trim());
+    return h("button", { type: "button", role: "tab", "aria-selected": String(on), class: `press focus-ring min-h-[44px] rounded-lg px-3 text-body font-semibold ${on ? "bg-white text-indigo-600 shadow-sm" : "text-zinc-600"}`, onclick: () => { this.active = tab.id; this.paint(); } }, `${tab.label} ${count ?? ""}`.trim());
   }
 
   row(r) {

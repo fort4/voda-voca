@@ -29,7 +29,7 @@ export function renderBottomNav(container, { path, user }) {
           "a",
           {
             href: tab.href,
-            class: "tab-link focus-ring flex min-h-[56px] flex-col items-center justify-center gap-0.5 text-[11px] font-semibold tracking-tight",
+            class: "tab-link focus-ring flex min-h-[56px] flex-col items-center justify-center gap-0.5 text-micro font-semibold tracking-tight",
             "aria-current": tab.id === active ? "page" : null,
           },
           h("span", { class: "tab-pill" }, icon(tab.iconName, "h-5 w-5")),
