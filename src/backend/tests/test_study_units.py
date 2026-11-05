@@ -1,15 +1,12 @@
-# 2026-11-02 - voda-voca - 학습 서비스·스키마 단위 테스트: 오답 선지 구성, 답안 검증, 요청 스키마 규칙 (DB 없이 실행)
+# 2026-11-02 - voda-voca - 학습 서비스·스키마 단위 테스트: 오답 선지 구성, DB 경쟁 상태 처리 (DB 없이 실행)
 # 파일 위치: src/backend/tests/test_study_units.py
 
 import random
 from types import SimpleNamespace
 
 import pytest
-from pydantic import ValidationError
 
-from backend.schemas.study import QuizAnswer, QuizCreate
 from backend.services import study as study_service
-from backend.services.study import QuizAnswerError
 
 
 def _word(word_id: int, vocabulary_id: int, meaning: str) -> SimpleNamespace:
@@ -110,67 +107,6 @@ def test_build_question_marks_correct_index_and_has_four_unique_choices() -> Non
 # --- 답안 검증 ---
 
 
-def _answers(*pairs: tuple[int, int]) -> list[QuizAnswer]:
-    return [QuizAnswer(question_id=q, choice_index=c) for q, c in pairs]
-
-
-def test_validate_answers_returns_mapping_when_exactly_one_per_question() -> None:
-    questions = [{"question_id": 0}, {"question_id": 1}]
-    assert study_service._validate_answers(_answers((0, 2), (1, 3)), questions) == {0: 2, 1: 3}
-
-
-def test_validate_answers_accepts_a_subset_or_nothing() -> None:
-    """일부만 풀고 끝낼 수 있다 (이슈 #8). 모든 문항을 요구하지 않는다."""
-    questions = [{"question_id": 0}, {"question_id": 1}]
-    assert study_service._validate_answers(_answers((1, 3)), questions) == {1: 3}
-    assert study_service._validate_answers([], questions) == {}
-
-
-@pytest.mark.parametrize(
-    "answers",
-    [
-        _answers((0, 1), (0, 2), (1, 0)),  # 중복
-        _answers((0, 1), (7, 0)),  # 알 수 없는 문항
-    ],
-)
-def test_validate_answers_rejects_duplicate_or_unknown(answers: list[QuizAnswer]) -> None:
-    questions = [{"question_id": 0}, {"question_id": 1}]
-    with pytest.raises(QuizAnswerError):
-        study_service._validate_answers(answers, questions)
-
-
-# --- 요청 스키마 ---
-
-
-@pytest.mark.parametrize(
-    ("payload", "valid"),
-    [
-        ({"vocabulary_id": 1}, True),
-        ({"bookmarks": True}, True),
-        ({"vocabulary_id": 1, "bookmarks": True}, False),
-        ({}, False),
-    ],
-)
-def test_quiz_create_accepts_exactly_one_source_only(payload: dict, valid: bool) -> None:
-    if valid:
-        QuizCreate(**payload)
-    else:
-        with pytest.raises(ValidationError):
-            QuizCreate(**payload)
-
-
-def test_quiz_create_defaults_count_to_ten() -> None:
-    assert QuizCreate(vocabulary_id=1).count == 10
-
-
-def test_quiz_answer_choice_index_must_be_within_four_choices() -> None:
-    QuizAnswer(question_id=0, choice_index=3)
-    with pytest.raises(ValidationError):
-        QuizAnswer(question_id=0, choice_index=4)
-    with pytest.raises(ValidationError):
-        QuizAnswer(question_id=-1, choice_index=0)
-
-
 def test_build_question_returns_none_when_choices_cannot_be_filled() -> None:
     target = _word(1, 10, "정답")
     words = [target, _word(2, 10, "정답")]
@@ -180,31 +116,12 @@ def test_build_question_returns_none_when_choices_cannot_be_filled() -> None:
 # --- 제출 시 DB 레벨 경쟁 상태 처리 (fake 세션으로 commit 실패만 주입) ---
 
 
-class _FakeResult:
-    def __init__(self, value: object) -> None:
-        self._value = value
+class _FakeSession:
+    """commit_logs / record_one 이 쓰는 최소 인터페이스: commit, rollback."""
 
-    def scalar_one_or_none(self) -> object:
-        return self._value
-
-    def scalars(self) -> list:
-        return list(self._value)
-
-
-class _FakeSubmitSession:
-    """submit_quiz 가 쓰는 최소 인터페이스: execute(세션 행, 단어 ID), add, commit, rollback."""
-
-    def __init__(self, row: SimpleNamespace, word_ids: list[int], commit_error: Exception | None) -> None:
-        self._responses = [_FakeResult(row), _FakeResult(word_ids)]
+    def __init__(self, commit_error: Exception | None = None) -> None:
         self._commit_error = commit_error
         self.rolled_back = False
-        self.logs: list[object] = []
-
-    async def execute(self, _stmt: object) -> _FakeResult:
-        return self._responses.pop(0)
-
-    def add(self, obj: object) -> None:
-        self.logs.append(obj)
 
     async def commit(self) -> None:
         if self._commit_error is not None:
@@ -214,55 +131,29 @@ class _FakeSubmitSession:
         self.rolled_back = True
 
 
-def _submit_row() -> SimpleNamespace:
-    from datetime import timedelta
+def _integrity_error(message: str):
+    from sqlalchemy.exc import IntegrityError
 
-    from backend.models.base import utcnow
-
-    return SimpleNamespace(
-        is_submitted=False,
-        mode="quiz",
-        expires_at=utcnow() + timedelta(minutes=10),
-        questions=[{"question_id": 0, "word_id": 7, "term": "t", "choices": ["a", "b", "c", "d"], "correct_index": 0}],
-        answers={},
-    )
-
-
-@pytest.fixture
-def fake_record(monkeypatch: pytest.MonkeyPatch) -> None:
-    """record_result 는 DB 를 쓰므로 이 단위 테스트에서는 이력만 세션에 더하는 가짜로 바꾼다."""
-
-    async def _record(db, user_id, word_id, is_correct, now, mode="quiz"):
-        db.add((user_id, word_id, is_correct, mode))
-
-    monkeypatch.setattr(study_service, "record_result", _record)
+    return IntegrityError("INSERT", {}, Exception(message))
 
 
 @pytest.mark.asyncio
-async def test_commit_fk_failure_on_study_logs_becomes_word_missing_and_rolls_back(fake_record: None) -> None:
-    from sqlalchemy.exc import IntegrityError
-
-    from backend.models.base import utcnow
-
-    error = IntegrityError("INSERT INTO study_logs", {}, Exception("Cannot add or update a child row: fk_study_logs_word"))
-    db = _FakeSubmitSession(_submit_row(), word_ids=[7], commit_error=error)
+async def test_commit_fk_failure_on_study_logs_becomes_word_missing_and_rolls_back() -> None:
+    db = _FakeSession(_integrity_error("Cannot add or update a child row: fk_study_logs_word"))
 
     with pytest.raises(study_service.QuizWordMissingError):
-        await study_service.submit_quiz(db, 1, 1, _answers((0, 0)), now=utcnow())
+        await study_service.commit_logs(db)
     assert db.rolled_back is True
 
 
 @pytest.mark.asyncio
-async def test_other_commit_integrity_errors_are_propagated_unchanged(fake_record: None) -> None:
+async def test_other_commit_integrity_errors_are_propagated_unchanged() -> None:
     from sqlalchemy.exc import IntegrityError
 
-    from backend.models.base import utcnow
-
-    error = IntegrityError("INSERT INTO study_logs", {}, Exception("some other constraint"))
-    db = _FakeSubmitSession(_submit_row(), word_ids=[7], commit_error=error)
+    db = _FakeSession(_integrity_error("some other constraint"))
 
     with pytest.raises(IntegrityError):
-        await study_service.submit_quiz(db, 1, 1, _answers((0, 0)), now=utcnow())
+        await study_service.commit_logs(db)
     assert db.rolled_back is True
 
 
@@ -272,18 +163,16 @@ async def test_word_fk_failure_while_recording_becomes_word_missing(
     monkeypatch: pytest.MonkeyPatch, fk_name: str
 ) -> None:
     """진행도 갱신 중 단어가 지워져 FK 가 걸려도 같은 오류(409)로 다루고 롤백한다."""
-    from sqlalchemy.exc import IntegrityError
-
     from backend.models.base import utcnow
 
     async def _boom(*_args, **_kwargs):
-        raise IntegrityError("INSERT", {}, Exception(f"Cannot add or update a child row: {fk_name}"))
+        raise _integrity_error(f"Cannot add or update a child row: {fk_name}")
 
     monkeypatch.setattr(study_service, "record_result", _boom)
-    db = _FakeSubmitSession(_submit_row(), word_ids=[7], commit_error=None)
+    db = _FakeSession()
 
     with pytest.raises(study_service.QuizWordMissingError):
-        await study_service.submit_quiz(db, 1, 1, _answers((0, 0)), now=utcnow())
+        await study_service.record_one(db, 1, 7, True, utcnow(), "quiz")
     assert db.rolled_back is True
 
 
@@ -294,11 +183,11 @@ async def test_unrelated_integrity_error_while_recording_is_propagated(monkeypat
     from backend.models.base import utcnow
 
     async def _boom(*_args, **_kwargs):
-        raise IntegrityError("INSERT", {}, Exception("some other constraint"))
+        raise _integrity_error("some other constraint")
 
     monkeypatch.setattr(study_service, "record_result", _boom)
-    db = _FakeSubmitSession(_submit_row(), word_ids=[7], commit_error=None)
+    db = _FakeSession()
 
     with pytest.raises(IntegrityError):
-        await study_service.submit_quiz(db, 1, 1, _answers((0, 0)), now=utcnow())
+        await study_service.record_one(db, 1, 7, True, utcnow(), "quiz")
     assert db.rolled_back is True

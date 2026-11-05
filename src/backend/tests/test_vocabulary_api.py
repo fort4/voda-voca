@@ -12,8 +12,7 @@ from sqlalchemy import select
 from backend.db.session import get_session_factory
 from backend.main import app
 from backend.models import User, UserWordProgress
-from backend.tests.helpers import auth_headers, signup_and_login
-from backend.tests.test_study_api import _user_id_for_token
+from backend.tests.helpers import auth_headers, signup_and_login, user_id_for_token
 
 
 @pytest_asyncio.fixture
@@ -95,7 +94,7 @@ async def test_catalog_user_progress_counts_studied_and_memorized(client: httpx.
     category = new_category()
     vocab = await make_vocabulary(["a1", "a2", "a3", "a4"], category=category)
     _, token = await signup_and_login(client)
-    user_id = await _user_id_for_token(client, token)
+    user_id = await user_id_for_token(client, token)
 
     empty = (await catalog(client, token, category=category))[0]["user_progress"]
     assert empty == {"studied_words": 0, "memorized_words": 0, "progress_rate": 0.0, "is_active": False}
@@ -113,7 +112,7 @@ async def test_catalog_progress_rate_is_rounded_to_one_decimal(client: httpx.Asy
     category = new_category()
     vocab = await make_vocabulary(["a1", "a2", "a3"], category=category)
     _, token = await signup_and_login(client)
-    await add_progress(await _user_id_for_token(client, token), vocab.word_ids["a1"])
+    await add_progress(await user_id_for_token(client, token), vocab.word_ids["a1"])
     assert (await catalog(client, token, category=category))[0]["user_progress"]["progress_rate"] == 33.3
 
 
@@ -123,7 +122,7 @@ async def test_catalog_progress_is_per_user(client: httpx.AsyncClient, make_voca
     vocab = await make_vocabulary(["a1", "a2"], category=category)
     _, mine = await signup_and_login(client)
     _, theirs = await signup_and_login(client)
-    await add_progress(await _user_id_for_token(client, theirs), vocab.word_ids["a1"])
+    await add_progress(await user_id_for_token(client, theirs), vocab.word_ids["a1"])
 
     assert (await catalog(client, mine, category=category))[0]["user_progress"]["studied_words"] == 0
     assert (await catalog(client, theirs, category=category))[0]["user_progress"]["studied_words"] == 1
@@ -227,7 +226,7 @@ async def test_set_active_vocabulary_changes_it_and_returns_the_entry(client: ht
     category = new_category()
     vocab = await make_vocabulary(["a1", "a2", "a3", "a4"], title="새 단어장", category=category, level=2)
     _, token = await signup_and_login(client)
-    user_id = await _user_id_for_token(client, token)
+    user_id = await user_id_for_token(client, token)
     await add_progress(user_id, vocab.word_ids["a1"])
 
     response = await set_active(client, token, vocab.id)
@@ -245,7 +244,7 @@ async def test_set_active_vocabulary_changes_it_and_returns_the_entry(client: ht
 async def test_set_active_is_idempotent_and_can_switch_back(client: httpx.AsyncClient, make_vocabulary) -> None:
     vocab = await make_vocabulary(["a1", "a2", "a3", "a4"])
     _, token = await signup_and_login(client)
-    user_id = await _user_id_for_token(client, token)
+    user_id = await user_id_for_token(client, token)
     original = await active_id_of(user_id)
 
     assert (await set_active(client, token, vocab.id)).status_code == 200
@@ -260,7 +259,7 @@ async def test_set_active_only_affects_the_caller(client: httpx.AsyncClient, mak
     vocab = await make_vocabulary(["a1"])
     _, mine = await signup_and_login(client)
     _, theirs = await signup_and_login(client)
-    their_id = await _user_id_for_token(client, theirs)
+    their_id = await user_id_for_token(client, theirs)
     before = await active_id_of(their_id)
 
     await set_active(client, mine, vocab.id)
@@ -270,7 +269,7 @@ async def test_set_active_only_affects_the_caller(client: httpx.AsyncClient, mak
 @pytest.mark.asyncio
 async def test_set_active_unknown_vocabulary_is_404_and_keeps_the_current_one(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
-    user_id = await _user_id_for_token(client, token)
+    user_id = await user_id_for_token(client, token)
     before = await active_id_of(user_id)
 
     response = await set_active(client, token, 999999999)

@@ -12,8 +12,7 @@ from backend.db.session import get_session_factory
 from backend.main import app
 from backend.models import StudyLog, SystemWord
 from backend.routers import study as study_router
-from backend.tests.helpers import auth_headers, signup_and_login
-from backend.tests.test_study_api import _user_id_for_token, create_quiz, make_vocab, make_words
+from backend.tests.helpers import auth_headers, make_vocab, make_words, signup_and_login, user_id_for_token
 
 # 고정 "지금": UTC 2026-11-04 02:00 = 한국 시각 2026-11-04 11:00. 한국 날짜 기준 "오늘"은 11-04 다.
 FIXED_NOW = datetime(2026, 11, 4, 2, 0, 0)
@@ -94,7 +93,7 @@ async def test_accuracy_is_cumulative_not_limited_to_the_last_100_logs(client: h
     _, token = await signup_and_login(client)
     wb = await make_vocab(client, token)
     word = next(iter(await make_words(client, token, wb, 4)))
-    user_id = await _user_id_for_token(client, token)
+    user_id = await user_id_for_token(client, token)
     # 150건: 처음 120건 정답, 마지막 30건 오답. 최근 100건만 보면 정답률이 훨씬 낮게 나온다.
     rows = [(word, True, kst_noon(TODAY) + timedelta(seconds=i)) for i in range(120)]
     rows += [(word, False, kst_noon(TODAY) + timedelta(seconds=120 + i)) for i in range(30)]
@@ -114,7 +113,7 @@ async def test_streak_counts_consecutive_days_even_with_over_100_logs_per_week(c
     _, token = await signup_and_login(client)
     wb = await make_vocab(client, token)
     word = next(iter(await make_words(client, token, wb, 4)))
-    user_id = await _user_id_for_token(client, token)
+    user_id = await user_id_for_token(client, token)
     rows = [
         (word, True, kst_noon(TODAY - timedelta(days=offset)) + timedelta(seconds=n))
         for offset in range(5)
@@ -130,7 +129,7 @@ async def test_streak_continues_from_yesterday_when_today_is_not_studied_yet(cli
     _, token = await signup_and_login(client)
     wb = await make_vocab(client, token)
     word = next(iter(await make_words(client, token, wb, 4)))
-    user_id = await _user_id_for_token(client, token)
+    user_id = await user_id_for_token(client, token)
     await seed_logs(user_id, [(word, True, kst_noon(TODAY - timedelta(days=d))) for d in (1, 2, 3)])
 
     assert (await get_stats(client, token))["streak_days"] == 3
@@ -141,7 +140,7 @@ async def test_streak_breaks_on_a_missing_day_and_is_zero_after_two_idle_days(cl
     _, token = await signup_and_login(client)
     wb = await make_vocab(client, token)
     word = next(iter(await make_words(client, token, wb, 4)))
-    user_id = await _user_id_for_token(client, token)
+    user_id = await user_id_for_token(client, token)
     # 오늘과 3일 전만 학습: 어제와 그제가 비어 있어 연속은 1일.
     await seed_logs(user_id, [(word, True, kst_noon(TODAY)), (word, True, kst_noon(TODAY - timedelta(days=3)))])
     assert (await get_stats(client, token))["streak_days"] == 1
@@ -149,7 +148,7 @@ async def test_streak_breaks_on_a_missing_day_and_is_zero_after_two_idle_days(cl
     _, other = await signup_and_login(client)
     other_wb = await make_vocab(client, other)
     other_word = next(iter(await make_words(client, other, other_wb, 4)))
-    other_id = await _user_id_for_token(client, other)
+    other_id = await user_id_for_token(client, other)
     await seed_logs(other_id, [(other_word, True, kst_noon(TODAY - timedelta(days=2)))])  # 그제만
     assert (await get_stats(client, other))["streak_days"] == 0
 
@@ -162,7 +161,7 @@ async def test_weekly_is_seven_days_oldest_first_with_distinct_words_per_day(cli
     _, token = await signup_and_login(client)
     wb = await make_vocab(client, token)
     words = list(await make_words(client, token, wb, 4))
-    user_id = await _user_id_for_token(client, token)
+    user_id = await user_id_for_token(client, token)
     await seed_logs(
         user_id,
         [
@@ -188,7 +187,7 @@ async def test_day_boundary_is_korean_midnight(client: httpx.AsyncClient) -> Non
     _, token = await signup_and_login(client)
     wb = await make_vocab(client, token)
     words = list(await make_words(client, token, wb, 4))
-    user_id = await _user_id_for_token(client, token)
+    user_id = await user_id_for_token(client, token)
     await seed_logs(
         user_id,
         [
@@ -210,7 +209,7 @@ async def test_day_boundary_is_korean_midnight(client: httpx.AsyncClient) -> Non
 async def test_progress_counts_words_ever_answered_correctly_beyond_100_logs(client: httpx.AsyncClient) -> None:
     _, token = await signup_and_login(client)
     wb = await make_vocab(client, token)
-    user_id = await _user_id_for_token(client, token)
+    user_id = await user_id_for_token(client, token)
     ids = await insert_words(wb, 150)
     rows: list[tuple[int, bool, datetime]] = []
     base = kst_noon(TODAY)
@@ -231,7 +230,7 @@ async def test_progress_is_100_percent_when_every_word_was_answered_correctly(cl
     _, token = await signup_and_login(client)
     wb = await make_vocab(client, token)
     words = list(await make_words(client, token, wb, 4))
-    user_id = await _user_id_for_token(client, token)
+    user_id = await user_id_for_token(client, token)
     await seed_logs(user_id, [(w, True, kst_noon(TODAY)) for w in words])
 
     assert progress_of(await get_stats(client, token), wb)["percent"] == 100
@@ -245,7 +244,7 @@ async def test_wrong_word_is_one_whose_latest_result_is_wrong(client: httpx.Asyn
     _, token = await signup_and_login(client)
     wb = await make_vocab(client, token)
     w1, w2, w3, w4 = list(await make_words(client, token, wb, 4))
-    user_id = await _user_id_for_token(client, token)
+    user_id = await user_id_for_token(client, token)
     t = kst_noon(TODAY)
     await seed_logs(
         user_id,
@@ -267,7 +266,7 @@ async def test_old_wrong_words_still_count_without_any_log_window(client: httpx.
     _, token = await signup_and_login(client)
     wb = await make_vocab(client, token)
     words = list(await make_words(client, token, wb, 5))
-    user_id = await _user_id_for_token(client, token)
+    user_id = await user_id_for_token(client, token)
     t = kst_noon(TODAY)
     rows = [(w, False, t + timedelta(seconds=i)) for i, w in enumerate(words[:4])]  # 오래된 오답 4개
     rows += [(words[4], True, t + timedelta(minutes=1, seconds=i)) for i in range(150)]  # 그 뒤 다른 단어 150건
@@ -277,27 +276,21 @@ async def test_old_wrong_words_still_count_without_any_log_window(client: httpx.
 
 
 @pytest.mark.asyncio
-async def test_wrong_review_quiz_uses_the_same_rule_and_shrinks_as_words_are_corrected(client: httpx.AsyncClient) -> None:
-    """오답 복습에서 맞히면 대상에서 빠지고, 4개 미만이 되면 더는 시작할 수 없다."""
+async def test_wrong_word_count_shrinks_as_words_are_corrected(client: httpx.AsyncClient) -> None:
+    """오답 복습에서 맞히면(마지막 결과가 정답) 오답 단어 수에서 빠진다. 오답 풀의 출제 규칙은 test_review_session_api 가 본다."""
     _, token = await signup_and_login(client)
     wb = await make_vocab(client, token)
     words = list(await make_words(client, token, wb, 6))
-    user_id = await _user_id_for_token(client, token)
+    user_id = await user_id_for_token(client, token)
     t = kst_noon(TODAY)
     await seed_logs(user_id, [(w, False, t + timedelta(seconds=i)) for i, w in enumerate(words[:5])])
     assert (await get_stats(client, token))["wrong_word_count"] == 5
 
     await seed_logs(user_id, [(words[0], True, t + timedelta(minutes=1))])  # 하나 맞힘 → 4개
     assert (await get_stats(client, token))["wrong_word_count"] == 4
-    ok = await create_quiz(client, token, {"wrong_only": True, "count": 10})
-    assert ok.status_code == 201, ok.text
-    assert len(ok.json()["questions"]) == 4
 
     await seed_logs(user_id, [(words[1], True, t + timedelta(minutes=2))])  # 하나 더 → 3개
     assert (await get_stats(client, token))["wrong_word_count"] == 3
-    blocked = await create_quiz(client, token, {"wrong_only": True})
-    assert blocked.status_code == 400
-    assert "현재 3개" in blocked.json()["detail"]
 
 
 # --- 분리·합계 ---
@@ -309,7 +302,7 @@ async def test_stats_are_isolated_per_user(client: httpx.AsyncClient) -> None:
     _, theirs = await signup_and_login(client)
     wb = await make_vocab(client, theirs)
     words = list(await make_words(client, theirs, wb, 4))
-    their_id = await _user_id_for_token(client, theirs)
+    their_id = await user_id_for_token(client, theirs)
     await seed_logs(their_id, [(w, False, kst_noon(TODAY)) for w in words])
 
     stats = await get_stats(client, mine)

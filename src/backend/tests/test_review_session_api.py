@@ -12,9 +12,8 @@ from backend.db.session import get_session_factory
 from backend.main import app
 from backend.models import StudyLog
 from backend.routers import study_session as session_router
-from backend.tests.helpers import auth_headers, signup_and_login
+from backend.tests.helpers import auth_headers, signup_and_login, user_id_for_token
 from backend.tests.test_learning_session_api import activate, answer, create, stored_session
-from backend.tests.test_study_api import _user_id_for_token
 
 NOW = datetime(2026, 11, 5, 9, 0, 0)
 T0 = datetime(2026, 11, 1, 9, 0, 0)
@@ -50,7 +49,7 @@ async def log(user_id: int, word_id: int, correct: bool, minutes: int) -> None:
 async def setup(client, make_vocabulary, n=8, title="복습 테스트"):
     vocab = await make_vocabulary([f"r{i:02d}" for i in range(n)], title=title)
     _, token = await signup_and_login(client)
-    user_id = await _user_id_for_token(client, token)
+    user_id = await user_id_for_token(client, token)
     return token, user_id, vocab
 
 

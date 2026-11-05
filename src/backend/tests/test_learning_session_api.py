@@ -13,8 +13,7 @@ from backend.db.session import get_session_factory
 from backend.main import app
 from backend.models import QuizSession, StudyLog, SystemWord, User, UserWordProgress
 from backend.routers import study_session as session_router
-from backend.tests.helpers import auth_headers, signup_and_login
-from backend.tests.test_study_api import _user_id_for_token
+from backend.tests.helpers import auth_headers, signup_and_login, user_id_for_token
 
 NOW = datetime(2026, 11, 5, 9, 0, 0)
 T0 = datetime(2026, 11, 1, 9, 0, 0)
@@ -94,7 +93,7 @@ async def start(client, make_vocabulary, n_words=20, **body):
     vocab = await make_vocabulary([f"w{i:02d}" for i in range(n_words)], title="세션 테스트")
     _, token = await signup_and_login(client)
     await activate(client, token, vocab.id)
-    user_id = await _user_id_for_token(client, token)
+    user_id = await user_id_for_token(client, token)
     response = await create(client, token, **body)
     return token, user_id, vocab, response
 
@@ -177,7 +176,7 @@ async def test_waterfall_composition_wrong_review_unseen(client, make_vocabulary
     vocab = await make_vocabulary([f"w{i:02d}" for i in range(60)])
     _, token = await signup_and_login(client)
     await activate(client, token, vocab.id)
-    user_id = await _user_id_for_token(client, token)
+    user_id = await user_id_for_token(client, token)
     for i in range(10):  # w00..w09 오답. 번호가 클수록 최근
         await put_progress(user_id, vocab.word_ids[f"w{i:02d}"], last_result="WRONG", minutes=i)
     for i in range(10, 15):  # w10..w14 복습 대상
@@ -198,7 +197,7 @@ async def test_unseen_shortage_is_filled_by_review(client, make_vocabulary) -> N
     vocab = await make_vocabulary([f"w{i:02d}" for i in range(20)])
     _, token = await signup_and_login(client)
     await activate(client, token, vocab.id)
-    user_id = await _user_id_for_token(client, token)
+    user_id = await user_id_for_token(client, token)
     for i in range(17):  # 미학습은 w17..w19 세 개뿐
         await put_progress(user_id, vocab.word_ids[f"w{i:02d}"], minutes=i)
 
@@ -213,7 +212,7 @@ async def test_memorized_words_are_excluded_unless_requested(client, make_vocabu
     vocab = await make_vocabulary([f"w{i:02d}" for i in range(6)])
     _, token = await signup_and_login(client)
     await activate(client, token, vocab.id)
-    user_id = await _user_id_for_token(client, token)
+    user_id = await user_id_for_token(client, token)
     for term in ("w00", "w01"):
         await put_progress(user_id, vocab.word_ids[term], memorized=True, streak=3)
 
@@ -230,7 +229,7 @@ async def test_all_words_memorized_gives_409_with_a_hint_code(client, make_vocab
     vocab = await make_vocabulary([f"w{i}" for i in range(4)])
     _, token = await signup_and_login(client)
     await activate(client, token, vocab.id)
-    user_id = await _user_id_for_token(client, token)
+    user_id = await user_id_for_token(client, token)
     for term in vocab.word_ids:
         await put_progress(user_id, vocab.word_ids[term], memorized=True, streak=3)
 
@@ -247,7 +246,7 @@ async def test_other_users_progress_does_not_change_my_session(client, make_voca
     _, theirs = await signup_and_login(client)
     for token in (mine, theirs):
         await activate(client, token, vocab.id)
-    their_id = await _user_id_for_token(client, theirs)
+    their_id = await user_id_for_token(client, theirs)
     for term in vocab.word_ids:
         await put_progress(their_id, vocab.word_ids[term], memorized=True, streak=3)
 
@@ -257,7 +256,7 @@ async def test_other_users_progress_does_not_change_my_session(client, make_voca
 @pytest.mark.asyncio
 async def test_missing_active_vocabulary_falls_back_to_the_default_and_is_saved(client) -> None:
     _, token = await signup_and_login(client)
-    user_id = await _user_id_for_token(client, token)
+    user_id = await user_id_for_token(client, token)
     async with get_session_factory()() as db:
         await db.execute(update(User).where(User.id == user_id).values(active_vocabulary_id=None))
         await db.commit()
@@ -325,7 +324,7 @@ async def test_third_correct_in_a_row_memorizes_the_word(client, make_vocabulary
     vocab = await make_vocabulary(["a", "b", "c", "d"])
     _, token = await signup_and_login(client)
     await activate(client, token, vocab.id)
-    user_id = await _user_id_for_token(client, token)
+    user_id = await user_id_for_token(client, token)
     for word_id in vocab.word_ids.values():
         await put_progress(user_id, word_id, streak=2)
     created = (await create(client, token, count=4)).json()
@@ -494,19 +493,6 @@ async def test_flashcard_resend_is_idempotent_and_change_is_locked(client, make_
 
 
 @pytest.mark.asyncio
-async def test_legacy_quiz_endpoints_do_not_serve_flashcard_sessions(client, make_vocabulary) -> None:
-    token, _, _, created, _ = await first_session(client, make_vocabulary, mode="flashcard")
-    sid = created["session_id"]
-    assert (await client.get(f"/api/study/quiz/sessions/{sid}", headers=auth_headers(token))).status_code == 404
-    legacy_answer = await client.post(
-        f"/api/study/quiz/sessions/{sid}/answers", json={"question_id": 0, "choice_index": 0}, headers=auth_headers(token)
-    )
-    assert legacy_answer.status_code == 404
-    legacy_submit = await client.post(f"/api/study/quiz/sessions/{sid}/submit", json={"answers": []}, headers=auth_headers(token))
-    assert legacy_submit.status_code == 404
-
-
-@pytest.mark.asyncio
 async def test_resend_returns_the_identical_body_even_when_now_has_microseconds(client, make_vocabulary, monkeypatch) -> None:
     """실제 시각은 마이크로초를 가진다. 첫 응답과 DB 에서 읽은 재전송 응답의 expires_at 이 같아야 멱등 응답이다."""
     monkeypatch.setattr(session_router, "_now", lambda: NOW + timedelta(microseconds=123456))
@@ -520,22 +506,3 @@ async def test_resend_returns_the_identical_body_even_when_now_has_microseconds(
     assert first.json() == again.json()
     assert created["expires_at"] == "2026-11-05T09:30:00.123000Z", "마이크로초 123456 은 DB 정밀도인 밀리초(123000)로 잘린다"
     assert first.json()["expires_at"] == "2026-11-05T09:30:00.123000Z"
-
-
-@pytest.mark.asyncio
-async def test_legacy_quiz_answer_resend_is_identical_with_microseconds(client, make_vocabulary, monkeypatch) -> None:
-    from backend.routers import study as study_router
-    from backend.tests.test_quiz_answers_api import answer as legacy_answer
-    from backend.tests.test_quiz_answers_api import start_quiz
-
-    monkeypatch.setattr(study_router, "_now", lambda: NOW + timedelta(microseconds=654321))  # 출제 전에 시각을 고정한다
-    _, token = await signup_and_login(client)
-    created, _ = await start_quiz(client, token)
-    question = created["questions"][0]
-    args = (client, token, created["session_id"], question["question_id"], question["correct_index"])
-
-    first = await legacy_answer(*args)
-    again = await legacy_answer(*args)
-
-    assert first.status_code == again.status_code == 200, first.text  # 만료 응답끼리 같아서 통과하는 일이 없게 한다
-    assert first.json() == again.json()
