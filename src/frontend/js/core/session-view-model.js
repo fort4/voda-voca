@@ -3,6 +3,7 @@
  * 파일 위치: src/frontend/js/core/session-view-model.js
  */
 
+import { COMBO_MIN_VISIBLE } from "./combo-model.js";
 import { ACTION, PHASE, currentItem } from "./session-runner.js";
 
 /** 화면에서만 쓰는 행동. 상태 머신에는 보내지 않고 session 뷰가 직접 처리한다. */
@@ -59,7 +60,7 @@ export function feedbackTone(state) {
     title,
     buttonLabel: isLast(state) ? "결과 보기" : correct ? "다음 문항" : "확인",
     badge: feedback.justMemorized ? "숙련 단어가 됐어요" : null,
-    streakText: correct && state.streak >= 2 ? `${state.streak}문제 연속 정답!` : null,
+    streakText: correct && state.streak >= COMBO_MIN_VISIBLE ? `${state.streak}콤보!` : null,
   };
 }
 
@@ -186,7 +187,7 @@ export function completeCopy(summary) {
   const stats = [
     { label: "정답률", value: `${summary.accuracy}%` },
     { label: "맞힌 문제", value: `${summary.correct}/${summary.answered}` },
-    { label: "최고 연속", value: `${summary.bestStreak}개` },
+    { label: "최대 콤보", value: `${summary.bestStreak}콤보` },
   ];
   if (summary.memorizedTerms.length) stats.push({ label: "새로 숙련", value: `${summary.memorizedTerms.length}개` });
 

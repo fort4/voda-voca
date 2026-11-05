@@ -9,9 +9,11 @@ import { createSessionDriver } from "../core/session-driver.js";
 import { ACTION, PHASE, currentItem, progressOf, summaryOf } from "../core/session-runner.js";
 import { VIEW_ACTION, choiceStates, errorCopy, flashcardFaces, sessionKeyAction } from "../core/session-view-model.js";
 import { isButtonTarget, modalIsOpen, shortcutsBlocked } from "../core/shortcuts.js";
-import { playCorrect } from "../core/sound.js";
+import { badgeView, soundCueFor } from "../core/combo-model.js";
+import { playCue } from "../core/sound.js";
 import { confirmDialog } from "../core/toast.js";
 import { resetSpeechNotice, stopSpeaking } from "../core/tts.js";
+import { renderComboRow } from "./components/combo-badge.js";
 import { renderFeedbackSheet } from "./components/feedback-sheet.js";
 import { renderProgressHeader } from "./components/progress-header.js";
 import { renderSessionResult } from "./components/session-result.js";
@@ -35,6 +37,10 @@ export function studySessionView(root, ctx) {
   let leaving = null; // { dir: "known"|"unsure", until: number } | null
   let enteredKey = "";
   let paintTimer = null;
+  // 콤보 뱃지: 직전에 그린 콤보 값. 화면은 상태가 바뀔 때마다 다시 그려지므로, 늘어난 렌더에서만 바운스한다.
+  let shownCombo = 0;
+  // 완료 팡파레는 세션당 한 번만
+  let completedSessionId = null;
 
   const driver = createSessionDriver({
     api,
@@ -48,7 +54,7 @@ export function studySessionView(root, ctx) {
       }
       if (action.type === ACTION.NEXT || action.type === ACTION.ABORT) stopSpeaking(); // 시트를 닫거나 세션을 중단할 때
       if (state.error) leaving = null; // 전송 실패 시 카드를 다시 보여 준다
-      if (action.type === ACTION.ANSWER_RECEIVED && state.feedback?.is_correct) playCorrect();
+      playCueFor(state, action);
       // 나가는 카드는 연출이 끝날 때까지 그대로 두고, 끝나면 서버 응답을 기다리지 않고 다음 카드를 미리 보여 준다
       clearTimeout(paintTimer);
       const remaining = leaving ? leaving.until - Date.now() : 0;
@@ -62,6 +68,22 @@ export function studySessionView(root, ctx) {
       }
     },
   });
+
+  /**
+   * 효과음은 정책 함수(soundCueFor)가 정한다: 정답·마일스톤·오답(퀴즈만)·완료(정상 완주+정답 1개 이상).
+   * 소리는 사용자가 답을 누르거나 결과를 보는 흐름 안에서만 난다.
+   */
+  function playCueFor(state, action) {
+    let cue = null;
+    if (action.type === ACTION.ANSWER_RECEIVED && state.feedback) {
+      cue = soundCueFor({ type: "answer", mode: state.mode, isCorrect: state.feedback.is_correct === true, count: state.streak });
+    } else if (state.phase === PHASE.SESSION_COMPLETE && completedSessionId !== state.sessionId) {
+      completedSessionId = state.sessionId;
+      const summary = summaryOf(state);
+      cue = soundCueFor({ type: "complete", aborted: summary.aborted, answered: summary.answered, correct: summary.correct });
+    }
+    if (cue) playCue(cue);
+  }
 
   /** 상태 머신 액션과 화면 전용 행동을 한 곳에서 처리한다. */
   async function act(action) {
@@ -90,6 +112,7 @@ export function studySessionView(root, ctx) {
         driver.dispatch(action);
         return;
       case ACTION.START:
+        shownCombo = 0;
         resetSpeechNotice();
         driver.dispatch({ ...action, mode: driver.getState().mode });
         return;
@@ -167,6 +190,8 @@ export function studySessionView(root, ctx) {
   function renderQuestion(state) {
     const item = currentItem(state);
     const sheetOpen = state.phase === PHASE.FEEDBACK_SHOWING && state.mode === "quiz";
+    const comboView = badgeView(shownCombo, state.streak);
+    shownCombo = state.streak;
     return h(
       "div",
       { class: `session-screen${sheetOpen ? " has-sheet" : ""}` },
@@ -175,6 +200,7 @@ export function studySessionView(root, ctx) {
         onAbort: () => act({ type: VIEW_ACTION.REQUEST_ABORT }),
         speakText: item.term,
       }),
+      renderComboRow(comboView),
       state.mode === "flashcard" ? renderFlashcard(state, item) : renderQuizCard(item),
       state.error ? renderInlineError(state.error) : null,
       state.mode === "quiz" ? renderChoices(state, item) : renderFlashcardButtons(state),

@@ -121,12 +121,12 @@ test("feedbackTone: 방금 숙련되면 배지를 보인다", () => {
   assert.equal(feedbackTone(state).badge, "숙련 단어가 됐어요");
 });
 
-test("feedbackTone: 세션에서 연속 정답이 2회 이상이면 문구를 보인다", () => {
+test("feedbackTone: 세션에서 콤보가 2 이상이면 문구를 보인다", () => {
   let state = withFeedback(active(), { question_id: 0 });
   state = reduce(state, { type: ACTION.NEXT }).state;
   state = reduce(state, { type: ACTION.SUBMIT_ANSWER, choiceIndex: 0 }).state;
   state = reduce(state, { type: ACTION.ANSWER_RECEIVED, result: result({ question_id: 1 }) }).state;
-  assert.equal(feedbackTone(state).streakText, "2문제 연속 정답!");
+  assert.equal(feedbackTone(state).streakText, "2콤보!");
 });
 
 test("feedbackTone: 해설을 보는 상태가 아니면 null", () => {

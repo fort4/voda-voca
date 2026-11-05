@@ -13,7 +13,7 @@ import { getUser, setUser } from "./core/state.js";
 import { confirmDialog, toast } from "./core/toast.js";
 import { loginView } from "./views/login.js";
 import { createThemeManager } from "./core/theme.js";
-import { isMuted, toggleMute } from "./core/sound.js";
+import { isMuted, subscribeMute, toggleMute } from "./core/sound.js";
 import { signupView } from "./views/signup.js";
 import { exploreView } from "./views/explore-view.js";
 import { homeView } from "./views/home-view.js";
@@ -274,8 +274,8 @@ function watchIcons() {
 }
 
 /**
- * 정답 소리 버튼: 저장된 음소거 상태에 맞춰 아이콘과 라벨을 그리고, 누르면 켜고 끈다.
- * 오답에는 소리가 없으므로 이 버튼은 정답 효과음만 제어한다.
+ * 효과음 버튼: 저장된 음소거 상태에 맞춰 아이콘(bell-ring/bell-off)과 라벨을 그리고, 누르면 켜고 끈다.
+ * 정답·콤보·오답·완료 효과음 전체를 제어한다. 발음(TTS)은 사용자가 직접 누르는 소리라 별개이며 volume-2 아이콘을 쓴다.
  */
 function initSound() {
   const btn = document.getElementById("sound-toggle");
@@ -283,14 +283,12 @@ function initSound() {
   const paint = () => {
     const muted = isMuted();
     btn.setAttribute("aria-pressed", String(!muted));
-    btn.setAttribute("aria-label", muted ? "정답 소리 켜기" : "정답 소리 끄기");
-    btn.replaceChildren(h("i", { "data-lucide": muted ? "volume-x" : "volume-2", class: "h-5 w-5", "aria-hidden": "true" }));
+    btn.setAttribute("aria-label", muted ? "효과음 켜기" : "효과음 끄기");
+    btn.replaceChildren(h("i", { "data-lucide": muted ? "bell-off" : "bell-ring", class: "h-5 w-5", "aria-hidden": "true" }));
     refreshIcons();
   };
-  btn.addEventListener("click", () => {
-    toggleMute();
-    paint();
-  });
+  btn.addEventListener("click", () => toggleMute());
+  subscribeMute(paint); // 어디서 바뀌어도 아이콘이 따라온다
   paint();
 }
 

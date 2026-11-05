@@ -183,6 +183,32 @@ a:focus-visible,
 .btn:disabled { cursor: not-allowed; opacity: 0.5; }
 .btn-full { width: 100%; }
 .btn-lg { min-height: 56px; font-size: var(--fs-lead); }
+/* 콤보 뱃지(v2.2): 진행 헤더 아래 고정 높이 줄. 뱃지가 없어도 높이를 차지해 카드가 밀리지 않는다 */
+.combo-row { display: flex; align-items: center; justify-content: center; height: 28px; margin: -6px 0; }
+.combo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  line-height: var(--lh-normal);
+}
+/* 5·10·15 콤보 마일스톤: 주 버튼과 같은 채움으로 한 단계 강하게 */
+.combo-badge--milestone { background: var(--btn-primary-bg); color: var(--on-accent); }
+/* 늘어난 렌더에서만 클래스가 붙는다 (combo-model.badgeView) */
+.combo-badge.is-bounce { animation: combo-pop 320ms var(--ease-out); }
+@keyframes combo-pop {
+  0% { transform: scale(0.85); }
+  55% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .combo-badge.is-bounce { animation: none; }
+}
 /* 아이콘 전용 버튼: 44×44 정사각 터치 타깃 (REQ-114) */
 .btn-icon { width: 44px; height: 44px; padding: 0; }
 /* 발음 듣기: 재생 중에는 강조색 + 아이콘 맥동. 동작 줄이기를 켠 사용자에게는 색만 바꾼다 */
