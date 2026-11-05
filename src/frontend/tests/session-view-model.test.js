@@ -7,7 +7,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { ACTION, PHASE, initialState, reduce, summaryOf } from "../js/core/session-runner.js";
-import { choiceStates, completeCopy, errorCopy, feedbackTone, sessionKeyAction } from "../js/core/session-view-model.js";
+import { choiceStates, completeCopy, errorCopy, feedbackTone, flashcardFaces, sessionKeyAction } from "../js/core/session-view-model.js";
 
 // --- 상태 만들기 ---
 
@@ -258,4 +258,18 @@ test("completeCopy: 틀린 문항이 있을 때만 복습 안내를 보인다", 
 
 test("PHASE 상수 확인 (뷰모델이 쓰는 상태 이름)", () => {
   assert.equal(PHASE.FEEDBACK_SHOWING, "FEEDBACK_SHOWING");
+});
+
+test("플래시카드 앞면은 단어만, 뒷면은 뜻·예문·예문 뜻을 담는다", () => {
+  const item = { term: "apple", context: "I ate an apple.", meaning: "사과", example_meaning: "나는 사과를 먹었다." };
+  assert.deepEqual(flashcardFaces(item), {
+    front: { term: "apple" },
+    back: { meaning: "사과", example: "I ate an apple.", exampleMeaning: "나는 사과를 먹었다." },
+  });
+});
+
+test("플래시카드 뒷면은 예문이 없으면 해당 값을 null 로 둔다", () => {
+  const faces = flashcardFaces({ term: "apple", context: null, meaning: "사과", example_meaning: null });
+  assert.equal(faces.back.example, null);
+  assert.equal(faces.back.exampleMeaning, null);
 });

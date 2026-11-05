@@ -204,3 +204,15 @@ export function completeCopy(summary) {
   }
   return { title, subtitle, stats, showWrongList: summary.wrongItems.length > 0 };
 }
+
+/**
+ * 플래시카드 면 구성. 앞면은 단어만 보여 스스로 떠올리게 하고, 뜻·예문·예문 뜻은 뒷면에서 확인한다.
+ * 없는 값은 null 로 두어 화면이 그 줄을 그리지 않게 한다.
+ * @param {{term: string, meaning?: string|null, context?: string|null, example_meaning?: string|null}} item
+ */
+export function flashcardFaces(item) {
+  return {
+    front: { term: item.term },
+    back: { meaning: item.meaning ?? null, example: item.context || null, exampleMeaning: item.example_meaning || null },
+  };
+}
