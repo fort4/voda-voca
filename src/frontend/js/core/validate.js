@@ -10,11 +10,6 @@ export const LIMITS = Object.freeze({
   NICKNAME_MAX: 30,
   PASSWORD_MIN: 8,
   PASSWORD_MAX_BYTES: 72,
-  WORDBOOK_NAME_MAX: 50,
-  WORDBOOK_DESCRIPTION_MAX: 200,
-  WORD_TERM_MAX: 100,
-  WORD_MEANING_MAX: 200,
-  WORD_EXAMPLE_MAX: 500,
 });
 
 /** @param {string} value @returns {string|null} */
@@ -49,22 +44,6 @@ export function nicknameConfirmationMatches(input, nickname) {
   return input.trim() === nickname;
 }
 
-/** @param {string} value @returns {string|null} */
-export function validateWordbookName(value) {
-  const name = value.trim();
-  if (!name) return "단어장 이름을 입력해 주세요.";
-  if (name.length > LIMITS.WORDBOOK_NAME_MAX) return `단어장 이름은 ${LIMITS.WORDBOOK_NAME_MAX}자 이하여야 합니다.`;
-  return null;
-}
-
-/** @param {string} value @returns {string|null} */
-export function validateWordbookDescription(value) {
-  if (value.trim().length > LIMITS.WORDBOOK_DESCRIPTION_MAX) {
-    return `설명은 ${LIMITS.WORDBOOK_DESCRIPTION_MAX}자 이하여야 합니다.`;
-  }
-  return null;
-}
-
 /**
  * 서버 422 필드 오류를 입력 이름별 메시지 객체로 바꾼다. 어느 입력에도 속하지 않는 오류는 "_form" 키에 모은다.
  * @param {Array<{field: string|null, message: string}>} fields
@@ -78,26 +57,4 @@ export function mapFieldErrors(fields, knownNames) {
     if (!out[key]) out[key] = message;
   }
   return out;
-}
-
-/** @param {string} value @returns {string|null} 표제어 1~100자, 공백만 불가 */
-export function validateWordTerm(value) {
-  const term = value.trim();
-  if (!term) return "표제어를 입력해 주세요.";
-  if (term.length > LIMITS.WORD_TERM_MAX) return `표제어는 ${LIMITS.WORD_TERM_MAX}자 이하여야 합니다.`;
-  return null;
-}
-
-/** @param {string} value @returns {string|null} 뜻 1~200자, 공백만 불가 */
-export function validateWordMeaning(value) {
-  const meaning = value.trim();
-  if (!meaning) return "뜻을 입력해 주세요.";
-  if (meaning.length > LIMITS.WORD_MEANING_MAX) return `뜻은 ${LIMITS.WORD_MEANING_MAX}자 이하여야 합니다.`;
-  return null;
-}
-
-/** @param {string} value @returns {string|null} 예문 0~500자, 빈 값 허용 */
-export function validateWordExample(value) {
-  if (value.trim().length > LIMITS.WORD_EXAMPLE_MAX) return `예문은 ${LIMITS.WORD_EXAMPLE_MAX}자 이하여야 합니다.`;
-  return null;
 }

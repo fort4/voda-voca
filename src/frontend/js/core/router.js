@@ -4,7 +4,7 @@
  */
 
 /**
- * "#/login?next=%2Fwordbooks" → {path: "/login", query: {next: "/wordbooks"}}
+ * "#/login?next=%2Fexplore" → {path: "/login", query: {next: "/explore"}}
  * @param {string} hash
  * @returns {{path: string, query: Record<string, string>}}
  */
@@ -50,7 +50,7 @@ export function matchRoute(routes, path) {
  * @param {string} [fallback]
  * @returns {string}
  */
-export function safeNext(value, fallback = "/wordbooks") {
+export function safeNext(value, fallback = "/") {
   if (typeof value !== "string") return fallback;
   if (!value.startsWith("/") || value.startsWith("//")) return fallback;
   if (/[:\\\s]/.test(value.split("?")[0])) return fallback;
@@ -107,7 +107,7 @@ export function createRouter({ routes, root, getUser, onNotFound, afterRender = 
       return;
     }
     if (route.access === "guest" && user) {
-      replace("/wordbooks");
+      replace("/");
       return;
     }
     const result = route.view(root, { params, query, path, navigate, replace });

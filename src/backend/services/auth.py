@@ -1,15 +1,16 @@
-# 2026-11-02 - voda-voca - 회원가입(기본 단어장 3종 동시 생성), 닉네임·비밀번호 확인, 회원 탈퇴 로직 (REQ-001~003, REQ-105)
+# 2026-11-05 - voda-voca - 회원가입(기본 학습 단어장 지정), 닉네임·비밀번호 확인, 회원 탈퇴 로직 (REQ-001~003, REQ-105)
 # 파일 위치: src/backend/services/auth.py
 
-from sqlalchemy import delete, insert, select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import User, Wordbook, Word
+from backend.models import SystemVocabulary, User
 from backend.services.password import get_dummy_hash, hash_password, verify_password
-from backend.services.seed import default_wordbooks
 
 UNIQUE_NICKNAME_CONSTRAINT = "uk_users_nickname"
+# 가입 직후 학습 단어장으로 지정할 표준 단어장 (초급 200제). 시드 파일의 slug 와 같아야 한다.
+DEFAULT_VOCABULARY_SLUG = "beginner-200"
 
 
 class NicknameAlreadyExistsError(Exception):
@@ -29,27 +30,22 @@ def normalize_nickname(nickname: str) -> str:
 
 
 async def signup(db: AsyncSession, password: str, nickname: str) -> User:
-    """계정과 기본 단어장 3종(초/중/고 200제)을 한 트랜잭션으로 만든다.
+    """계정을 만들고 기본 표준 단어장(초급 200제)을 학습 단어장으로 지정한다. 한 트랜잭션이다.
 
-    - 닉네임 중복은 UNIQUE 제약 위반으로 판정한다 (REQ-105). 실패하면 계정도 단어장도 남지 않는다.
-    - 기본 단어장은 이 사용자의 user_id 를 가진다. 기존 소유권 검사와 CASCADE 구조를 그대로 따른다.
+    - 닉네임 중복은 UNIQUE 제약 위반으로 판정한다 (REQ-105). 실패하면 계정이 남지 않는다.
+    - 단어장·단어를 사용자별로 복사하지 않는다. 표준 단어장은 모든 사용자가 공유하는 읽기 전용 콘텐츠다.
+    - 기본 단어장이 아직 없으면(시드 전) 활성 단어장은 비워 두고 가입은 성공시킨다.
     """
-    user = User(password_hash=await hash_password(password), nickname=normalize_nickname(nickname))
+    default_vocabulary_id = (
+        await db.execute(select(SystemVocabulary.id).where(SystemVocabulary.slug == DEFAULT_VOCABULARY_SLUG))
+    ).scalar_one_or_none()
+    user = User(
+        password_hash=await hash_password(password),
+        nickname=normalize_nickname(nickname),
+        active_vocabulary_id=default_vocabulary_id,
+    )
     db.add(user)
     try:
-        await db.flush()  # user.id 를 얻는다. 아직 커밋하지 않는다.
-        for seed in default_wordbooks():
-            wordbook = Wordbook(user_id=user.id, name=seed.name)
-            db.add(wordbook)
-            await db.flush()
-            # 단어 200건은 Core executemany 로 한 번에 넣는다 (ORM 객체 600개를 만들지 않는다). 같은 트랜잭션이다.
-            await db.execute(
-                insert(Word),
-                [
-                    {"wordbook_id": wordbook.id, "term": w.term, "meaning": w.meaning, "example": w.example, "example_meaning": w.example_meaning}
-                    for w in seed.words
-                ],
-            )
         await db.commit()
     except IntegrityError as exc:
         await db.rollback()
@@ -76,7 +72,7 @@ async def authenticate(db: AsyncSession, nickname: str, password: str) -> User:
 
 
 async def delete_account(db: AsyncSession, user_id: int) -> None:
-    """회원 탈퇴. users 행을 지우면 DB 의 ON DELETE CASCADE 가 세션, 단어장, 단어, 북마크,
-    학습 이력, 퀴즈 세션을 함께 지운다 (REQ-007 과 같은 원칙, 회원 탈퇴 요구)."""
+    """회원 탈퇴. users 행을 지우면 DB 의 ON DELETE CASCADE 가 세션, 북마크, 학습 이력,
+    단어 진행도, 퀴즈 세션을 함께 지운다. 표준 단어장과 단어는 공용 콘텐츠라 그대로 남는다."""
     await db.execute(delete(User).where(User.id == user_id))
     await db.commit()

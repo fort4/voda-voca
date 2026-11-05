@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 
 from backend.services import bookmark as bookmark_service
-from backend.services.word import WordNotFoundError
+from backend.services.errors import WordNotFoundError
 
 
 class _FakeSession:
@@ -31,12 +31,12 @@ def _integrity(message: str) -> IntegrityError:
 
 @pytest.fixture
 def owned(monkeypatch: pytest.MonkeyPatch) -> None:
-    """소유권 검사는 통과한 것으로 두고, 커밋 충돌 분기만 검증한다."""
+    """단어 존재 확인은 통과한 것으로 두고, 커밋 충돌 분기만 검증한다."""
 
     async def _ok(*_args: object) -> None:
         return None
 
-    monkeypatch.setattr(bookmark_service, "_ensure_owned_word", _ok)
+    monkeypatch.setattr(bookmark_service, "_ensure_word_exists", _ok)
 
 
 @pytest.mark.asyncio

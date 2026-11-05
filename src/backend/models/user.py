@@ -3,7 +3,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, String, UniqueConstraint
+from sqlalchemy import CheckConstraint, ForeignKey, String, UniqueConstraint
 from sqlalchemy.dialects.mysql import BIGINT, DATETIME
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -22,6 +22,12 @@ class User(Base):
     # bcrypt 해시 문자열 (ADR-002). 평문은 저장하지 않는다.
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     nickname: Mapped[str] = mapped_column(String(50), nullable=False)
+    # 사용자가 지금 집중해서 학습하는 표준 단어장. 단어장이 지워지면 NULL 로 돌아간다.
+    active_vocabulary_id: Mapped[int | None] = mapped_column(
+        BIGINT(unsigned=True),
+        ForeignKey("system_vocabularies.id", ondelete="SET NULL", name="fk_users_active_vocabulary"),
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DATETIME(fsp=3), nullable=False, server_default=UTC_NOW_DEFAULT
     )

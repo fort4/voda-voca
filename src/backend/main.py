@@ -14,25 +14,29 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.db.session import dispose_engine, get_db_session
 from backend.routers.auth import router as auth_router
-from backend.routers.wordbook import router as wordbook_router
-from backend.routers.word import router as word_router
 from backend.routers.bookmark import router as bookmark_router
 from backend.routers.study import router as study_router
+from backend.routers.study_session import router as study_session_router
+from backend.routers.vocabulary import me_router as me_vocabulary_router
+from backend.routers.vocabulary import router as vocabulary_router
+from backend.services.system_seed import init_system_seeds
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-    """앱 종료 시 DB 커넥션 풀을 정리한다."""
+    """앱 시작 시 표준 단어장 시드를 적재하고(멱등), 종료 시 DB 커넥션 풀을 정리한다."""
+    await init_system_seeds()
     yield
     await dispose_engine()
 
 
 app = FastAPI(title="voda-voca", lifespan=lifespan)
 app.include_router(auth_router)
-app.include_router(wordbook_router)
-app.include_router(word_router)
 app.include_router(bookmark_router)
 app.include_router(study_router)
+app.include_router(study_session_router)
+app.include_router(vocabulary_router)
+app.include_router(me_vocabulary_router)
 
 
 @app.get("/health")

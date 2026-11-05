@@ -7,18 +7,18 @@ from datetime import timedelta
 import httpx
 import pytest
 import pytest_asyncio
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 
 from backend.core.config import get_settings
 from backend.core.deps import SESSION_COOKIE_NAME
 from backend.db.session import get_session_factory
 from backend.main import app
-from backend.models import AuthSession, Bookmark, QuizSession, StudyLog, User, Word, Wordbook
-from backend.services.seed import default_wordbooks
+from backend.models import AuthSession, Bookmark, QuizSession, StudyLog, SystemVocabulary, SystemWord, User
+from backend.services import auth as auth_service
 from backend.models.base import utcnow
 from backend.models.quiz_session import QUIZ_SOURCE_BOOKMARKS
 from backend.services.session import new_token, token_digest
-from backend.tests.helpers import DEFAULT_WORDBOOK_COUNT, PASSWORD, auth_headers, signup_and_login, unique_nickname
+from backend.tests.helpers import PASSWORD, auth_headers, signup_and_login, unique_nickname
 
 TTL_SECONDS = 14 * 24 * 60 * 60
 
@@ -308,24 +308,25 @@ async def test_delete_me_with_invalid_or_expired_cookie_is_401(client: httpx.Asy
 
 
 @pytest.mark.asyncio
-async def test_delete_me_removes_account_and_all_related_rows(client: httpx.AsyncClient) -> None:
-    """탈퇴하면 계정, 세션, 단어장, 단어, 북마크, 학습 이력, 퀴즈 세션이 모두 사라진다 (CASCADE)."""
+async def test_delete_me_removes_account_and_personal_rows_but_keeps_shared_content(client: httpx.AsyncClient) -> None:
+    """탈퇴하면 계정, 세션, 북마크, 학습 이력, 퀴즈 세션이 사라진다 (CASCADE). 표준 단어장·단어는 공용이라 남는다."""
     nickname, token = await signup_and_login(client)
     user_id = await user_id_of(nickname)
 
     async with get_session_factory()() as session:
-        wordbook = Wordbook(user_id=user_id, name="탈퇴 테스트 단어장")
-        session.add(wordbook)
+        vocabulary = SystemVocabulary(slug="tvoda-delete-me", title="탈퇴 테스트", category="ELEMENTARY", level=1)
+        session.add(vocabulary)
         await session.flush()
-        word = Word(wordbook_id=wordbook.id, term="apple", meaning="사과")
+        word = SystemWord(vocabulary_id=vocabulary.id, term="apple", meaning="사과")
         session.add(word)
         await session.flush()
-        session.add(Bookmark(user_id=user_id, word_id=word.id))
-        session.add(StudyLog(user_id=user_id, word_id=word.id, is_correct=True))
+        word_id = word.id
+        session.add(Bookmark(user_id=user_id, word_id=word_id))
+        session.add(StudyLog(user_id=user_id, word_id=word_id, is_correct=True))
         session.add(
             QuizSession(
                 user_id=user_id,
-                wordbook_id=None,
+                vocabulary_id=None,
                 source=QUIZ_SOURCE_BOOKMARKS,
                 questions=[],
                 is_submitted=False,
@@ -333,94 +334,66 @@ async def test_delete_me_removes_account_and_all_related_rows(client: httpx.Asyn
             )
         )
         await session.commit()
-    assert await count_rows(Wordbook, Wordbook.user_id == user_id) == DEFAULT_WORDBOOK_COUNT + 1
     assert await count_rows(StudyLog, StudyLog.user_id == user_id) == 1
 
-    response = await client.delete("/api/auth/me", headers=auth_headers(token))
-    assert response.status_code == 204
-    assert response.content == b""
-    set_cookie = response.headers["set-cookie"]
-    assert set_cookie.startswith(f"{SESSION_COOKIE_NAME}=")
-    assert "Max-Age=0" in set_cookie
+    try:
+        response = await client.delete("/api/auth/me", headers=auth_headers(token))
+        assert response.status_code == 204
+        assert response.content == b""
+        set_cookie = response.headers["set-cookie"]
+        assert set_cookie.startswith(f"{SESSION_COOKIE_NAME}=")
+        assert "Max-Age=0" in set_cookie
 
-    assert await count_rows(User, User.id == user_id) == 0
-    assert await count_rows(AuthSession, AuthSession.user_id == user_id) == 0
-    assert await count_rows(Wordbook, Wordbook.user_id == user_id) == 0
-    assert await count_rows(Word, Word.id == word.id) == 0
-    assert await count_rows(Bookmark, Bookmark.user_id == user_id) == 0
-    assert await count_rows(StudyLog, StudyLog.user_id == user_id) == 0
-    assert await count_rows(QuizSession, QuizSession.user_id == user_id) == 0
-
-
-@pytest.mark.asyncio
-async def test_after_delete_the_old_cookie_no_longer_works_and_nickname_is_free(
-    client: httpx.AsyncClient,
-) -> None:
-    nickname, token = await signup_and_login(client)
-    assert (await client.delete("/api/auth/me", headers=auth_headers(token))).status_code == 204
-
-    after = await client.get("/api/auth/me", headers=auth_headers(token))
-    assert after.status_code == 401
-
-    again = await client.post("/api/auth/signup", json={"nickname": nickname, "password": PASSWORD})
-    assert again.status_code == 201, "탈퇴한 닉네임은 다시 쓸 수 있다"
+        assert await count_rows(User, User.id == user_id) == 0
+        assert await count_rows(AuthSession, AuthSession.user_id == user_id) == 0
+        assert await count_rows(Bookmark, Bookmark.user_id == user_id) == 0
+        assert await count_rows(StudyLog, StudyLog.user_id == user_id) == 0
+        assert await count_rows(QuizSession, QuizSession.user_id == user_id) == 0
+        assert await count_rows(SystemWord, SystemWord.id == word_id) == 1, "공용 단어는 탈퇴로 지워지지 않는다"
+    finally:
+        async with get_session_factory()() as session:
+            await session.execute(delete(SystemVocabulary).where(SystemVocabulary.slug == "tvoda-delete-me"))
+            await session.commit()
 
 
-@pytest.mark.asyncio
-async def test_delete_me_does_not_touch_other_users(client: httpx.AsyncClient) -> None:
-    nick_a, token_a = await signup_and_login(client)
-    nick_b, token_b = await signup_and_login(client)
-    assert (await client.delete("/api/auth/me", headers=auth_headers(token_a))).status_code == 204
-
-    other = await client.get("/api/auth/me", headers=auth_headers(token_b))
-    assert other.status_code == 200
-    assert other.json()["nickname"] == nick_b
-    assert await count_rows(User, User.nickname == nick_b) == 1
+# --- 가입 시 활성 단어장 자동 지정 (개인 단어장은 더 이상 만들지 않는다) ---
 
 
-# --- 가입 시 기본 단어장 3종 자동 제공 (초/중/고 200제, 단일 트랜잭션) ---
-
-
-@pytest.mark.asyncio
-async def test_signup_creates_three_owned_default_wordbooks_with_200_words_each(client: httpx.AsyncClient) -> None:
-    nickname, token = await signup_and_login(client)
-    user_id = await user_id_of(nickname)
-
+async def active_vocabulary_slug(user_id: int) -> str | None:
     async with get_session_factory()() as session:
-        books = (
-            await session.execute(select(Wordbook).where(Wordbook.user_id == user_id).order_by(Wordbook.id))
-        ).scalars().all()
-        assert [b.name for b in books] == [b.name for b in default_wordbooks()]
-        for book, seed in zip(books, default_wordbooks(), strict=True):
-            count = (await session.execute(select(func.count()).select_from(Word).where(Word.wordbook_id == book.id))).scalar_one()
-            assert count == len(seed.words) == 200
-        sample = (
-            await session.execute(select(Word).where(Word.wordbook_id == books[0].id).order_by(Word.term).limit(1))
-        ).scalar_one()
-        assert sample.meaning and sample.example, "뜻과 예문이 함께 복사된다"
+        row = (
+            await session.execute(
+                select(SystemVocabulary.slug)
+                .join(User, User.active_vocabulary_id == SystemVocabulary.id)
+                .where(User.id == user_id)
+            )
+        ).scalar_one_or_none()
+        return row
 
 
 @pytest.mark.asyncio
-async def test_default_wordbooks_belong_only_to_their_owner(client: httpx.AsyncClient) -> None:
-    """기본 단어장도 사용자 격리를 따른다. 다른 사용자는 다른 사람의 기본 단어장을 볼 수 없다."""
-    owner, owner_token = await signup_and_login(client)
-    _, other_token = await signup_and_login(client)
-    owner_id = await user_id_of(owner)
-    listing = (await client.get("/api/wordbooks", headers=auth_headers(owner_token))).json()
-    book_id = next(i["id"] for i in listing["items"] if i["name"].startswith("초급"))
-
-    as_other = await client.get(f"/api/wordbooks/{book_id}", headers=auth_headers(other_token))
-    assert as_other.status_code == 404
-    assert await count_rows(Wordbook, Wordbook.user_id == owner_id) == 3
-
-
-@pytest.mark.asyncio
-async def test_duplicate_nickname_signup_leaves_no_extra_wordbooks(client: httpx.AsyncClient) -> None:
-    """닉네임 중복으로 실패한 가입은 단어장도 남기지 않는다 (단일 트랜잭션, All-or-Nothing)."""
+async def test_signup_activates_the_beginner_vocabulary(client: httpx.AsyncClient) -> None:
     nickname, _ = await signup_and_login(client)
-    wordbooks_before = await count_rows(Wordbook)
-    words_before = await count_rows(Word)
+    assert await active_vocabulary_slug(await user_id_of(nickname)) == "beginner-200"
+    assert auth_service.DEFAULT_VOCABULARY_SLUG == "beginner-200"
+
+
+@pytest.mark.asyncio
+async def test_signup_still_works_when_the_default_vocabulary_is_missing(
+    client: httpx.AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """시드가 아직 없어도 가입은 막지 않는다. 활성 단어장은 비워 두고 나중에 지정한다."""
+    monkeypatch.setattr(auth_service, "DEFAULT_VOCABULARY_SLUG", "tvoda-no-such-slug")
+    nickname, _ = await signup_and_login(client)
+    assert await active_vocabulary_slug(await user_id_of(nickname)) is None
+
+
+@pytest.mark.asyncio
+async def test_duplicate_nickname_signup_changes_nothing(client: httpx.AsyncClient) -> None:
+    """닉네임 중복으로 실패한 가입은 계정을 하나만 남기고 기존 계정의 활성 단어장도 바꾸지 않는다."""
+    nickname, _ = await signup_and_login(client)
+    user_id = await user_id_of(nickname)
     response = await client.post("/api/auth/signup", json={"nickname": nickname, "password": PASSWORD})
     assert response.status_code == 409
-    assert await count_rows(Wordbook) == wordbooks_before
-    assert await count_rows(Word) == words_before
+    assert await count_rows(User, User.nickname == nickname) == 1
+    assert await active_vocabulary_slug(user_id) == "beginner-200"

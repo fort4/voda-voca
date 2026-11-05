@@ -36,10 +36,10 @@ test("matchRoute: 루트 패턴은 루트 경로에만 맞는다", () => {
 });
 
 test("safeNext: 같은 앱의 경로만 허용하고 나머지는 기본값으로 바꾼다", () => {
-  assert.equal(safeNext("/wordbooks/3?x=1"), "/wordbooks/3?x=1");
-  assert.equal(safeNext("https://evil.example/"), "/wordbooks");
-  assert.equal(safeNext("//evil.example"), "/wordbooks");
-  assert.equal(safeNext("javascript:alert(1)"), "/wordbooks");
-  assert.equal(safeNext(undefined), "/wordbooks");
+  assert.equal(safeNext("/explore/3?x=1"), "/explore/3?x=1");
+  assert.equal(safeNext("https://evil.example/"), "/");
+  assert.equal(safeNext("//evil.example"), "/");
+  assert.equal(safeNext("javascript:alert(1)"), "/");
+  assert.equal(safeNext(undefined), "/");
   assert.equal(safeNext("/a b", "/home"), "/home");
 });

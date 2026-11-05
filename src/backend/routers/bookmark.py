@@ -9,7 +9,7 @@ from backend.db.session import get_db_session
 from backend.models import User
 from backend.schemas.bookmark import BookmarkOut, BookmarkPage
 from backend.services import bookmark as bookmark_service
-from backend.services.word import WordNotFoundError
+from backend.services.errors import WordNotFoundError
 
 router = APIRouter(prefix="/api/bookmarks", tags=["bookmarks"])
 
@@ -56,14 +56,14 @@ async def list_bookmarks(
     items = [
         BookmarkOut(
             word_id=bookmark.word_id,
-            wordbook_id=word.wordbook_id,
-            wordbook_name=wordbook_name,
+            vocabulary_id=word.vocabulary_id,
+            vocabulary_title=vocabulary.title,
             term=word.term,
             meaning=word.meaning,
             example=word.example,
             example_meaning=word.example_meaning,
             bookmarked_at=bookmark.created_at,
         )
-        for bookmark, word, wordbook_name in rows
+        for bookmark, word, vocabulary in rows
     ]
     return BookmarkPage(items=items, total=total, page=page, size=size)

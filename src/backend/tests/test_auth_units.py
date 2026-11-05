@@ -72,8 +72,11 @@ async def test_signup_reraises_unexpected_integrity_error() -> None:
         async def flush(self) -> None:
             pass
 
-        async def execute(self, *_args: object, **_kwargs: object) -> None:
-            pass
+        async def execute(self, *_args: object, **_kwargs: object) -> "_FakeDB":
+            return self  # 기본 단어장 조회 결과 (없음)
+
+        def scalar_one_or_none(self) -> None:
+            return None
 
         async def commit(self) -> None:
             raise IntegrityError("INSERT", {}, _FakeOrig("Check constraint violated"))

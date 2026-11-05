@@ -7,9 +7,10 @@ from backend.models.bookmark import Bookmark
 from backend.models.session import AuthSession
 from backend.models.quiz_session import QuizSession
 from backend.models.study_log import StudyLog
+from backend.models.system_vocabulary import SystemVocabulary
+from backend.models.system_word import SystemWord
 from backend.models.user import User
-from backend.models.word import Word
-from backend.models.wordbook import Wordbook
+from backend.models.user_word_progress import UserWordProgress
 
 __all__ = [
     "AuthSession",
@@ -17,7 +18,8 @@ __all__ = [
     "Bookmark",
     "QuizSession",
     "StudyLog",
+    "SystemVocabulary",
+    "SystemWord",
     "User",
-    "Word",
-    "Wordbook",
+    "UserWordProgress",
 ]

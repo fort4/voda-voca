@@ -9,7 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.models.base import TABLE_OPTIONS, UTC_NOW_DEFAULT, Base
 
-QUIZ_SOURCE_WORDBOOK = "wordbook"
+QUIZ_SOURCE_VOCABULARY = "vocabulary"
 QUIZ_SOURCE_BOOKMARKS = "bookmarks"
 QUIZ_SOURCE_WRONG = "wrong"
 
@@ -23,15 +23,17 @@ class QuizSession(Base):
       같은 답의 재전송을 멱등으로, 다른 답으로 바꾸기를 거부하는 근거가 된다. 결과 화면도 이 값으로 다시 만든다 (이슈 #8).
     - is_submitted: 퀴즈를 끝내면 True. 이후 답 기록과 재제출을 막는다 (409).
     - expires_at: 마지막으로 답을 기록한 시각 + 30분 (처음에는 출제 시각 + 30분). 지나면 새 답을 거부한다 (400).
-    - wordbook_id: source 가 'wordbook' 일 때만 값이 있다. 북마크 퀴즈는 NULL.
+    - vocabulary_id: source 가 'vocabulary' 일 때만 값이 있다. 북마크·오답 복습은 NULL.
+    - mode: 'quiz' | 'flashcard'. 플래시카드도 같은 세션 구조와 문항별 기록을 쓴다 (이슈 #17).
     """
 
     __tablename__ = "quiz_sessions"
     __table_args__ = (
         CheckConstraint(
-            "source IN ('wordbook', 'bookmarks', 'wrong')",
+            "source IN ('vocabulary', 'bookmarks', 'wrong')",
             name="ck_quiz_sessions_source",
         ),
+        CheckConstraint("mode IN ('quiz', 'flashcard')", name="ck_quiz_sessions_mode"),
         Index("idx_quiz_sessions_user", "user_id"),
         TABLE_OPTIONS,
     )
@@ -42,12 +44,13 @@ class QuizSession(Base):
         ForeignKey("users.id", ondelete="CASCADE", name="fk_quiz_sessions_user"),
         nullable=False,
     )
-    wordbook_id: Mapped[int | None] = mapped_column(
+    vocabulary_id: Mapped[int | None] = mapped_column(
         BIGINT(unsigned=True),
-        ForeignKey("wordbooks.id", ondelete="CASCADE", name="fk_quiz_sessions_wordbook"),
+        ForeignKey("system_vocabularies.id", ondelete="CASCADE", name="fk_quiz_sessions_vocabulary"),
         nullable=True,
     )
     source: Mapped[str] = mapped_column(String(16), nullable=False)
+    mode: Mapped[str] = mapped_column(String(20), nullable=False, server_default="quiz")
     questions: Mapped[list[dict]] = mapped_column(JSON, nullable=False)
     answers: Mapped[dict] = mapped_column(JSON, nullable=False, server_default=text("(JSON_OBJECT())"))
     is_submitted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
