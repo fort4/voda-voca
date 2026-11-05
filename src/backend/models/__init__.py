@@ -11,8 +11,6 @@ from backend.models.system_vocabulary import SystemVocabulary
 from backend.models.system_word import SystemWord
 from backend.models.user import User
 from backend.models.user_word_progress import UserWordProgress
-from backend.models.word import Word
-from backend.models.wordbook import Wordbook
 
 __all__ = [
     "AuthSession",
@@ -24,6 +22,4 @@ __all__ = [
     "SystemWord",
     "User",
     "UserWordProgress",
-    "Word",
-    "Wordbook",
 ]

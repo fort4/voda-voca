@@ -131,7 +131,7 @@ async def test_database_columns_and_old_tables() -> None:
     assert ("quiz_sessions", "mode") in columns
     assert ("study_logs", "mode") in columns
     tables = {r[0] for r in await _scalar_rows("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE()")}
-    assert {"words", "wordbooks"} <= tables  # B-7 까지 보존 (롤백 안전성)
+    assert {"words", "wordbooks"}.isdisjoint(tables)  # D-2 에서 삭제됨
 
 
 @_ASYNC

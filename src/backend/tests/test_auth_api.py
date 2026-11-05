@@ -13,7 +13,7 @@ from backend.core.config import get_settings
 from backend.core.deps import SESSION_COOKIE_NAME
 from backend.db.session import get_session_factory
 from backend.main import app
-from backend.models import AuthSession, Bookmark, QuizSession, StudyLog, SystemVocabulary, SystemWord, User, Wordbook
+from backend.models import AuthSession, Bookmark, QuizSession, StudyLog, SystemVocabulary, SystemWord, User
 from backend.services import auth as auth_service
 from backend.models.base import utcnow
 from backend.models.quiz_session import QUIZ_SOURCE_BOOKMARKS
@@ -376,17 +376,6 @@ async def test_signup_activates_the_beginner_vocabulary(client: httpx.AsyncClien
     nickname, _ = await signup_and_login(client)
     assert await active_vocabulary_slug(await user_id_of(nickname)) == "beginner-200"
     assert auth_service.DEFAULT_VOCABULARY_SLUG == "beginner-200"
-
-
-@pytest.mark.asyncio
-async def test_signup_creates_no_personal_wordbooks_or_words(client: httpx.AsyncClient) -> None:
-    from backend.models import Word
-
-    words_before = await count_rows(Word)
-    nickname, _ = await signup_and_login(client)
-    user_id = await user_id_of(nickname)
-    assert await count_rows(Wordbook, Wordbook.user_id == user_id) == 0
-    assert await count_rows(Word) == words_before
 
 
 @pytest.mark.asyncio
