@@ -26,7 +26,9 @@ from backend.schemas.study import (
     QuizSubmit,
     StudyLogList,
     StudyLogOut,
+    StudyStatsOut,
 )
+from backend.services import stats as stats_service
 from backend.services import study as study_service
 from backend.services.study import (
     FlashcardOffsetWithShuffleError,
@@ -240,6 +242,15 @@ async def get_quiz_session(
         return await study_service.get_quiz_session(db, user.id, session_id)
     except QuizSessionNotFoundError as exc:
         raise QUIZ_SESSION_NOT_FOUND from exc
+
+
+@router.get("/stats", response_model=StudyStatsOut)
+async def get_study_stats(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
+) -> StudyStatsOut:
+    """학습 지표 전체 (누적 정답률, 연속 학습일, 최근 7일, 단어장 진행률, 오답 단어 수). 최근 N건 제한이 없다."""
+    return await stats_service.get_study_stats(db, user.id, now=_now())
 
 
 @router.get("/logs", response_model=StudyLogList)

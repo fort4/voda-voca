@@ -1,6 +1,7 @@
 # 2026-11-02 - voda-voca - 학습 API 요청/응답 스키마: 플래시카드, 퀴즈 출제·제출, 학습 이력 (REQ-012~016, REQ-019)
 # 파일 위치: src/backend/schemas/study.py
 
+from datetime import date as DateType
 from datetime import datetime
 from typing import Self
 
@@ -165,6 +166,36 @@ class QuizSessionDetailOut(BaseModel):
     @field_serializer("expires_at")
     def _serialize_utc(self, value: datetime) -> str:
         return to_utc_iso(value)
+
+
+# --- 학습 통계 (이슈 #3) ---
+
+
+class DayActivityOut(BaseModel):
+    date: DateType = Field(description="한국 날짜")
+    label: str = Field(description="요일 (월~일)")
+    count: int = Field(description="그날 푼 단어 수. 같은 단어를 여러 번 풀어도 1")
+    is_today: bool
+
+
+class WordbookProgressOut(BaseModel):
+    wordbook_id: int
+    word_count: int
+    learned_words: int = Field(description="한 번이라도 맞힌 단어 수")
+    percent: int = Field(description="learned_words / word_count (0~100, 반올림)")
+
+
+class StudyStatsOut(BaseModel):
+    """학습 지표 전체. 모두 전체 이력 기준이며 최근 N건 제한이 없다."""
+
+    answered: int = Field(description="누적 푼 문항 수")
+    correct: int = Field(description="그중 정답 수")
+    accuracy: float | None = Field(description="누적 정답률 (0~100, 소수 첫째 자리). 푼 문항이 없으면 null")
+    streak_days: int = Field(description="연속 학습일 (한국 날짜). 오늘 아직 안 풀었으면 어제부터 센다")
+    weekly: list[DayActivityOut] = Field(description="오늘을 포함한 최근 7일, 오래된 날부터")
+    total_words: int = Field(description="모든 단어장의 단어 수 합계")
+    wordbook_progress: list[WordbookProgressOut]
+    wrong_word_count: int = Field(description="오답 복습 대상 단어 수 (단어별 마지막 결과가 오답)")
 
 
 # --- 학습 이력 (REQ-016) ---

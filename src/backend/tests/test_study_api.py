@@ -634,20 +634,23 @@ async def test_wrong_quiz_uses_distinct_wrong_words_and_records_source_wrong(cli
 
 
 @pytest.mark.asyncio
-async def test_wrong_quiz_ignores_wrong_answers_older_than_the_100_log_window(client: httpx.AsyncClient) -> None:
+async def test_wrong_quiz_has_no_log_window_old_wrong_words_still_count(client: httpx.AsyncClient) -> None:
+    """오답 판정은 단어별 마지막 결과다. 최근 100건 창이 없어서, 오래전에 틀리고 다시 풀지 않은 단어도 대상이다 (이슈 #3)."""
     _, token = await signup_and_login(client)
     wb = await make_wordbook(client, token)
-    words = await make_words(client, token, wb, 4)
+    words = await make_words(client, token, wb, 5)
     user_id = await _user_id_for_token(client, token)
-    for word_id in words:
+    wrong = list(words)[:4]
+    for word_id in wrong:
         await _log(user_id, word_id, correct=False)  # 오래된 오답 4개
-    filler = next(iter(words))
-    for _ in range(100):  # 그 뒤로 최근 기록 100건을 모두 맞힌 답으로 채운다
+    filler = list(words)[4]
+    for _ in range(100):  # 그 뒤로 다른 단어를 100건 맞힘
         await _log(user_id, filler, correct=True)
 
     response = await create_quiz(client, token, {"wrong_only": True})
-    assert response.status_code == 400
-    assert "현재 0개" in response.json()["detail"]
+    assert response.status_code == 201, response.text
+    session = await load_session(response.json()["session_id"])
+    assert {q["word_id"] for q in session.questions} == set(wrong)
 
 
 @pytest.mark.asyncio

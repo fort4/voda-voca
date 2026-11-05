@@ -9,8 +9,8 @@ import { field, alertBox } from "../core/form.js";
 import { formatKst } from "../core/format.js";
 import { confirmDialog, toast } from "../core/toast.js";
 import { validateWordbookDescription, validateWordbookName } from "../core/validate.js";
-import { downloadWordbook, fetchAllPages } from "../core/backup.js";
-import { computeSummary, computeWeeklyActivity, computeWordbookProgress } from "../core/stats.js";
+import { downloadWordbook } from "../core/backup.js";
+import { dashboardModel } from "../core/stats-view.js";
 import { renderWeeklyChart } from "../core/weekly-chart.js";
 import { openMenuPopover } from "../core/popover.js";
 import { sourceRouteQuery } from "../lib/study-source.js";
@@ -102,8 +102,8 @@ function statCard(iconName, label, value, hint) {
  */
 export function wordbooksView(root, { navigate }) {
   const state = { status: "loading", items: [], total: 0, page: 0, error: "" };
-  /** 대시보드 통계. 단어장 목록과 따로 받는다. */
-  const dash = { status: "loading", summary: null, weekly: [], logs: [], error: "" };
+  /** 대시보드 통계. 서버가 전체 이력으로 집계한 값(/study/stats)이며 단어장 목록과 따로 받는다. */
+  const dash = { status: "loading", model: null, error: "" };
   const dashEl = h("section", { class: "mb-4 space-y-3", "aria-label": "학습 요약" });
   const controller = new AbortController();
   const listEl = h("div", { class: "space-y-3", "aria-live": "polite" });
@@ -154,13 +154,7 @@ export function wordbooksView(root, { navigate }) {
     dash.status = "loading";
     renderDashboard();
     try {
-      const [books, logs] = await Promise.all([
-        fetchAllPages("/wordbooks", {}),
-        api("/study/logs", { query: { limit: 100 }, signal: controller.signal }),
-      ]);
-      dash.logs = logs.items;
-      dash.summary = computeSummary(books, logs.items);
-      dash.weekly = computeWeeklyActivity(logs.items);
+      dash.model = dashboardModel(await api("/study/stats", { signal: controller.signal }));
       dash.status = "ok";
     } catch (error) {
       if (error.name === "AbortError") return;
@@ -178,23 +172,17 @@ export function wordbooksView(root, { navigate }) {
       return;
     }
     const loaded = dash.status === "ok";
-    const summary = dash.summary;
+    const model = dash.model;
     dashEl.append(
       h(
         "div",
         { class: "grid grid-cols-3 gap-2 sm:gap-3" },
-        statCard("book-open", "총 단어", loaded ? summary.totalWords.toLocaleString("ko-KR") : "…", loaded ? "모든 단어장" : ""),
-        statCard(
-          "target",
-          "정답률",
-          loaded && summary.accuracy !== null ? `${summary.accuracy}%` : "—",
-          loaded && summary.answered > 0 ? `최근 ${summary.answered}문항` : "기록 없음",
-        ),
-        statCard("flame", "연속 학습", loaded ? `${summary.streak}일` : "…", loaded ? "오늘 기준" : ""),
+        statCard("book-open", "총 단어", loaded ? model.totalWords : "…", loaded ? "모든 단어장" : ""),
+        statCard("target", "정답률", loaded ? model.accuracy.value : "…", loaded ? model.accuracy.hint : ""),
+        statCard("flame", "연속 학습", loaded ? model.streak.value : "…", loaded ? model.streak.hint : ""),
       ),
     );
     if (loaded) {
-      const weekTotal = dash.weekly.reduce((sum, day) => sum + day.count, 0);
       dashEl.append(
         h(
           "section",
@@ -203,9 +191,9 @@ export function wordbooksView(root, { navigate }) {
             "div",
             { class: "mb-2 flex items-center justify-between" },
             h("h2", { class: "text-sm font-semibold text-zinc-800" }, "최근 7일 학습"),
-            h("span", { class: "text-xs text-zinc-500" }, `합계 ${weekTotal.toLocaleString("ko-KR")}개`),
+            h("span", { class: "text-xs text-zinc-500" }, `합계 ${model.weekTotal.toLocaleString("ko-KR")}개`),
           ),
-          renderWeeklyChart(dash.weekly),
+          renderWeeklyChart(model.weekly),
         ),
       );
     }
@@ -259,7 +247,7 @@ export function wordbooksView(root, { navigate }) {
         icon("ellipsis", "h-5 w-5"),
       )
     );
-    const progress = computeWordbookProgress(wordbook.id, dash.logs, wordbook.word_count);
+    const progress = dash.model ? dash.model.progressOf(wordbook.id) : 0;
     const fill = h("div", { class: "progress-fill" });
     fill.style.width = `${progress}%`;
     const track = h(

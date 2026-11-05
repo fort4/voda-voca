@@ -1,15 +1,13 @@
 /*
- * 2026-11-02 - voda-voca - 학습 이력 화면: 최근 50건 정답률 요약, 한국 날짜별 타임라인, 정답·오답 태그 (REQ-016)
+ * 2026-11-03 - voda-voca - 학습 이력 화면: 누적 정답률 요약(서버 통계), 한국 날짜별 최근 기록 타임라인, 정답·오답 태그, 오답 복습 시작 (REQ-016, 이슈 #3)
  * 파일 위치: src/frontend/js/views/history.js
  */
 
 import { api, ApiError } from "../core/api.js";
 import { button, clear, h, icon, notice, refreshIcons, skeleton } from "../core/dom.js";
 import { kstTime } from "../core/format.js";
-import { groupByKstDate, summarizeLogs, uniqueWrongWordIds } from "../lib/study-stats.js";
-
-export const HISTORY_LIMIT = 100; // 오답 복습은 최근 100건에서 고른다 (백엔드 WRONG_REVIEW_WINDOW 와 같다)
-export const WRONG_REVIEW_MIN = 4;
+import { HISTORY_TIMELINE_LIMIT, historySummary, wrongReviewState } from "../core/stats-view.js";
+import { groupByKstDate } from "../lib/study-stats.js";
 
 /**
  * @param {HTMLElement} root
@@ -25,8 +23,12 @@ export function historyView(root, { navigate }) {
     clear(body);
     body.append(skeleton(3));
     try {
-      const data = await api("/study/logs", { query: { limit: HISTORY_LIMIT }, signal: controller.signal });
-      render(data.items);
+      // 요약과 오답 단어 수는 전체 이력을 서버가 집계한 값이고, 타임라인은 최근 기록만 보여 준다.
+      const [logs, stats] = await Promise.all([
+        api("/study/logs", { query: { limit: HISTORY_TIMELINE_LIMIT }, signal: controller.signal }),
+        api("/study/stats", { signal: controller.signal }),
+      ]);
+      render(logs.items, stats);
     } catch (error) {
       if (error.name === "AbortError") return;
       clear(body);
@@ -41,8 +43,11 @@ export function historyView(root, { navigate }) {
     }
   }
 
-  /** @param {Array<{word_id: number, term: string, is_correct: boolean, created_at: string}>} items */
-  function render(items) {
+  /**
+   * @param {Array<{word_id: number, term: string, is_correct: boolean, created_at: string}>} items
+   * @param {{answered: number, correct: number, accuracy: number|null, wrong_word_count: number}} stats
+   */
+  function render(items, stats) {
     clear(body);
     if (items.length === 0) {
       body.append(
@@ -55,16 +60,16 @@ export function historyView(root, { navigate }) {
       );
       return;
     }
-    const summary = summarizeLogs(items);
+    const summary = historySummary(stats);
     body.append(
       h(
         "section",
         { class: "p-5 surface" },
         h("h1", { class: "text-xl font-bold" }, "학습 이력"),
-        h("p", { class: "mt-2 text-3xl font-bold" }, `${summary.accuracy}%`),
-        h("p", { class: "text-sm text-zinc-600" }, `최근 ${summary.total}건 중 정답 ${summary.correct}개, 오답 ${summary.wrong}개`),
-        h("p", { class: "mt-1 text-xs text-zinc-500" }, `최근 ${HISTORY_LIMIT}건 기준입니다.`),
-        wrongReviewAction(items),
+        h("p", { class: "mt-2 text-3xl font-bold" }, summary.headline),
+        h("p", { class: "text-sm text-zinc-600" }, summary.detail),
+        h("p", { class: "mt-1 text-xs text-zinc-500" }, summary.footnote),
+        wrongReviewAction(stats.wrong_word_count),
       ),
       ...groupByKstDate(items).map((group) =>
         h(
@@ -93,12 +98,12 @@ export function historyView(root, { navigate }) {
   }
 
   /**
-   * 오답 복습 시작 버튼. 최근 기록의 고유 오답 단어가 4개 미만이면 비활성화하고 현재 개수를 안내한다.
-   * @param {Array<{word_id: number, is_correct: boolean}>} items
+   * 오답 복습 시작 버튼. 단어별 마지막 결과가 오답인 단어가 4개 미만이면 비활성화하고 현재 개수를 안내한다.
+   * 퀴즈 출제도 같은 규칙을 쓰므로 여기 보이는 개수가 곧 출제 대상이다.
+   * @param {number} wrongWordCount
    */
-  function wrongReviewAction(items) {
-    const wrongCount = uniqueWrongWordIds(items).size;
-    const ready = wrongCount >= WRONG_REVIEW_MIN;
+  function wrongReviewAction(wrongWordCount) {
+    const { ready, message } = wrongReviewState(wrongWordCount);
     return h(
       "div",
       { class: "mt-4 space-y-2" },
@@ -110,9 +115,7 @@ export function historyView(root, { navigate }) {
       h(
         "p",
         { class: "text-center text-xs text-zinc-500" },
-        ready
-          ? `틀린 단어 ${wrongCount}개로 복습합니다.`
-          : `복습 가능한 오답 단어가 ${WRONG_REVIEW_MIN}개 이상이어야 합니다 (현재 ${wrongCount}개).`,
+        message,
       ),
     );
   }

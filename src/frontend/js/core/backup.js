@@ -5,7 +5,7 @@
  */
 
 import { api } from "./api.js";
-import { kstDayKeyOf } from "./stats.js";
+import { kstDateKey } from "./format.js";
 
 export const BACKUP_HEADER = ["단어장", "표제어", "뜻", "예문", "예문 뜻"];
 /** 개별 단어장 파일 헤더. 일괄 등록(가져오기)에서 그대로 다시 읽을 수 있다. */
@@ -65,7 +65,7 @@ export function safeFileStem(name) {
  * @returns {string}
  */
 export function wordbookFileName(wordbookName, now = Date.now()) {
-  return `${safeFileStem(wordbookName)}_${kstDayKeyOf(now).replaceAll("-", "")}.csv`;
+  return `${safeFileStem(wordbookName)}_${kstDateKey(new Date(now).toISOString()).replaceAll("-", "")}.csv`;
 }
 
 /**
@@ -74,7 +74,7 @@ export function wordbookFileName(wordbookName, now = Date.now()) {
  * @returns {string}
  */
 export function backupFileName(now = Date.now()) {
-  return `보다보카-단어장-${kstDayKeyOf(now).replaceAll("-", "")}.csv`;
+  return `보다보카-단어장-${kstDateKey(new Date(now).toISOString()).replaceAll("-", "")}.csv`;
 }
 
 /**

@@ -11,7 +11,6 @@ import { renderQuizResult } from "./quiz-result.js";
 import { playCorrect } from "../core/sound.js";
 import { speak } from "../core/tts.js";
 import { isButtonTarget, modalIsOpen, shortcutsBlocked } from "../core/shortcuts.js";
-import { uniqueWrongWordIds } from "../lib/study-stats.js";
 import { createAnswerRecorder } from "../core/answer-recorder.js";
 import { computeClockOffset, formatClock, isWarning, remainingMs } from "../core/timer.js";
 import { confirmDialog } from "../core/toast.js";
@@ -27,19 +26,18 @@ import {
 export const QUIZ_COUNT_CHOICES = [5, 10, 20];
 
 const TITLE = { wordbook: "단어장 퀴즈", bookmarks: "북마크 퀴즈", wrong: "오답 복습 퀴즈" };
-const SOURCE_NOUN = { wordbook: "단어장", bookmarks: "북마크", wrong: "최근 학습 기록" };
+const SOURCE_NOUN = { wordbook: "단어장", bookmarks: "북마크", wrong: "학습 기록" };
 const BACK_PATH = (source) =>
   source.kind === "wordbook" ? `/wordbooks/${source.wordbookId}` : source.kind === "wrong" ? "/history" : "/bookmarks";
 
 /**
- * 출제 가능한 원천 단어 수. 오답 복습은 최근 학습 기록(100건)의 고유 오답 단어로 센다.
+ * 출제 가능한 원천 단어 수. 오답 복습은 단어별 마지막 결과가 오답인 단어 수(서버 통계)이며 출제 대상과 같은 규칙이다.
  * @param {{kind: string, wordbookId?: number}} source
  * @returns {Promise<number>}
  */
 async function fetchAvailableCount(source) {
   if (source.kind === "wrong") {
-    const data = await api("/study/logs", { query: { limit: 100 } });
-    return uniqueWrongWordIds(data.items).size;
+    return (await api("/study/stats")).wrong_word_count;
   }
   const req = sourceCountRequest(source);
   return (await api(req.path, { query: req.query })).total;

@@ -19,11 +19,12 @@ from backend.schemas.study import (
     QuizSessionDetailOut,
     WrongItem,
 )
+from backend.services.stats import wrong_word_ids
+from backend.services.study_log import add_study_log
 from backend.services.wordbook import get_owned_wordbook
 
 QUIZ_TTL = timedelta(minutes=30)
 QUIZ_MIN_SOURCE_WORDS = 4  # 출제 원천 최소 단어 수 (REQ-014, REQ-019)
-WRONG_REVIEW_WINDOW = 100  # 오답 복습은 최근 학습 기록 100건에서 고른다 (이력 API 의 최대 건수와 같다)
 DISTRACTOR_COUNT = QUIZ_CHOICE_COUNT - 1  # 오답 3개 + 정답 1개 = 4지선다
 
 FK_STUDY_LOG_WORD = "fk_study_logs_word"
@@ -174,17 +175,6 @@ def _build_question(
     }
 
 
-async def _recent_wrong_word_ids(db: AsyncSession, user_id: int) -> set[int]:
-    """최근 학습 기록 WRONG_REVIEW_WINDOW 건 중 틀린 답이 있었던 단어 ID 의 집합 (고유)."""
-    rows = await db.execute(
-        select(StudyLog.word_id, StudyLog.is_correct)
-        .where(StudyLog.user_id == user_id)
-        .order_by(StudyLog.created_at.desc(), StudyLog.id.desc())
-        .limit(WRONG_REVIEW_WINDOW)
-    )
-    return {word_id for word_id, is_correct in rows.all() if not is_correct}
-
-
 async def create_quiz(
     db: AsyncSession,
     user_id: int,
@@ -208,7 +198,7 @@ async def create_quiz(
     user_words = await _all_user_words(db, user_id)
     if wrong_only:
         source = QUIZ_SOURCE_WRONG
-        wrong_ids = await _recent_wrong_word_ids(db, user_id)
+        wrong_ids = await wrong_word_ids(db, user_id)  # 단어별 마지막 결과가 오답인 단어 (통계의 오답 단어 수와 같은 규칙)
         candidates = [w for w in user_words if w.id in wrong_ids]
         if len(candidates) < QUIZ_MIN_SOURCE_WORDS:
             raise QuizSourceTooSmallError(
@@ -331,7 +321,7 @@ async def record_answer(
         raise QuizWordMissingError
 
     is_correct = answer.choice_index == correct_index
-    db.add(StudyLog(user_id=user_id, word_id=question["word_id"], is_correct=is_correct))
+    add_study_log(db, user_id, question["word_id"], is_correct)
     # JSON 컬럼은 내부를 바꿔도 변경으로 감지되지 않는다. 새 dict 를 대입한다.
     row.answers = {**(row.answers or {}), str(answer.question_id): answer.choice_index}
     row.expires_at = now + QUIZ_TTL
@@ -398,13 +388,7 @@ async def submit_quiz(
             raise QuizWordMissingError
         for question_id in sorted(fresh):
             question = by_id[question_id]
-            db.add(
-                StudyLog(
-                    user_id=user_id,
-                    word_id=question["word_id"],
-                    is_correct=fresh[question_id] == question["correct_index"],
-                )
-            )
+            add_study_log(db, user_id, question["word_id"], fresh[question_id] == question["correct_index"])
         recorded = {**recorded, **fresh}
         row.answers = {str(question_id): choice for question_id, choice in recorded.items()}
 
