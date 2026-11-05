@@ -3,10 +3,8 @@
  * 파일 위치: src/frontend/js/core/review-model.js
  */
 
-import { QUIZ_MIN_WORDS } from "../lib/study-source.js";
-
-/** 복습 세션을 시작하는 데 필요한 최소 단어 수 (퀴즈 출제 기준과 같다) */
-export const REVIEW_MIN_WORDS = QUIZ_MIN_WORDS;
+/** 복습 세션을 시작하는 데 필요한 최소 단어 수 (서버의 퀴즈 출제 최소 단어 수와 같다) */
+export const REVIEW_MIN_WORDS = 4;
 
 /**
  * 복습 출처 두 개(북마크, 오답)의 시작 가능 여부와 문구. 개수를 모르면(null) 막되 숫자를 지어내지 않는다.

@@ -11,8 +11,6 @@ import {
   nicknameConfirmationMatches,
   validateNickname,
   validatePassword,
-  validateWordbookDescription,
-  validateWordbookName,
 } from "../js/core/validate.js";
 
 test("validateNickname: 공백 제거 후 2~30자 (이메일 없는 회원 체계)", () => {
@@ -35,17 +33,6 @@ test("validatePassword: 최소 8자, 72바이트 경계 (한글 24자 = 72바이
   assert.equal(validatePassword("12345678"), null);
   assert.equal(validatePassword("가".repeat(24)), null);
   assert.match(validatePassword("가".repeat(25)), /72바이트/);
-});
-
-test("validateWordbookName: 공백만 불가, 길이 제한 (단어장 이름 50자)", () => {
-  assert.match(validateWordbookName(""), /단어장 이름/);
-  assert.match(validateWordbookName("a".repeat(51)), /50자/);
-  assert.equal(validateWordbookName("영어 단어"), null);
-});
-
-test("validateWordbookDescription: 200자 제한, 빈 값 허용", () => {
-  assert.equal(validateWordbookDescription(""), null);
-  assert.match(validateWordbookDescription("a".repeat(201)), /200자/);
 });
 
 test("mapFieldErrors: 알려진 입력에는 붙이고, 나머지는 _form 으로 모은다", () => {
