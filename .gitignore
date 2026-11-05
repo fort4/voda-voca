@@ -20,3 +20,6 @@ htmlcov/
 
 # DB 백업 덤프 (개인 학습 데이터 포함) - 커밋 금지
 ai-agent/backups/
+
+# Windows 다운로드 표식 파일 (NTFS 대체 데이터 스트림) - 커밋 금지
+*:Zone.Identifier
