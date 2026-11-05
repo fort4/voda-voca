@@ -11,7 +11,7 @@ from datetime import date, datetime, time, timedelta
 from sqlalchemy import Integer, case, func, literal_column, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import StudyLog, SystemVocabulary, SystemWord
+from backend.models import Bookmark, StudyLog, SystemVocabulary, SystemWord
 from backend.schemas.study import DayActivityOut, StudyStatsOut, VocabularyProgressOut
 
 KST_OFFSET = timedelta(hours=9)  # 학습일 경계는 한국 시각 자정이다 (DB 에는 UTC 로 저장)
@@ -147,3 +147,35 @@ async def get_study_stats(db: AsyncSession, user_id: int, now: datetime) -> Stud
         vocabulary_progress=progress,
         wrong_word_count=len(await wrong_word_ids(db, user_id)),
     )
+
+
+async def list_wrong_words(db: AsyncSession, user_id: int, page: int, size: int) -> tuple[list[tuple], int]:
+    """오답 복습 대상 단어 목록. wrong_word_ids 와 같은 규칙(단어별 가장 최근 결과가 오답)이며, 최근에 틀린 순서다.
+
+    각 행은 (SystemWord, SystemVocabulary, 북마크 여부, 틀린 시각). 두 번째 값은 전체 개수(페이지와 무관).
+    """
+    latest = (
+        select(
+            StudyLog.word_id.label("word_id"),
+            StudyLog.is_correct.label("is_correct"),
+            StudyLog.created_at.label("created_at"),
+            StudyLog.id.label("log_id"),
+            func.row_number()
+            .over(partition_by=StudyLog.word_id, order_by=(StudyLog.created_at.desc(), StudyLog.id.desc()))
+            .label("rn"),
+        )
+        .where(StudyLog.user_id == user_id)
+        .subquery()
+    )
+    wrong = select(latest.c.word_id, latest.c.created_at, latest.c.log_id).where(latest.c.rn == 1, latest.c.is_correct.is_(False)).subquery()
+    total = int(await db.scalar(select(func.count()).select_from(wrong)) or 0)
+    rows = await db.execute(
+        select(SystemWord, SystemVocabulary, Bookmark.id.is_not(None), wrong.c.created_at)
+        .join(wrong, wrong.c.word_id == SystemWord.id)
+        .join(SystemVocabulary, SystemVocabulary.id == SystemWord.vocabulary_id)
+        .outerjoin(Bookmark, (Bookmark.word_id == SystemWord.id) & (Bookmark.user_id == user_id))
+        .order_by(wrong.c.created_at.desc(), wrong.c.log_id.desc())
+        .limit(size)
+        .offset((page - 1) * size)
+    )
+    return [tuple(row) for row in rows.all()], total

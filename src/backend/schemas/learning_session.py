@@ -16,7 +16,11 @@ CHOICE_MAX_INDEX = 3  # 4지선다의 마지막 선지 번호
 class SessionCreate(BaseModel):
     mode: Literal["quiz", "flashcard"] = Field(default="quiz", description="quiz: 4지선다, flashcard: 알아요/헷갈려요")
     count: int = Field(default=SESSION_COUNT_DEFAULT, ge=1, le=SESSION_COUNT_MAX, description="요청 문항 수. 단어가 적으면 줄어든다")
-    include_memorized: bool = Field(default=False, description="true 면 숙련한 단어도 출제 대상에 넣는다")
+    include_memorized: bool = Field(default=False, description="true 면 숙련한 단어도 출제 대상에 넣는다 (source 가 all 일 때만 적용)")
+    source: Literal["all", "bookmarks", "wrong"] = Field(
+        default="all",
+        description="all: 활성 단어장 워터폴 출제, bookmarks: 내 북마크 복습, wrong: 단어별 마지막 결과가 오답인 단어 복습",
+    )
 
 
 class SessionItemOut(BaseModel):
@@ -40,7 +44,7 @@ class CompositionOut(BaseModel):
 class SessionOut(BaseModel):
     session_id: int
     mode: str
-    vocabulary_id: int
+    vocabulary_id: int | None = Field(description="활성 단어장 세션만 값이 있다. 북마크·오답 복습은 null")
     vocabulary_title: str
     total_questions: int
     expires_at: datetime = Field(description="이 시각 이후에는 새 답을 기록할 수 없다 (UTC). 답을 기록할 때마다 30분씩 밀린다")

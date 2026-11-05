@@ -32,15 +32,15 @@ async def create_session(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session),
 ) -> SessionOut:
-    """활성 단어장에서 한 라운드(기본 15문항)를 출제한다. 퀴즈 문항에는 정답을 싣지 않는다."""
+    """한 라운드(기본 15문항)를 출제한다. source 로 활성 단어장(all)·북마크·오답 풀을 고른다. 퀴즈 문항에는 정답을 싣지 않는다."""
     try:
         return await session_service.create_session(
-            db, user, body.mode, body.count, body.include_memorized, now=_now()
+            db, user, body.mode, body.count, body.include_memorized, now=_now(), source=body.source
         )
     except session_service.NoWordsToStudyError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="학습할 단어가 없습니다. 숙련한 단어를 포함해 볼까요?",
+            detail="학습할 단어가 없습니다. 숙련한 단어를 포함해 볼까요?" if body.source == "all" else "복습할 단어가 없습니다.",
             headers={ERROR_CODE_HEADER: CODE_NO_WORDS_TO_STUDY},
         ) from exc
     except session_service.NoVocabularyError as exc:

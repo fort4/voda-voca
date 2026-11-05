@@ -213,5 +213,30 @@ class StudyLogOut(BaseModel):
         return to_utc_iso(value)
 
 
+class WrongWordOut(BaseModel):
+    """오답 복습 대상 단어 한 건. 단어와 속한 표준 단어장 정보, 가장 최근에 틀린 시각을 담는다."""
+
+    word_id: int
+    vocabulary_id: int
+    vocabulary_title: str
+    term: str
+    meaning: str
+    example: str | None
+    example_meaning: str | None
+    bookmarked: bool
+    wrong_at: datetime = Field(description="가장 최근에 틀린 시각 (UTC)")
+
+    @field_serializer("wrong_at")
+    def _serialize_utc(self, value: datetime) -> str:
+        return to_utc_iso(value)
+
+
+class WrongWordPage(BaseModel):
+    items: list[WrongWordOut]
+    total: int
+    page: int
+    size: int
+
+
 class StudyLogList(BaseModel):
     items: list[StudyLogOut]

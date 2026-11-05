@@ -11,6 +11,8 @@ from backend.db.session import get_db_session
 from backend.models import User
 from backend.models.base import utcnow
 from backend.schemas.study import (
+    WrongWordOut,
+    WrongWordPage,
     FLASHCARD_LIMIT_DEFAULT,
     FLASHCARD_LIMIT_MAX,
     STUDY_LOG_LIMIT,
@@ -251,6 +253,32 @@ async def get_study_stats(
 ) -> StudyStatsOut:
     """학습 지표 전체 (누적 정답률, 연속 학습일, 최근 7일, 단어장 진행률, 오답 단어 수). 최근 N건 제한이 없다."""
     return await stats_service.get_study_stats(db, user.id, now=_now())
+
+
+@router.get("/wrong-words", response_model=WrongWordPage)
+async def list_wrong_words(
+    page: int = Query(default=1, ge=1),
+    size: int = Query(default=20, ge=1, le=100),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
+) -> WrongWordPage:
+    """오답 복습 대상 단어 목록 (단어별 마지막 결과가 오답). 최근에 틀린 순서이며 통계의 오답 단어 수와 같은 규칙이다."""
+    rows, total = await stats_service.list_wrong_words(db, user.id, page, size)
+    items = [
+        WrongWordOut(
+            word_id=word.id,
+            vocabulary_id=vocabulary.id,
+            vocabulary_title=vocabulary.title,
+            term=word.term,
+            meaning=word.meaning,
+            example=word.example,
+            example_meaning=word.example_meaning,
+            bookmarked=bool(bookmarked),
+            wrong_at=wrong_at,
+        )
+        for word, vocabulary, bookmarked, wrong_at in rows
+    ]
+    return WrongWordPage(items=items, total=total, page=page, size=size)
 
 
 @router.get("/logs", response_model=StudyLogList)

@@ -7,8 +7,8 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import QuizSession, SystemVocabulary, SystemWord, User, UserWordProgress
-from backend.models.quiz_session import QUIZ_SOURCE_VOCABULARY
+from backend.models import Bookmark, QuizSession, SystemVocabulary, SystemWord, User, UserWordProgress
+from backend.models.quiz_session import QUIZ_SOURCE_BOOKMARKS, QUIZ_SOURCE_VOCABULARY, QUIZ_SOURCE_WRONG
 from backend.models.study_log import STUDY_MODE_FLASHCARD, STUDY_MODE_QUIZ
 from backend.schemas.learning_session import (
     CompositionOut,
@@ -36,10 +36,13 @@ from backend.services.study import (
     record_one,
     recorded_answers,
 )
+from backend.services.stats import wrong_word_ids
 from backend.services.study_log import progress_state_of
 
 FLASHCARD_KNOWN = 1  # 플래시카드 answers 의 값: 1=알아요, 0=헷갈려요
 FLASHCARD_UNSURE = 0
+
+REVIEW_TITLES = {QUIZ_SOURCE_BOOKMARKS: "북마크 복습", QUIZ_SOURCE_WRONG: "오답 복습"}
 
 
 class NoWordsToStudyError(StudyError):
@@ -98,6 +101,68 @@ def _item(question: dict, mode: str) -> SessionItemOut:
     )
 
 
+async def _create_review_session(
+    db: AsyncSession, user: User, mode: str, count: int, source: str, now: datetime, rng: random.Random
+) -> SessionOut:
+    """북마크 또는 오답 단어만으로 세션을 만든다. 활성 단어장은 바꾸지 않는다.
+
+    풀은 사용자가 고른 것(북마크)이거나 복습 대상(오답)이므로 워터폴 비율과 숙련 제외를 적용하지 않고 무작위로 count 개를 뽑는다.
+    오답 보기는 각 단어가 속한 단어장에서만 뽑는다. 풀이 비면 NoWordsToStudyError, 퀴즈는 4개 미만이면 QuizSourceTooSmallError.
+    """
+    if source == QUIZ_SOURCE_BOOKMARKS:
+        pool_ids = set((await db.execute(select(Bookmark.word_id).where(Bookmark.user_id == user.id))).scalars())
+    else:
+        pool_ids = await wrong_word_ids(db, user.id)
+    pool = list((await db.execute(select(SystemWord).where(SystemWord.id.in_(pool_ids)))).scalars()) if pool_ids else []
+    if not pool:
+        raise NoWordsToStudyError
+    if mode == STUDY_MODE_QUIZ and len(pool) < QUIZ_MIN_SOURCE_WORDS:
+        raise QuizSourceTooSmallError("퀴즈는 단어가 4개 이상 있어야 시작할 수 있습니다.")
+
+    by_vocabulary: dict[int, list[SystemWord]] = {}
+    if mode == STUDY_MODE_QUIZ:
+        vocabulary_ids = {word.vocabulary_id for word in pool}
+        for word in (await db.execute(select(SystemWord).where(SystemWord.vocabulary_id.in_(vocabulary_ids)))).scalars():
+            by_vocabulary.setdefault(word.vocabulary_id, []).append(word)
+
+    questions: list[dict] = []
+    for word in rng.sample(pool, len(pool)):
+        if len(questions) >= count:
+            break
+        question = _flashcard_question(word) if mode == STUDY_MODE_FLASHCARD else _build_question(word, by_vocabulary, [], rng)
+        if question is None:
+            continue
+        question["question_id"] = len(questions)
+        questions.append(question)
+    if not questions:
+        raise QuizSourceTooSmallError("오답 보기를 만들 수 있는 단어가 부족합니다.")
+
+    session = QuizSession(
+        user_id=user.id,
+        vocabulary_id=None,
+        source=source,
+        mode=mode,
+        questions=questions,
+        answers={},
+        is_submitted=False,
+        expires_at=deadline_from(now),
+    )
+    db.add(session)
+    await db.commit()
+    await db.refresh(session)
+    n = len(questions)
+    return SessionOut(
+        session_id=session.id,
+        mode=mode,
+        vocabulary_id=None,
+        vocabulary_title=REVIEW_TITLES[source],
+        total_questions=n,
+        expires_at=session.expires_at,
+        composition=CompositionOut(wrong=n if source == QUIZ_SOURCE_WRONG else 0, review=n if source == QUIZ_SOURCE_BOOKMARKS else 0, unseen=0),
+        items=[_item(question, mode) for question in questions],
+    )
+
+
 async def create_session(
     db: AsyncSession,
     user: User,
@@ -106,9 +171,16 @@ async def create_session(
     include_memorized: bool,
     now: datetime,
     rng: random.Random | None = None,
+    source: str = "all",
 ) -> SessionOut:
-    """활성 단어장에서 count 문항을 골라 세션을 만든다 (오답 30% 상한, 복습 10% 선확보, 나머지 미학습, 부족하면 복습)."""
+    """source 가 all 이면 활성 단어장에서 count 문항을 골라 세션을 만든다 (오답 30% 상한, 복습 10% 선확보, 나머지 미학습, 부족하면 복습).
+
+    bookmarks, wrong 이면 해당 단어만으로 복습 세션을 만든다 (_create_review_session).
+    """
     rng = rng or random.Random()
+    if source in REVIEW_TITLES:
+        return await _create_review_session(db, user, mode, count, source, now, rng)
+    vocabulary = await _active_vocabulary(db, user)
     vocabulary = await _active_vocabulary(db, user)
 
     rows = (
