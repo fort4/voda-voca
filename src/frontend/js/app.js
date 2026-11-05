@@ -14,7 +14,10 @@ import { loginView } from "./views/login.js";
 import { createThemeManager } from "./core/theme.js";
 import { isMuted, toggleMute } from "./core/sound.js";
 import { signupView } from "./views/signup.js";
-import { placeholderView } from "./views/placeholder.js";
+import { exploreView } from "./views/explore-view.js";
+import { homeView } from "./views/home-view.js";
+import { reviewView } from "./views/review-view.js";
+import { statsView } from "./views/stats-view.js";
 import { studySessionView } from "./views/study-session-view.js";
 import { renderBottomNav } from "./views/components/bottom-nav.js";
 
@@ -230,12 +233,11 @@ function onSessionExpired() {
 const routes = buildRoutes({
   login: loginView,
   signup: signupView,
-  // 학습 세션은 C-2 에서 구현했다. 나머지는 C-3 에서 실제 구현으로 바꾼다. 지금은 내비게이션 연결을 위한 자리표시자다.
-  home: placeholderView({ iconName: "home", title: "오늘의 학습", text: "오늘의 학습 루프를 준비하고 있습니다." }),
-  explore: placeholderView({ iconName: "search", title: "단어장 탐색", text: "서비스가 제공하는 단어장을 고르는 화면을 준비하고 있습니다." }),
+  home: homeView,
+  explore: exploreView,
   session: studySessionView,
-  review: placeholderView({ iconName: "star", title: "복습함", text: "북마크와 틀린 단어를 모아 보는 화면을 준비하고 있습니다." }),
-  stats: placeholderView({ iconName: "bar-chart-3", title: "통계", text: "학습 기록과 진행률을 보는 화면을 준비하고 있습니다." }),
+  review: reviewView,
+  stats: statsView,
 });
 
 const router = createRouter({
