@@ -22,7 +22,6 @@ from backend.services.progress import ProgressState
 from backend.services.session_picker import WordCandidate, select_session_words, split_pools
 from backend.services.study import (
     QUIZ_MIN_SOURCE_WORDS,
-    QUIZ_TTL,
     QuizAlreadySubmittedError,
     QuizAnswerError,
     QuizAnswerLockedError,
@@ -32,6 +31,7 @@ from backend.services.study import (
     StudyError,
     _build_question,
     commit_logs,
+    deadline_from,
     lock_session,
     record_one,
     recorded_answers,
@@ -158,7 +158,7 @@ async def create_session(
         questions=questions,
         answers={},
         is_submitted=False,
-        expires_at=now + QUIZ_TTL,
+        expires_at=deadline_from(now),
     )
     db.add(session)
     await db.commit()
@@ -256,7 +256,7 @@ async def record_session_answer(
 
     state = await record_one(db, user_id, question["word_id"], _judge(row, question, value), now, row.mode)
     row.answers = {**(row.answers or {}), str(answer.question_id): value}
-    row.expires_at = now + QUIZ_TTL
+    row.expires_at = deadline_from(now)
     if len(row.answers) >= len(row.questions):
         row.is_submitted = True
     await commit_logs(db)

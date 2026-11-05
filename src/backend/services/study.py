@@ -26,6 +26,16 @@ from backend.services.study_log import record_result
 from backend.services.errors import VocabularyNotFoundError
 
 QUIZ_TTL = timedelta(minutes=30)
+
+
+def deadline_from(now: datetime) -> datetime:
+    """세션 마감 시각: now + 30분을 DB 컬럼 정밀도(DATETIME(3), 밀리초)로 맞춘다.
+
+    마이크로초를 그대로 두면 첫 응답(메모리 값)과 재전송 응답(DB 에서 읽은 값)의 expires_at 이 달라져
+    "같은 답을 다시 보내면 같은 응답" 이라는 멱등 계약이 깨진다.
+    """
+    end = now + QUIZ_TTL
+    return end.replace(microsecond=end.microsecond // 1000 * 1000)
 QUIZ_MIN_SOURCE_WORDS = 4  # 출제 원천 최소 단어 수 (REQ-014, REQ-019)
 DISTRACTOR_COUNT = QUIZ_CHOICE_COUNT - 1  # 오답 3개 + 정답 1개 = 4지선다
 
@@ -248,7 +258,7 @@ async def create_quiz(
         questions=questions,
         answers={},
         is_submitted=False,
-        expires_at=now + QUIZ_TTL,
+        expires_at=deadline_from(now),
     )
     db.add(session)
     await db.commit()
@@ -344,7 +354,7 @@ async def record_answer(
     await record_one(db, user_id, question["word_id"], is_correct, now, row.mode)
     # JSON 컬럼은 내부를 바꿔도 변경으로 감지되지 않는다. 새 dict 를 대입한다.
     row.answers = {**(row.answers or {}), str(answer.question_id): answer.choice_index}
-    row.expires_at = now + QUIZ_TTL
+    row.expires_at = deadline_from(now)
     await commit_logs(db)
     return QuizAnswerOut(
         question_id=answer.question_id,

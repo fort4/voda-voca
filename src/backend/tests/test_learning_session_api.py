@@ -504,3 +504,38 @@ async def test_legacy_quiz_endpoints_do_not_serve_flashcard_sessions(client, mak
     assert legacy_answer.status_code == 404
     legacy_submit = await client.post(f"/api/study/quiz/sessions/{sid}/submit", json={"answers": []}, headers=auth_headers(token))
     assert legacy_submit.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_resend_returns_the_identical_body_even_when_now_has_microseconds(client, make_vocabulary, monkeypatch) -> None:
+    """실제 시각은 마이크로초를 가진다. 첫 응답과 DB 에서 읽은 재전송 응답의 expires_at 이 같아야 멱등 응답이다."""
+    monkeypatch.setattr(session_router, "_now", lambda: NOW + timedelta(microseconds=123456))
+    token, _, _, created, row = await first_session(client, make_vocabulary)
+    item = created["items"][0]
+    body = dict(question_id=item["question_id"], choice_index=key_of(row, item["question_id"])["correct_index"])
+
+    first = await answer(client, token, created["session_id"], **body)
+    again = await answer(client, token, created["session_id"], **body)
+
+    assert first.json() == again.json()
+    assert created["expires_at"] == "2026-11-05T09:30:00.123000Z", "마이크로초 123456 은 DB 정밀도인 밀리초(123000)로 잘린다"
+    assert first.json()["expires_at"] == "2026-11-05T09:30:00.123000Z"
+
+
+@pytest.mark.asyncio
+async def test_legacy_quiz_answer_resend_is_identical_with_microseconds(client, make_vocabulary, monkeypatch) -> None:
+    from backend.routers import study as study_router
+    from backend.tests.test_quiz_answers_api import answer as legacy_answer
+    from backend.tests.test_quiz_answers_api import start_quiz
+
+    monkeypatch.setattr(study_router, "_now", lambda: NOW + timedelta(microseconds=654321))  # 출제 전에 시각을 고정한다
+    _, token = await signup_and_login(client)
+    created, _ = await start_quiz(client, token)
+    question = created["questions"][0]
+    args = (client, token, created["session_id"], question["question_id"], question["correct_index"])
+
+    first = await legacy_answer(*args)
+    again = await legacy_answer(*args)
+
+    assert first.status_code == again.status_code == 200, first.text  # 만료 응답끼리 같아서 통과하는 일이 없게 한다
+    assert first.json() == again.json()
