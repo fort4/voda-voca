@@ -17,3 +17,6 @@ __pycache__/
 # Test coverage 산출물
 .coverage
 htmlcov/
+
+# DB 백업 덤프 (개인 학습 데이터 포함) - 커밋 금지
+ai-agent/backups/

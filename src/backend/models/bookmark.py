@@ -11,7 +11,7 @@ from backend.models.base import TABLE_OPTIONS, UTC_NOW_DEFAULT, Base
 
 
 class Bookmark(Base):
-    """북마크. 소유권(단어장 소유자 == 요청 사용자)은 DB가 아니라 서비스 계층에서 검증한다 (D3)."""
+    """북마크. 대상은 모든 사용자가 공유하는 표준 단어(system_words)이며, 북마크 자체의 소유자는 user_id 다."""
 
     __tablename__ = "bookmarks"
     __table_args__ = (
@@ -28,7 +28,7 @@ class Bookmark(Base):
     )
     word_id: Mapped[int] = mapped_column(
         BIGINT(unsigned=True),
-        ForeignKey("words.id", ondelete="CASCADE", name="fk_bookmarks_word"),
+        ForeignKey("system_words.id", ondelete="CASCADE", name="fk_bookmarks_word"),
         nullable=False,
     )
     created_at: Mapped[datetime] = mapped_column(
