@@ -190,6 +190,16 @@ test("errorCopy: 단어가 없으면 숙련 단어를 포함해 다시 시작하
   assert.deepEqual(primary.action, { type: ACTION.START, includeMemorized: true });
 });
 
+test("errorCopy: 복습 세션에서 단어가 없으면 숙련 단어 포함을 권하지 않고 홈·복습함으로 안내한다", () => {
+  for (const source of ["bookmarks", "wrong"]) {
+    const copy = errorCopy("no_words", { source });
+    assert.ok(!copy.actions.some((a) => a.action.includeMemorized), source);
+    assert.ok(!copy.text.includes("숙련"), source);
+    assert.ok(copy.actions.length >= 1);
+  }
+  assert.equal(errorCopy("no_words", { source: "all" }).actions[0].action.includeMemorized, true);
+});
+
 test("errorCopy: 건너뛸 수 있는 오류는 SKIP_QUESTION 을 준다", () => {
   for (const kind of ["locked", "word_missing"]) assert.equal(errorCopy(kind).actions[0].action.type, ACTION.SKIP_QUESTION, kind);
 });

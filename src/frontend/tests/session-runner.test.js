@@ -120,13 +120,34 @@ test("START: LOADING 으로 가고 세션 생성 효과를 낸다 (기본 15문�
   const { state, effects } = reduce(initialState(), { type: ACTION.START });
   assert.equal(state.phase, PHASE.LOADING);
   assert.deepEqual(effects, [
-    { type: EFFECT.CREATE_SESSION, requestId: state.requestId, body: { mode: "quiz", count: 15, include_memorized: false } },
+    { type: EFFECT.CREATE_SESSION, requestId: state.requestId, body: { mode: "quiz", count: 15, include_memorized: false, source: "all" } },
   ]);
 });
 
 test("START: 모드, 문항 수, 숙련 단어 포함 옵션을 요청 본문에 싣는다", () => {
   const { effects } = reduce(initialState(), { type: ACTION.START, mode: "flashcard", count: 5, includeMemorized: true });
-  assert.deepEqual(effects[0].body, { mode: "flashcard", count: 5, include_memorized: true });
+  assert.deepEqual(effects[0].body, { mode: "flashcard", count: 5, include_memorized: true, source: "all" });
+});
+
+test("START: 북마크·오답 복습은 source 를 서버로 보내고 상태에 기억한다", () => {
+  for (const source of ["bookmarks", "wrong"]) {
+    const { state, effects } = reduce(initialState(), { type: ACTION.START, source });
+    assert.equal(effects[0].body.source, source);
+    assert.equal(state.source, source);
+  }
+});
+
+test("START: 알 수 없는 source 는 all 로 본다", () => {
+  const { state, effects } = reduce(initialState(), { type: ACTION.START, source: "everything" });
+  assert.equal(effects[0].body.source, "all");
+  assert.equal(state.source, "all");
+});
+
+test("START: source 없이 다시 시작하면 직전 세션의 source 를 이어 간다 (복습 다시 시작)", () => {
+  const ended = { ...initialState(), phase: PHASE.SESSION_COMPLETE, source: "wrong", mode: "flashcard" };
+  const { state, effects } = reduce(ended, { type: ACTION.START });
+  assert.equal(effects[0].body.source, "wrong");
+  assert.equal(state.source, "wrong");
 });
 
 test("START: 이미 진행 중이면 무시한다 (중복 시작 방지)", () => {

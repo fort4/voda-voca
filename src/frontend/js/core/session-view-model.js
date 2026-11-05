@@ -11,6 +11,7 @@ export const VIEW_ACTION = Object.freeze({
   REQUEST_ABORT: "REQUEST_ABORT",
   GO_HOME: "GO_HOME",
   GO_EXPLORE: "GO_EXPLORE",
+  GO_REVIEW: "GO_REVIEW",
 });
 
 /**
@@ -159,11 +160,21 @@ const ERROR_COPY = Object.freeze({
   },
 });
 
+/** 복습 세션(북마크·오답)에서 풀이 비었을 때. 숙련 단어를 포함하라는 권유는 맞지 않는다. */
+const NO_REVIEW_WORDS = Object.freeze({
+  iconName: "party-popper",
+  title: "복습할 단어가 없어요",
+  text: "복습함에서 다른 복습 대상을 확인해 주세요.",
+  actions: [{ label: "복습함으로", action: { type: VIEW_ACTION.GO_REVIEW } }, HOME],
+});
+
 /**
  * 오류 종류별 안내 문구와 행동 버튼.
  * @param {string} kind
+ * @param {{source?: string}} [context] 복습 세션이면 단어 없음 안내가 달라진다
  */
-export function errorCopy(kind) {
+export function errorCopy(kind, { source = "all" } = {}) {
+  if (kind === "no_words" && source !== "all") return NO_REVIEW_WORDS;
   return ERROR_COPY[kind] ?? ERROR_COPY.unknown;
 }
 

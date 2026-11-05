@@ -101,6 +101,7 @@ export function initialState() {
     phase: PHASE.IDLE,
     requestId: 0,
     mode: "quiz",
+    source: "all", // 출제 풀: all(활성 단어장) | bookmarks | wrong
     sessionId: null,
     vocabularyTitle: "",
     composition: null,
@@ -180,6 +181,7 @@ function sendAnswer(state, body) {
   };
 }
 
+const SOURCES = new Set(["all", "bookmarks", "wrong"]);
 const START_FROM = new Set([PHASE.IDLE, PHASE.SESSION_COMPLETE, PHASE.EXPIRED, PHASE.ERROR]);
 
 /**
@@ -194,14 +196,15 @@ export function reduce(state, action) {
     case ACTION.START: {
       if (!START_FROM.has(state.phase)) return unchanged(state);
       const mode = action.mode === "flashcard" ? "flashcard" : "quiz";
+      const source = SOURCES.has(action.source) ? action.source : SOURCES.has(state.source) ? state.source : "all"; // 다시 시작은 직전 풀을 잇는다
       const requestId = state.requestId + 1;
       return {
-        state: { ...initialState(), phase: PHASE.LOADING, requestId, mode },
+        state: { ...initialState(), phase: PHASE.LOADING, requestId, mode, source },
         effects: [
           {
             type: EFFECT.CREATE_SESSION,
             requestId,
-            body: { mode, count: action.count ?? DEFAULT_COUNT, include_memorized: action.includeMemorized === true },
+            body: { mode, count: action.count ?? DEFAULT_COUNT, include_memorized: action.includeMemorized === true, source },
           },
         ],
       };

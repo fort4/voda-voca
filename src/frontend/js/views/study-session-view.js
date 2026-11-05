@@ -63,6 +63,9 @@ export function studySessionView(root, ctx) {
       case VIEW_ACTION.GO_EXPLORE:
         ctx.navigate("/explore");
         return;
+      case VIEW_ACTION.GO_REVIEW:
+        ctx.navigate("/review");
+        return;
       case ACTION.START:
         driver.dispatch({ ...action, mode: driver.getState().mode });
         return;
@@ -105,7 +108,7 @@ export function studySessionView(root, ctx) {
         break;
       case PHASE.EXPIRED:
       case PHASE.ERROR:
-        root.append(renderErrorNotice(state.error?.kind ?? "unknown"));
+        root.append(renderErrorNotice(state.error?.kind ?? "unknown", state.source));
         break;
       default:
         break;
@@ -114,19 +117,19 @@ export function studySessionView(root, ctx) {
     root.querySelector("[data-autofocus]")?.focus({ preventScroll: true });
   }
 
-  function actionButtons(kind) {
+  function actionButtons(kind, source) {
     return h(
       "div",
       { class: "flex w-full flex-col gap-2 sm:flex-row sm:justify-center" },
-      errorCopy(kind).actions.map((entry, index) =>
+      errorCopy(kind, { source }).actions.map((entry, index) =>
         button({ variant: index === 0 ? "primary" : "secondary", onClick: () => act(entry.action) }, entry.label),
       ),
     );
   }
 
-  function renderErrorNotice(kind) {
-    const copy = errorCopy(kind);
-    return notice({ iconName: copy.iconName, title: copy.title, text: copy.text, action: actionButtons(kind) });
+  function renderErrorNotice(kind, source) {
+    const copy = errorCopy(kind, { source });
+    return notice({ iconName: copy.iconName, title: copy.title, text: copy.text, action: actionButtons(kind, source) });
   }
 
   function renderQuestion(state) {
@@ -222,7 +225,7 @@ export function studySessionView(root, ctx) {
   }
 
   document.addEventListener("keydown", onKeydown);
-  driver.dispatch({ type: ACTION.START, mode, includeMemorized: ctx.query.include_memorized === "1" });
+  driver.dispatch({ type: ACTION.START, mode, source: ctx.query.source, includeMemorized: ctx.query.include_memorized === "1" });
 
   return () => {
     document.removeEventListener("keydown", onKeydown);
