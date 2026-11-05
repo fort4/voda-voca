@@ -3,6 +3,8 @@
  * 파일 위치: src/frontend/js/core/session-runner.js
  */
 
+import { advanceCombo } from "./combo-model.js";
+
 /**
  * reduce(state, action) → { state, effects } 형태의 순수 함수다. 상태를 바꾸지 않고 새 상태를 돌려주며,
  * 서버 호출 같은 부수효과는 effects 로 "설명"만 한다. 실제 호출은 session-driver.js 가 맡는다.
@@ -264,7 +266,7 @@ export function reduce(state, action) {
       }
       const item = currentItem(state);
       const isCorrect = result.is_correct === true;
-      const streak = isCorrect ? state.streak + 1 : 0;
+      const combo = advanceCombo({ count: state.streak, max: state.bestStreak }, isCorrect ? "correct" : "wrong");
       const justMemorized =
         isCorrect && result.progress?.is_memorized === true && result.progress.consecutive_correct_count === MEMORIZE_STREAK;
       return {
@@ -279,8 +281,8 @@ export function reduce(state, action) {
           answered: state.answered + 1,
           correct: state.correct + (isCorrect ? 1 : 0),
           wrong: state.wrong + (isCorrect ? 0 : 1),
-          streak,
-          bestStreak: Math.max(state.bestStreak, streak),
+          streak: combo.count,
+          bestStreak: combo.max,
           memorizedTerms: justMemorized ? [...state.memorizedTerms, result.term] : state.memorizedTerms,
           results: [
             ...state.results,
@@ -321,7 +323,7 @@ export function reduce(state, action) {
 
     case ACTION.SKIP_QUESTION: {
       if (state.phase !== PHASE.QUESTION_ACTIVE || !state.error?.skippable) return unchanged(state);
-      return { state: advance({ ...state, skipped: state.skipped + 1, streak: 0 }), effects: [] };
+      return { state: advance({ ...state, skipped: state.skipped + 1, streak: advanceCombo({ count: state.streak, max: state.bestStreak }, "skip").count }), effects: [] };
     }
 
     case ACTION.NEXT: {
