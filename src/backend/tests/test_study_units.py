@@ -228,8 +228,18 @@ def _submit_row() -> SimpleNamespace:
     )
 
 
+@pytest.fixture
+def fake_record(monkeypatch: pytest.MonkeyPatch) -> None:
+    """record_result 는 DB 를 쓰므로 이 단위 테스트에서는 이력만 세션에 더하는 가짜로 바꾼다."""
+
+    async def _record(db, user_id, word_id, is_correct, now, mode="quiz"):
+        db.add((user_id, word_id, is_correct, mode))
+
+    monkeypatch.setattr(study_service, "record_result", _record)
+
+
 @pytest.mark.asyncio
-async def test_commit_fk_failure_on_study_logs_becomes_word_missing_and_rolls_back() -> None:
+async def test_commit_fk_failure_on_study_logs_becomes_word_missing_and_rolls_back(fake_record: None) -> None:
     from sqlalchemy.exc import IntegrityError
 
     from backend.models.base import utcnow
@@ -243,13 +253,51 @@ async def test_commit_fk_failure_on_study_logs_becomes_word_missing_and_rolls_ba
 
 
 @pytest.mark.asyncio
-async def test_other_commit_integrity_errors_are_propagated_unchanged() -> None:
+async def test_other_commit_integrity_errors_are_propagated_unchanged(fake_record: None) -> None:
     from sqlalchemy.exc import IntegrityError
 
     from backend.models.base import utcnow
 
     error = IntegrityError("INSERT INTO study_logs", {}, Exception("some other constraint"))
     db = _FakeSubmitSession(_submit_row(), word_ids=[7], commit_error=error)
+
+    with pytest.raises(IntegrityError):
+        await study_service.submit_quiz(db, 1, 1, _answers((0, 0)), now=utcnow())
+    assert db.rolled_back is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("fk_name", ["fk_uwp_word", "fk_study_logs_word"])
+async def test_word_fk_failure_while_recording_becomes_word_missing(
+    monkeypatch: pytest.MonkeyPatch, fk_name: str
+) -> None:
+    """진행도 갱신 중 단어가 지워져 FK 가 걸려도 같은 오류(409)로 다루고 롤백한다."""
+    from sqlalchemy.exc import IntegrityError
+
+    from backend.models.base import utcnow
+
+    async def _boom(*_args, **_kwargs):
+        raise IntegrityError("INSERT", {}, Exception(f"Cannot add or update a child row: {fk_name}"))
+
+    monkeypatch.setattr(study_service, "record_result", _boom)
+    db = _FakeSubmitSession(_submit_row(), word_ids=[7], commit_error=None)
+
+    with pytest.raises(study_service.QuizWordMissingError):
+        await study_service.submit_quiz(db, 1, 1, _answers((0, 0)), now=utcnow())
+    assert db.rolled_back is True
+
+
+@pytest.mark.asyncio
+async def test_unrelated_integrity_error_while_recording_is_propagated(monkeypatch: pytest.MonkeyPatch) -> None:
+    from sqlalchemy.exc import IntegrityError
+
+    from backend.models.base import utcnow
+
+    async def _boom(*_args, **_kwargs):
+        raise IntegrityError("INSERT", {}, Exception("some other constraint"))
+
+    monkeypatch.setattr(study_service, "record_result", _boom)
+    db = _FakeSubmitSession(_submit_row(), word_ids=[7], commit_error=None)
 
     with pytest.raises(IntegrityError):
         await study_service.submit_quiz(db, 1, 1, _answers((0, 0)), now=utcnow())

@@ -1,0 +1,47 @@
+# 2026-11-05 - voda-voca - 표준 단어장 API 스키마: 카탈로그, 단어 목록, 활성 단어장 변경
+# 파일 위치: src/backend/schemas/vocabulary.py
+
+from pydantic import BaseModel, Field
+
+
+class UserProgressOut(BaseModel):
+    """한 표준 단어장에 대한 내 학습 요약 (user_word_progress 기준)."""
+
+    studied_words: int = Field(description="한 번이라도 풀어 본 단어 수")
+    memorized_words: int = Field(description="숙련(연속 정답 3회)한 단어 수")
+    progress_rate: float = Field(description="studied_words / total_words (0~100, 소수 첫째 자리)")
+    is_active: bool = Field(description="지금 학습 중인 단어장인지")
+
+
+class VocabularyOut(BaseModel):
+    id: int
+    slug: str
+    title: str
+    category: str
+    level: int
+    description: str | None
+    total_words: int
+    user_progress: UserProgressOut
+
+
+class VocabularyWordOut(BaseModel):
+    """단어장 단어 한 건 (읽기 전용). 확장 필드(품사, 발음기호)는 데이터가 생기면 추가한다."""
+
+    word_id: int
+    term: str
+    meaning: str
+    example: str | None
+    example_meaning: str | None
+    bookmarked: bool
+
+
+class VocabularyWordPage(BaseModel):
+    vocabulary_id: int
+    items: list[VocabularyWordOut]
+    total: int
+    page: int
+    size: int
+
+
+class ActiveVocabularyIn(BaseModel):
+    vocabulary_id: int = Field(gt=0, description="학습할 표준 단어장 ID")

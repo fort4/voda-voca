@@ -156,7 +156,7 @@ async def create_quiz_session(
     )
 
 
-def _quiz_http_error(exc: StudyError) -> HTTPException:
+def quiz_http_error(exc: StudyError) -> HTTPException:
     """퀴즈 세션 API(답 기록, 완료, 상세)의 도메인 오류를 HTTP 오류로 바꾼다. 화면은 X-Error-Code 로 분기한다."""
     if isinstance(exc, QuizSessionNotFoundError):
         return QUIZ_SESSION_NOT_FOUND
@@ -214,7 +214,7 @@ async def answer_quiz_question(
     try:
         return await study_service.record_answer(db, user.id, session_id, body, now=_now())
     except QUIZ_ERRORS as exc:
-        raise _quiz_http_error(exc) from exc
+        raise quiz_http_error(exc) from exc
 
 
 @router.post("/quiz/sessions/{session_id}/submit", response_model=QuizResultOut)
@@ -228,7 +228,7 @@ async def submit_quiz_session(
     try:
         return await study_service.submit_quiz(db, user.id, session_id, body.answers, now=_now())
     except QUIZ_ERRORS as exc:
-        raise _quiz_http_error(exc) from exc
+        raise quiz_http_error(exc) from exc
 
 
 @router.get("/quiz/sessions/{session_id}", response_model=QuizSessionDetailOut)
