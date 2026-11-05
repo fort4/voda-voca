@@ -3,7 +3,7 @@
 모바일에 맞춘 웹 기반 영어 단어 학습 서비스입니다. 단어장을 만들고, 단어를 관리하고, 플래시카드와 4지선다 퀴즈로 외우고, 틀린 단어를 북마크해 다시 봅니다.
 
 - **버전**: v2.0.0
-- **설계 문서**: [`docs/`](docs/) (요구사항 명세 v2.0, 데이터 설계서 v2.0, API 연동 규격서 v2.0, UI/UX 설계서 v2.0)
+- **설계 문서**: [`docs/`](docs/) (요구사항 명세 v2.1, 데이터 설계서 v2.1, API 연동 규격서 v2.1, UI/UX 설계서 v2.1)
 - **작업 환경**: Windows 11 + WSL2 (Ubuntu 24.04), Docker
 
 ---
@@ -285,9 +285,9 @@ for f in js/*.js js/*/*.js tests/*.js; do node --check "$f" || echo "FAIL $f"; d
 
 | 문서 | 현행 버전 | 이전 버전 |
 | :--- | :--- | :--- |
-| 요구사항 명세 | `docs/voda-voca_Requirement_Spec_v2.0_261102.md` | `docs/old/` |
-| 데이터 설계서 | `docs/voda-voca_Data_Design_v2.0_261102.md` | `docs/old/` |
-| API 연동 규격서 | `docs/voda-voca_API_Integration_Spec_v2.0_261102.md` | `docs/old/` |
-| UI/UX 설계서 | `docs/voda-voca_UIUX_Design_Spec_v2.0_261102.md` | `docs/old/` |
+| 요구사항 명세 | `docs/voda-voca_Requirement_Spec_v2.1_261105.md` | `docs/old/` |
+| 데이터 설계서 | `docs/voda-voca_Data_Design_v2.1_261105.md` | `docs/old/` |
+| API 연동 규격서 | `docs/voda-voca_API_Integration_Spec_v2.1_261105.md` | `docs/old/` |
+| UI/UX 설계서 | `docs/voda-voca_UIUX_Design_Spec_v2.1_261105.md` | `docs/old/` |
 
 작업 일지와 결정 기록은 `ai-agent/claude/`에 있습니다.
