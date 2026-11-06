@@ -153,7 +153,7 @@ async def test_words_are_listed_in_order_with_bookmark_flag(client: httpx.AsyncC
     assert [i["term"] for i in body["items"]] == ["apple", "banana", "cherry"]
     assert {i["term"]: i["bookmarked"] for i in body["items"]} == {"apple": False, "banana": True, "cherry": False}
     item = body["items"][0]
-    assert set(item) == {"word_id", "term", "meaning", "example", "example_meaning", "bookmarked"}
+    assert set(item) == {"word_id", "term", "meaning", "example", "example_meaning", "phonetic", "bookmarked"}
     assert item["word_id"] == vocab.word_ids["apple"] and item["meaning"] == "apple의 뜻"
 
 

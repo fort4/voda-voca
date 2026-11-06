@@ -1,7 +1,7 @@
 # 2026-11-02 - voda-voca - 테스트 공통 fixture: 엔진 정리, 빠른 bcrypt, 테스트 계정 정리
 # 파일 위치: src/backend/tests/conftest.py
 
-from collections.abc import AsyncIterator, Awaitable, Callable, Iterator, Sequence
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterator, Mapping, Sequence
 import uuid
 
 import pytest
@@ -82,6 +82,7 @@ async def make_vocabulary() -> AsyncIterator[Callable[..., Awaitable[TestVocabul
     """표준 단어장을 만드는 팩토리. 단어는 term 목록으로 주고, 뜻과 예문은 term 에서 만든다.
 
     사용: vocab = await make_vocabulary(["apple", "banana", "cherry", "date"])
+    발음기호가 필요하면 phonetics={"apple": "ˈæpəl"} 처럼 term → IPA 로 준다 (없으면 NULL).
     표준 단어장은 공용 콘텐츠라 사용자가 만들 수 없으므로, 테스트는 DB 에 직접 넣는다. 테스트가 끝나면 지운다.
     """
 
@@ -91,6 +92,7 @@ async def make_vocabulary() -> AsyncIterator[Callable[..., Awaitable[TestVocabul
         title: str = "테스트 단어장",
         category: str = "ELEMENTARY",
         level: int = 1,
+        phonetics: Mapping[str, str] | None = None,
     ) -> TestVocabulary:
         slug = f"{TEST_VOCABULARY_SLUG_PREFIX}{uuid.uuid4().hex[:10]}"
         async with get_session_factory()() as session:
@@ -106,6 +108,7 @@ async def make_vocabulary() -> AsyncIterator[Callable[..., Awaitable[TestVocabul
                     meaning=f"{term}의 뜻",
                     example=f"I like {term}.",
                     example_meaning=f"나는 {term}을(를) 좋아한다.",
+                    phonetic=(phonetics or {}).get(term),
                     order_index=index,
                 )
                 for index, term in enumerate(terms)

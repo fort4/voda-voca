@@ -56,6 +56,7 @@ async def list_vocabulary_words(
                 meaning=word.meaning,
                 example=word.example,
                 example_meaning=word.example_meaning,
+                phonetic=word.phonetic,
                 bookmarked=bookmarked,
             )
             for word, bookmarked in rows

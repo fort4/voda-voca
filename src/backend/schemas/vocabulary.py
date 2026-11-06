@@ -25,13 +25,14 @@ class VocabularyOut(BaseModel):
 
 
 class VocabularyWordOut(BaseModel):
-    """단어장 단어 한 건 (읽기 전용). 확장 필드(품사, 발음기호)는 데이터가 생기면 추가한다."""
+    """단어장 단어 한 건 (읽기 전용). 확장 필드 중 발음기호(phonetic)는 v2.2 부터 내려간다. 품사는 데이터가 생기면 추가한다."""
 
     word_id: int
     term: str
     meaning: str
     example: str | None
     example_meaning: str | None
+    phonetic: str | None = Field(default=None, description="미국식 IPA (슬래시 없음). 화면이 /…/ 를 입힌다. 없으면 null")
     bookmarked: bool
 
 

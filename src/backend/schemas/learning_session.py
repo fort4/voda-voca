@@ -24,7 +24,7 @@ class SessionCreate(BaseModel):
 
 
 class SessionItemOut(BaseModel):
-    """출제된 문항. 퀴즈 문항에는 정답과 뜻을 싣지 않는다 (답 기록 응답에서 공개). 플래시카드는 뒷면(뜻)을 함께 준다."""
+    """출제된 문항. 퀴즈 문항에는 정답과 뜻, 발음기호를 싣지 않는다 (답 기록 응답에서 공개). 플래시카드는 뒷면(뜻, 발음기호)을 함께 준다."""
 
     question_id: int
     word_id: int
@@ -33,6 +33,7 @@ class SessionItemOut(BaseModel):
     options: list[str] | None = Field(default=None, description="퀴즈의 4지선다 뜻. 플래시카드는 null")
     meaning: str | None = Field(default=None, description="플래시카드 뒷면의 뜻. 퀴즈는 null")
     example_meaning: str | None = Field(default=None, description="플래시카드 뒷면의 예문 뜻. 퀴즈는 null")
+    phonetic: str | None = Field(default=None, description="플래시카드 뒷면의 발음기호(IPA). 퀴즈는 항상 null (채점 응답에서 공개)")
 
 
 class CompositionOut(BaseModel):
@@ -89,6 +90,7 @@ class SessionAnswerOut(BaseModel):
     meaning: str
     example: str | None
     example_meaning: str | None
+    phonetic: str | None = Field(default=None, description="발음기호(IPA, 슬래시 없음). 없는 단어나 옛 세션은 null")
     progress: ProgressOut
     answered: int = Field(description="지금까지 답한 문항 수")
     total: int

@@ -79,6 +79,7 @@ def _flashcard_question(word: SystemWord) -> dict:
         "correct_index": None,
         "example": word.example,
         "example_meaning": word.example_meaning,
+        "phonetic": word.phonetic,
     }
 
 
@@ -91,6 +92,7 @@ def _item(question: dict, mode: str) -> SessionItemOut:
             context=question.get("example"),
             meaning=question["meaning"],
             example_meaning=question.get("example_meaning"),
+            phonetic=question.get("phonetic"),  # 옛 세션 스냅샷에는 키가 없을 수 있다
         )
     return SessionItemOut(
         question_id=question["question_id"],
@@ -278,6 +280,7 @@ def _answer_out(row: QuizSession, question: dict, value: int, progress: Progress
         meaning=question["meaning"] if flashcard else question["choices"][question["correct_index"]],
         example=question.get("example"),
         example_meaning=question.get("example_meaning"),
+        phonetic=question.get("phonetic"),
         progress=ProgressOut(
             correct_count=progress.correct_count,
             wrong_count=progress.wrong_count,
