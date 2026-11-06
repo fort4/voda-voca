@@ -151,7 +151,8 @@
 - 프론트 처리: 탐색 화면의 카테고리·레벨 칩은 이 목록에서 만듭니다.
 
 **#6 GET `/api/vocabularies/{vocabulary_id}/words?page=&size=`**
-- 응답 200: `{"vocabulary_id", "items": [{"word_id", "term", "meaning", "example": string|null, "example_meaning": string|null, "bookmarked": boolean}], "total", "page", "size"}`
+- 응답 200: `{"vocabulary_id", "items": [{"word_id", "term", "meaning", "example": string|null, "example_meaning": string|null, "phonetic": string|null, "bookmarked": boolean}], "total", "page", "size"}`
+- `phonetic` (`VocabularyWordOut`, v2.2): 슬래시 없는 미국식 IPA (예: `"ˈæpəl"`), 없으면 null. 화면이 `/…/` 를 입힙니다. 추가 필드이므로 하위 호환입니다.
 - 정렬: `order_index`, `id`. `bookmarked` 는 요청한 사용자의 북마크 여부입니다.
 - 실패: 404 (없는 단어장), 422 (`page`/`size` 범위)
 
@@ -200,12 +201,13 @@
       "question_id": 0, "word_id": 105, "term": "postpone",
       "context": "The meeting was postponed until next Monday.",
       "options": ["연기하다", "가속하다", "조사하다", "설립하다"],
-      "meaning": null, "example_meaning": null
+      "meaning": null, "example_meaning": null, "phonetic": null
     }]
   }
   ```
 - **정답 비노출 규격 (퀴즈)**: 출제 응답 문항에는 `question_id`, `word_id`, `term`, `context`(예문, 없으면 null), `options` 만 있습니다. **`correct_index` 필드는 출제 응답 스키마에 없고, `meaning`, `example_meaning` 은 퀴즈에서 항상 null 입니다.** 정답과 해설은 `#12` 채점 응답에서만 공개됩니다.
-- **플래시카드**: 정답 개념이 없으므로 `options` = null 이고, 뒷면 정보 `meaning`, `example_meaning` 을 문항에 함께 싣습니다 (`context` = 예문).
+- **플래시카드**: 정답 개념이 없으므로 `options` = null 이고, 뒷면 정보 `meaning`, `example_meaning`, `phonetic` 을 문항에 함께 싣습니다 (`context` = 예문).
+- **`phonetic` (`SessionItemOut`, v2.2, REQ-144)**: 문자열 또는 null. **퀴즈 세션의 출제 응답에서는 단어에 발음기호가 있어도 항상 null** 입니다 (채점 전 정보 최소화. 서버가 값을 내려보내지 않아 클라이언트 실수로 새지 않게 합니다). 플래시카드는 뒷면용으로 값을 싣습니다. 진행 중인 옛 세션(스냅샷에 키 없음)은 null 입니다. 추가 필드이므로 하위 호환입니다.
 - `expires_at`: 이 시각 이후에는 새 답을 기록할 수 없습니다. **답을 기록할 때마다 30분씩 뒤로 밀립니다.** 밀리초 정밀도로 맞춰 재전송 응답과 항상 같습니다.
 - 실패:
   - 400: 퀴즈인데 단어가 4개 미만 (`"퀴즈는 단어가 4개 이상 있어야 시작할 수 있습니다."` 등), 오답 보기를 만들 수 없음
@@ -222,12 +224,13 @@
     "question_id": 0, "is_correct": true, "correct_index": 0, "selected_index": 0, "known": null,
     "term": "postpone", "meaning": "연기하다",
     "example": "The meeting was postponed until next Monday.", "example_meaning": "회의는 다음 주 월요일로 연기되었다.",
+    "phonetic": "pəstˈpoʊn",
     "progress": {"correct_count": 2, "wrong_count": 0, "consecutive_correct_count": 2, "is_memorized": false},
     "answered": 1, "total": 15, "is_finished": false,
     "expires_at": "2026-11-05T09:30:00.123Z"
   }
   ```
-- 퀴즈는 `correct_index`·`selected_index` 를 채우고 `known` 은 null, 플래시카드는 반대입니다 (`correct_index` null). `meaning`, `example`, `example_meaning` 은 **해설**이며 이 응답에서 처음 공개됩니다.
+- 퀴즈는 `correct_index`·`selected_index` 를 채우고 `known` 은 null, 플래시카드는 반대입니다 (`correct_index` null). `meaning`, `example`, `example_meaning`, `phonetic` 은 **해설**이며 이 응답에서 처음 공개됩니다. `phonetic` (`SessionAnswerOut`, v2.2)은 퀴즈·플래시카드 모두 값을 싣고, 없으면 null 입니다. 같은 답을 다시 보내는 멱등 응답에서도 동일합니다.
 - **효과 (한 트랜잭션)**: `study_logs` 1행 INSERT + `user_word_progress` 갱신 + 세션의 `answers` 갱신 + 마감 30분 연장. **숙련도 전이**: 정답이면 `consecutive_correct_count += 1` (3 이상이면 `is_memorized = true`), 오답이면 연속 0, 숙련 해제. 응답의 `progress` 는 갱신된 값입니다.
 - **멱등**: 같은 문항에 **같은 답**을 다시 보내면 이력을 늘리지 않고 이전과 **동일한 본문**을 돌려줍니다 (200). 다른 답으로 바꾸려 하면 409 `QUIZ_ANSWER_LOCKED`.
 - `is_finished`: 모든 문항에 답하면 true 이며 세션이 끝납니다.
@@ -373,8 +376,8 @@ POST /api/study/sessions  ─►  items[0..N-1]
 ### 6.2 정답 노출 원칙 (REQ-014, REQ-124, D16)
 | 단계 | 퀴즈 | 플래시카드 |
 | :--- | :--- | :--- |
-| 출제 (`#11`) | `term`, `context`, `options` 만. 정답·뜻·예문 뜻 **비노출** | `term`, `context`, **`meaning`, `example_meaning` 포함** (정답 없음) |
-| 채점 (`#12`) | `is_correct`, `correct_index`, 해설(`meaning`, `example`, `example_meaning`), `progress` | 해설, `progress` |
+| 출제 (`#11`) | `term`, `context`, `options` 만. 정답·뜻·예문 뜻·**발음기호(`phonetic` 항상 null)** 비노출 | `term`, `context`, **`meaning`, `example_meaning`, `phonetic` 포함** (정답 없음) |
+| 채점 (`#12`) | `is_correct`, `correct_index`, 해설(`meaning`, `example`, `example_meaning`, `phonetic`), `progress` | 해설(`phonetic` 포함), `progress` |
 
 ### 6.3 오류 코드 (`X-Error-Code` 헤더)
 | 코드 | 상태 | 의미 | 프론트 처리 |
@@ -427,6 +430,7 @@ POST /api/study/sessions  ─►  items[0..N-1]
 
 | 버전 | 날짜 | 내용 | 작성 |
 | :--- | :--- | :--- | :--- |
+| v2.1 개정 | 2026-11-06 | 발음기호 `phonetic` 필드 추가 (REQ-144, v2.2). `VocabularyWordOut`(#6 단어 목록), `SessionItemOut`(#11 출제), `SessionAnswerOut`(#12 채점)에 `string\|null` 추가. **퀴즈 출제 응답은 항상 null**, 플래시카드 출제·채점 응답은 값 (§6.2 표 갱신). 옛 세션은 null. 추가 필드라 하위 호환 | Claude |
 | v2.1 | 2026-11-05 | 중앙 제공형 단어장 전환 반영. `/api/wordbooks/*`, `/api/words/*`, `/api/study/flashcards`, `/api/study/quiz/*` 제거. `GET /api/vocabularies`, `GET /api/vocabularies/{id}/words`, `POST /api/users/me/active-vocabulary`, `POST /api/study/sessions`(source: all/bookmarks/wrong), `POST /api/study/sessions/{id}/answer`, `GET /api/study/wrong-words`, `GET /api/study/stats` 추가. 출제 응답 정답 비노출·채점 응답 공개 규격, 멱등 재전송, 숙련도 전이, `X-Error-Code` 표 명시. 요구사항 명세 v2.1, 데이터 설계 v2.1 과 정합 | Claude |
 | v2.0 | 2026-11-02 | `example_meaning`, 학습 로그 `wordbook_id` 등 (`docs/old/voda-voca_API_Integration_Spec_v2.0_261102.md`) | Claude |
 | v1.2 이하 | 2026-11-02 | `docs/old/` 보관본 참조 | Claude |
