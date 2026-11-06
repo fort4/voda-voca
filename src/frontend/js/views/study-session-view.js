@@ -16,6 +16,7 @@ import { resetSpeechNotice, stopSpeaking } from "../core/tts.js";
 import { renderComboRow } from "./components/combo-badge.js";
 import { renderFeedbackSheet } from "./components/feedback-sheet.js";
 import { renderProgressHeader } from "./components/progress-header.js";
+import { phoneticLine } from "./components/phonetic-line.js";
 import { renderSessionResult } from "./components/session-result.js";
 import { speakButton } from "./components/speak-button.js";
 
@@ -253,6 +254,7 @@ export function studySessionView(root, ctx) {
       h(
         "div",
         { class: "flip-face flip-back" },
+        h("p", { class: "session-back-term" }, h("span", { class: "break-words" }, faces.back.term), phoneticLine(faces.back.phonetic)),
         h("p", { class: "session-term" }, faces.back.meaning),
         faces.back.example
           ? h(

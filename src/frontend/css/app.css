@@ -30,6 +30,9 @@
 :root {
   --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Segoe UI", Roboto, sans-serif;
 
+  /* IPA 특수 문자(ˈ ː ə ɪ ʊ ʃ θ ð ŋ 등) 글리프 폴백: Pretendard 에 없는 문자는 Lucida Sans Unicode 로 대체된다 */
+  --font-ipa: var(--font-sans), 'Lucida Sans Unicode', sans-serif;
+
   /* 타입 스케일: 용도 기반 7단계 */
   --fs-micro: 0.75rem;     /* 12px 배지·보조 라벨 */
   --fs-caption: 0.8125rem; /* 13px 캡션·메타 정보 */
@@ -798,6 +801,10 @@ html.dark {
 }
 .session-term { font-size: var(--fs-display); font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; overflow-wrap: anywhere; color: var(--text); }
 .session-context { font-size: var(--fs-lead); line-height: 1.6; color: var(--text-2); overflow-wrap: anywhere; }
+/* 발음기호(IPA): 보조 정보라 작고 옅게. 전역 자간(-0.01em)은 IPA 기호에 어울리지 않아 0 으로 둔다. 색은 토큰만 써서 다크 모드가 따라온다 */
+.phonetic { font-family: var(--font-ipa); font-size: var(--fs-caption); font-weight: 400; color: var(--muted); letter-spacing: 0; white-space: nowrap; }
+/* 플래시카드 뒷면 맨 위 보조 줄: `표제어 /발음기호/` (뒷면에는 표제어가 없어 발음기호를 단독으로 두지 않는다) */
+.session-back-term { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; column-gap: 8px; font-size: var(--fs-caption); font-weight: 600; color: var(--text-2); overflow-wrap: anywhere; }
 .session-hint { font-size: var(--fs-micro); font-weight: 600; letter-spacing: 0.04em; color: var(--accent); text-transform: uppercase; }
 
 .choice-list { display: flex; flex-direction: column; gap: 10px; }

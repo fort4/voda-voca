@@ -6,6 +6,7 @@
 import { api } from "../../core/api.js";
 import { button, h, icon, refreshIcons } from "../../core/dom.js";
 import { stopSpeaking } from "../../core/tts.js";
+import { phoneticLine } from "./phonetic-line.js";
 import { speakButton } from "./speak-button.js";
 
 const PAGE_SIZE = 30;
@@ -64,7 +65,7 @@ export function openWordSheet(vocabulary) {
   panel.querySelector("button")?.focus();
 }
 
-/** @param {{term: string, meaning: string, example: string|null}} word */
+/** @param {{term: string, phonetic?: string|null, meaning: string, example: string|null}} word */
 function wordRow(word) {
   return h(
     "div",
@@ -72,7 +73,7 @@ function wordRow(word) {
     h(
       "div",
       { class: "min-w-0 flex-1" },
-      h("p", { class: "text-base font-semibold text-zinc-900" }, word.term),
+      h("p", { class: "flex flex-wrap items-baseline gap-x-2" }, h("span", { class: "text-base font-semibold text-zinc-900 break-words" }, word.term), phoneticLine(word.phonetic)),
       h("p", { class: "text-sm text-zinc-700" }, word.meaning),
       word.example ? h("p", { class: "mt-1 text-xs text-zinc-500" }, word.example) : null,
     ),

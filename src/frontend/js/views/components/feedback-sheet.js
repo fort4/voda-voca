@@ -4,6 +4,7 @@
  */
 
 import { button, h, icon, kbdHint } from "../../core/dom.js";
+import { phoneticLine } from "./phonetic-line.js";
 import { speakButton } from "./speak-button.js";
 import { feedbackTone } from "../../core/session-view-model.js";
 
@@ -32,8 +33,9 @@ export function renderFeedbackSheet({ state, onNext }) {
       { class: "sheet-body mt-3 space-y-1" },
       h(
         "p",
-        { class: "flex items-center gap-2 text-lg font-bold" },
+        { class: "flex flex-wrap items-center gap-x-2 text-lg font-bold" },
         h("span", { class: "break-words" }, feedback.term),
+        phoneticLine(feedback.phonetic),
         speakButton({ text: feedback.term, kind: "word", key: `word:${feedback.term}` }),
       ),
       h("p", { class: "break-words text-base font-semibold" }, feedback.meaning),
