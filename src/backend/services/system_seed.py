@@ -4,6 +4,7 @@
 import hashlib
 import json
 import logging
+import re
 import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -28,7 +29,13 @@ TERM_MAX = 100
 MEANING_MAX = 200
 EXAMPLE_MAX = 500
 EXAMPLE_MEANING_MAX = 500
+PHONETIC_MAX = 100
 LEVEL_RANGE = (1, 5)
+
+
+# 발음기호(IPA) 허용 문자. 슬래시·대괄호는 저장하지 않는다 (화면이 /…/ 를 입힌다).
+# 영어 IPA 에 쓰이는 라틴 소문자, æ ð ŋ θ, IPA 확장(U+0250–02AF), 수정 문자(ˈ ˌ ː 등, U+02B0–02FF), 결합 기호(t͡ʃ 의 연결선 등), 공백.
+_IPA_ALLOWED = re.compile(r"^[a-z\u00E6\u00F0\u014B\u03B8\u0250-\u02FF\u0300-\u036F ]+$")
 
 
 class SeedValidationError(ValueError):
@@ -42,6 +49,7 @@ class SeedWordData:
     example: str | None
     example_meaning: str | None
     order_index: int
+    phonetic: str | None = None  # 미국식 IPA (슬래시 없음). 없으면 None
 
 
 @dataclass(frozen=True)
@@ -101,6 +109,14 @@ def _text(value: object, name: str, where: str, max_length: int, *, required: bo
     return cleaned
 
 
+def _phonetic(value: object, where: str) -> str | None:
+    """발음기호. 비어 있으면 None. 길이와 IPA 문자 규칙을 어기면 SeedValidationError."""
+    cleaned = _text(value, "phonetic", where, PHONETIC_MAX, required=False)
+    if cleaned is not None and not _IPA_ALLOWED.fullmatch(cleaned):
+        raise SeedValidationError(f"{where}: phonetic 에 IPA 가 아닌 문자가 있습니다 ('{cleaned}')")
+    return cleaned
+
+
 def _read_json(path: Path) -> object:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
@@ -121,13 +137,14 @@ def _parse_words(slug: str, raw: object) -> tuple[SeedWordData, ...]:
         meaning = _text(item.get("meaning"), "meaning", where, MEANING_MAX, required=True)
         example = _text(item.get("example"), "example", where, EXAMPLE_MAX, required=False)
         example_meaning = _text(item.get("example_meaning"), "example_meaning", where, EXAMPLE_MEANING_MAX, required=False)
+        phonetic = _phonetic(item.get("phonetic"), where)
         if example is None:
             example_meaning = None  # 예문이 없으면 예문 뜻도 두지 않는다 (기존 words 규칙)
         key = _term_key(term)
         if key in seen:
             raise SeedValidationError(f"{where}: term 중복 ('{term}' 는 '{seen[key]}' 와 같은 단어로 취급됩니다)")
         seen[key] = term
-        words.append(SeedWordData(term, meaning, example, example_meaning, index))
+        words.append(SeedWordData(term, meaning, example, example_meaning, index, phonetic))
     return tuple(words)
 
 
@@ -176,7 +193,7 @@ def compute_content_hash(vocabulary: SeedVocabularyData) -> str:
         "description": vocabulary.description,
         "sort_order": vocabulary.sort_order,
         "words": [
-            [w.term, w.meaning, w.example, w.example_meaning, w.order_index] for w in vocabulary.words
+            [w.term, w.meaning, w.example, w.example_meaning, w.order_index, w.phonetic] for w in vocabulary.words
         ],
     }
     canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
@@ -246,13 +263,14 @@ async def _seed_one(session: AsyncSession, data: SeedVocabularyData, report: See
                     "meaning": word.meaning,
                     "example": word.example,
                     "example_meaning": word.example_meaning,
+                    "phonetic": word.phonetic,
                     "order_index": word.order_index,
                 }
             )
             continue
-        new_values = (word.term, word.meaning, word.example, word.example_meaning, word.order_index)
-        if (row.term, row.meaning, row.example, row.example_meaning, row.order_index) != new_values:
-            row.term, row.meaning, row.example, row.example_meaning, row.order_index = new_values
+        new_values = (word.term, word.meaning, word.example, word.example_meaning, word.order_index, word.phonetic)
+        if (row.term, row.meaning, row.example, row.example_meaning, row.order_index, row.phonetic) != new_values:
+            row.term, row.meaning, row.example, row.example_meaning, row.order_index, row.phonetic = new_values
             updated += 1
     if inserted:
         await session.execute(mysql_insert(SystemWord), inserted)

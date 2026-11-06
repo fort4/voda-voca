@@ -394,3 +394,153 @@ async def test_app_lifespan_runs_seed_on_startup(monkeypatch: pytest.MonkeyPatch
 
 def test_module_exposes_init_function() -> None:
     assert callable(system_seed.init_system_seeds)
+
+
+# ---------------------------------------------------------------------------
+# 5. 발음기호(phonetic): 검증, 해시, 멱등 적재 (v2.2). 합성 시드만 쓰므로 실제 단어장은 바뀌지 않는다.
+# ---------------------------------------------------------------------------
+
+IPA_APPLE = "ˈæpəl"
+
+
+def _ph(term: str, meaning: str, phonetic: str | None) -> dict:
+    """발음기호가 있는 시드 단어. phonetic 이 None 이면 키 자체를 둔다(명시적 null)."""
+    return {**_word(term, meaning), "phonetic": phonetic}
+
+
+def test_load_reads_phonetic_and_missing_key_means_none(tmp_path: Path) -> None:
+    _simple_seed(tmp_path, words=[_ph("apple", "사과", IPA_APPLE), _word("book", "책"), _ph("cat", "고양이", None)])
+    (vocabulary,) = load_seed_vocabularies(tmp_path)
+    assert [w.phonetic for w in vocabulary.words] == [IPA_APPLE, None, None]
+
+
+def test_load_trims_phonetic_and_blank_means_none(tmp_path: Path) -> None:
+    _simple_seed(tmp_path, words=[_ph("apple", "사과", f"  {IPA_APPLE} "), _ph("book", "책", "   ")])
+    (vocabulary,) = load_seed_vocabularies(tmp_path)
+    assert [w.phonetic for w in vocabulary.words] == [IPA_APPLE, None]
+
+
+@pytest.mark.parametrize(
+    "phonetic",
+    ["ˈæpəl", "ˈhaʊs", "θɪŋk", "ˈɛvri", "ʃʊd", "ðɪs", "dʒʌmp", "ɔːl", "ˌɪntərˈnæʃənəl", "ˈkɑːfi", "t͡ʃɛr", "ˈbʌtər", "wɝld"],
+)
+def test_typical_ipa_is_accepted(tmp_path: Path, phonetic: str) -> None:
+    _simple_seed(tmp_path, words=[_ph("apple", "사과", phonetic)])
+    (vocabulary,) = load_seed_vocabularies(tmp_path)
+    assert vocabulary.words[0].phonetic == phonetic
+
+
+@pytest.mark.parametrize(
+    "phonetic",
+    [
+        "애플",  # 한글
+        "/ˈæpəl/",  # 슬래시는 저장하지 않는다 (화면이 입힌다)
+        "[ˈæpəl]",
+        "(ˈæpəl)",
+        "ÆPPLE",  # 대문자
+        "apple1",  # 숫자
+        "ˈæ\x00pəl",  # 제어 문자
+        "ˈæp\nəl",  # 줄바꿈
+        "ˈæp\təl",  # 탭
+        "ˈæpəl, ˈæpl",  # 쉼표(발음 변형은 한 값에 넣지 않는다)
+    ],
+)
+def test_non_ipa_phonetic_is_rejected(tmp_path: Path, phonetic: str) -> None:
+    _simple_seed(tmp_path, words=[_ph("apple", "사과", phonetic)])
+    with pytest.raises(SeedValidationError, match="phonetic"):
+        load_seed_vocabularies(tmp_path)
+
+
+def test_phonetic_longer_than_column_is_rejected(tmp_path: Path) -> None:
+    _simple_seed(tmp_path, words=[_ph("apple", "사과", "a" * 101)])
+    with pytest.raises(SeedValidationError, match="phonetic"):
+        load_seed_vocabularies(tmp_path)
+    _simple_seed(tmp_path / "ok", words=[_ph("apple", "사과", "a" * 100)])
+    (vocabulary,) = load_seed_vocabularies(tmp_path / "ok")
+    assert len(vocabulary.words[0].phonetic or "") == 100
+
+
+def test_phonetic_must_be_a_string(tmp_path: Path) -> None:
+    _simple_seed(tmp_path, words=[{**_word("apple", "사과"), "phonetic": 123}])
+    with pytest.raises(SeedValidationError, match="phonetic"):
+        load_seed_vocabularies(tmp_path)
+
+
+def test_content_hash_reacts_to_phonetic_but_not_to_an_explicit_null(tmp_path: Path) -> None:
+    base = [_word("apple", "사과"), _word("book", "책"), _word("cat", "고양이")]
+    _simple_seed(tmp_path / "none", words=base)
+    _simple_seed(tmp_path / "null", words=[_ph("apple", "사과", None), _word("book", "책"), _word("cat", "고양이")])
+    _simple_seed(tmp_path / "with", words=[_ph("apple", "사과", IPA_APPLE), _word("book", "책"), _word("cat", "고양이")])
+    _simple_seed(tmp_path / "other", words=[_ph("apple", "사과", "ˈæpl"), _word("book", "책"), _word("cat", "고양이")])
+    hashes = {name: compute_content_hash(load_seed_vocabularies(tmp_path / name)[0]) for name in ("none", "null", "with", "other")}
+    assert hashes["none"] == hashes["null"], "키가 없는 것과 명시적 null 은 같은 내용이다"
+    assert hashes["with"] != hashes["none"], "발음기호를 채우면 해시가 바뀌어야 DB 에 반영된다"
+    assert hashes["other"] != hashes["with"]
+
+
+@pytest.mark.asyncio
+async def test_phonetic_is_stored_and_missing_phonetic_is_null(tmp_path: Path) -> None:
+    _simple_seed(tmp_path, words=[_ph("apple", "사과", IPA_APPLE), _word("book", "책")])
+    await _run(tmp_path)
+    words = await _words(f"{PREFIX}a")
+    assert words["apple"].phonetic == IPA_APPLE
+    assert words["book"].phonetic is None
+
+
+@pytest.mark.asyncio
+async def test_same_seed_with_phonetic_is_idempotent(tmp_path: Path) -> None:
+    _simple_seed(tmp_path, words=[_ph("apple", "사과", IPA_APPLE), _ph("book", "책", "bʊk")])
+    await _run(tmp_path)
+    report = await _run(tmp_path)
+    assert (report.created, report.updated, report.unchanged) == (0, 0, 1)
+    assert report.words_inserted == 0 and report.words_updated == 0
+
+
+@pytest.mark.asyncio
+async def test_adding_phonetic_later_updates_in_place_and_keeps_word_id(tmp_path: Path) -> None:
+    _simple_seed(tmp_path, words=[_word("apple", "사과"), _word("book", "책")])
+    await _run(tmp_path)
+    before = (await _words(f"{PREFIX}a"))["apple"].id
+    old_hash = (await _vocabulary(f"{PREFIX}a")).content_hash
+
+    _simple_seed(tmp_path, words=[_ph("apple", "사과", IPA_APPLE), _word("book", "책")])
+    report = await _run(tmp_path)
+
+    assert (report.created, report.updated, report.unchanged) == (0, 1, 0)
+    assert (report.words_updated, report.words_inserted) == (1, 0)
+    words = await _words(f"{PREFIX}a")
+    assert words["apple"].phonetic == IPA_APPLE
+    assert words["apple"].id == before  # 학습 이력 FK 보호: 삭제 후 재삽입이 아니다
+    assert (await _vocabulary(f"{PREFIX}a")).content_hash != old_hash
+
+
+@pytest.mark.asyncio
+async def test_changing_only_the_phonetic_updates_only_that_word(tmp_path: Path) -> None:
+    _simple_seed(tmp_path, words=[_ph("apple", "사과", IPA_APPLE), _ph("book", "책", "bʊk")])
+    await _run(tmp_path)
+    _simple_seed(tmp_path, words=[_ph("apple", "사과", "ˈæpl"), _ph("book", "책", "bʊk")])
+    report = await _run(tmp_path)
+    assert report.words_updated == 1
+    words = await _words(f"{PREFIX}a")
+    assert (words["apple"].phonetic, words["book"].phonetic) == ("ˈæpl", "bʊk")
+
+
+@pytest.mark.asyncio
+async def test_removing_phonetic_from_seed_returns_the_column_to_null(tmp_path: Path) -> None:
+    _simple_seed(tmp_path, words=[_ph("apple", "사과", IPA_APPLE), _word("book", "책")])
+    await _run(tmp_path)
+    _simple_seed(tmp_path, words=[_word("apple", "사과"), _word("book", "책")])
+    report = await _run(tmp_path)
+    assert report.words_updated == 1
+    assert (await _words(f"{PREFIX}a"))["apple"].phonetic is None
+    assert (await _run(tmp_path)).unchanged == 1
+
+
+@pytest.mark.asyncio
+async def test_new_word_with_phonetic_is_inserted_with_it(tmp_path: Path) -> None:
+    _simple_seed(tmp_path, words=[_word("apple", "사과")])
+    await _run(tmp_path)
+    _simple_seed(tmp_path, words=[_word("apple", "사과"), _ph("book", "책", "bʊk")])
+    report = await _run(tmp_path)
+    assert report.words_inserted == 1
+    assert (await _words(f"{PREFIX}a"))["book"].phonetic == "bʊk"

@@ -60,8 +60,28 @@ def test_category_is_free_string_with_index() -> None:
 
 @pytest.mark.parametrize("column", ["pos", "phonetic", "level"])
 def test_word_extension_fields_are_nullable(column: str) -> None:
-    """확장 필드는 DDL 에만 두고 NULL 을 허용한다 (1단계에서는 쓰지 않는다)."""
+    """확장 필드는 NULL 을 허용한다. phonetic 은 v2.2 부터 쓰고, pos·level 은 아직 쓰지 않는다."""
     assert _table("system_words").c[column].nullable is True
+
+
+def test_phonetic_column_matches_the_v22_contract() -> None:
+    """발음기호(IPA) 컬럼 규격 고정: VARCHAR(100), NULL 허용. 시드 로더의 PHONETIC_MAX 와 같은 값이어야 한다."""
+    from backend.services.system_seed import PHONETIC_MAX
+
+    column = _table("system_words").c.phonetic
+    assert isinstance(column.type, String)
+    assert column.type.length == 100 == PHONETIC_MAX
+    assert column.nullable is True
+    assert column.server_default is None  # 값이 없으면 NULL (빈 문자열이 아니다)
+
+
+def test_phonetic_column_is_created_by_exactly_one_migration() -> None:
+    """컬럼은 초기 마이그레이션에 이미 있다. 같은 컬럼을 다시 추가하는 마이그레이션이 생기면 Duplicate column 으로 깨진다."""
+    from pathlib import Path
+
+    versions = Path(__file__).resolve().parents[1] / "alembic" / "versions"
+    creators = [f.name for f in versions.glob("*.py") if '"phonetic"' in f.read_text(encoding="utf-8")]
+    assert creators == ["b1e5c0a7d2f4_feat_중앙_제공형_단어장_테이블_추가.py"]
 
 
 def test_word_core_fields_keep_existing_names() -> None:
@@ -295,3 +315,31 @@ async def test_deleting_active_vocabulary_sets_user_column_to_null() -> None:
         await session.commit()
         await session.refresh(user)
         assert user.active_vocabulary_id is None
+
+
+@_ASYNC
+async def test_live_phonetic_column_is_varchar100_nullable_utf8mb4() -> None:
+    """실제 DB 의 컬럼 규격 고정 (마이그레이션이 적용된 상태). IPA 확장 문자를 저장하려면 utf8mb4 여야 한다."""
+    async with get_session_factory()() as session:
+        row = (
+            await session.execute(
+                text(
+                    "SELECT COLUMN_TYPE, IS_NULLABLE, CHARACTER_SET_NAME FROM information_schema.COLUMNS "
+                    "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'system_words' AND COLUMN_NAME = 'phonetic'"
+                )
+            )
+        ).one()
+    assert (row[0], row[1], row[2]) == ("varchar(100)", "YES", "utf8mb4")
+
+
+@_ASYNC
+async def test_ipa_text_round_trips_through_the_database() -> None:
+    """강세·장음·결합 기호까지 포함한 IPA 가 깨지지 않고 저장·조회된다."""
+    ipa = "ˌɪntərˈnæʃənəl t͡ʃɛr θɪŋk ɔːl"
+    async with get_session_factory()() as session:
+        _, word = await _add_vocabulary_with_word(session)
+        word.phonetic = ipa
+        await session.flush()
+        await session.refresh(word)
+        assert word.phonetic == ipa
+        await session.rollback()
