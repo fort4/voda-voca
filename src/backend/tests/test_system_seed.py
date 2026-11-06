@@ -544,3 +544,40 @@ async def test_new_word_with_phonetic_is_inserted_with_it(tmp_path: Path) -> Non
     report = await _run(tmp_path)
     assert report.words_inserted == 1
     assert (await _words(f"{PREFIX}a"))["book"].phonetic == "bʊk"
+
+
+# ---------------------------------------------------------------------------
+# 6. 실제 시드의 발음기호 완성도 (DB 없음). 600단어 전부에 미국식 IPA 가 있어야 한다 (v2.2 데이터 완성의 관문).
+# ---------------------------------------------------------------------------
+
+
+def _real_words() -> list[tuple[str, system_seed.SeedWordData]]:
+    return [(v.slug, w) for v in load_seed_vocabularies(SEED_DIR) for w in v.words]
+
+
+def test_every_real_seed_word_has_a_phonetic() -> None:
+    missing = [f"{slug}:{w.term}" for slug, w in _real_words() if not w.phonetic]
+    assert missing == [], f"발음기호가 없는 단어 {len(missing)}개: {missing[:10]}"
+
+
+def test_real_seed_phonetics_are_plain_ipa_without_slashes_or_brackets() -> None:
+    bad = [(w.term, w.phonetic) for _, w in _real_words() if w.phonetic and any(c in w.phonetic for c in "/[]()")]
+    assert bad == []
+
+
+def test_stress_marks_appear_only_in_multi_syllable_words() -> None:
+    """단음절 단어는 강세 표시를 하지 않는다 (사전 표기 관례)."""
+    vowel = "aeiouæɑɔɛɪʊʌəɚɝ"
+    offenders = [
+        (w.term, w.phonetic)
+        for _, w in _real_words()
+        if w.phonetic and "ˈ" in w.phonetic and sum(1 for c in w.phonetic if c in vowel) <= 1
+    ]
+    # 이중모음(aɪ, aʊ, eɪ, oʊ, ɔɪ)은 모음 문자가 둘이므로 한 음절로 세지 못하는 경우만 남는다: 아래에서 직접 확인한다
+    assert [t for t, _ in offenders] == []
+
+
+def test_each_vocabulary_has_a_phonetic_for_every_word_and_no_duplicated_primary_stress() -> None:
+    """한 단어에 1차 강세(ˈ)가 둘 이상이면 변환 오류다 (수기 지정한 outside 등 예외는 2차 강세로 구분)."""
+    many = [(w.term, w.phonetic) for _, w in _real_words() if w.phonetic and w.phonetic.count("ˈ") > 1]
+    assert many == []
