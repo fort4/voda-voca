@@ -143,7 +143,7 @@ export async function api(path, options = {}) {
  * - 401 은 unauthorizedHandler 를 호출한 뒤 ApiError 를 던진다 (skipAuthRedirect 가 없을 때만).
  * - 호출자가 signal 로 취소하면 AbortError 를 그대로 던진다. 시간 초과는 ApiError(status 0) 이다.
  *
- * @param {string} path /api 뒤의 경로 (예: "/wordbooks")
+ * @param {string} path /api 뒤의 경로 (예: "/vocabularies")
  * @param {ApiOptions} [options]
  * @returns {Promise<{data: any, headers: Headers, status: number}>}
  */

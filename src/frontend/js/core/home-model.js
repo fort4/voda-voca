@@ -1,12 +1,9 @@
 /*
- * 2026-11-05 - voda-voca - 홈 화면 뷰모델: 활성 단어장 요약, 오늘 목표·남은 문항, 학습 시작 경로, 마지막 모드 기억 (DOM 없는 순수 로직)
+ * 2026-11-05 - voda-voca - 홈 화면 뷰모델: 활성 단어장 요약, 오늘 목표·남은 문항(사용자 설정), 학습 시작 경로, 마지막 모드 기억 (DOM 없는 순수 로직)
  * 파일 위치: src/frontend/js/core/home-model.js
  */
 
-/** 하루 목표 문항 수. 서버에 목표 설정이 없어 상수로 둔다 (사용자별 목표는 후속). */
-export const DAILY_GOAL = 15;
-/** 한 세션의 문항 수 */
-export const SESSION_SIZE = 15;
+import { FALLBACK_SETTINGS } from "./settings-model.js";
 
 const MODE_KEY = "voda.study.mode";
 const KO = "ko-KR";
@@ -20,7 +17,8 @@ const normalizeMode = (mode) => (mode === "flashcard" ? "flashcard" : "quiz");
  *          stats: null|{streak_days: number, weekly: Array<{count: number, is_today: boolean}>}}} input
  *   stats 가 null 이면 아직 못 받은 것이다 (목표 영역은 값 없음으로 둔다).
  */
-export function homeModel({ active, stats }) {
+export function homeModel({ active, stats, settings = FALLBACK_SETTINGS }) {
+  const goal = settings.daily_goal;
   const today = stats ? stats.weekly.find((day) => day.is_today) : null;
   const todayCount = stats ? (today?.count ?? 0) : null;
   const streak = stats?.streak_days ?? 0;
@@ -32,10 +30,11 @@ export function homeModel({ active, stats }) {
     vocabularyTitle: active?.title ?? null,
     progressPercent: progress ? Math.min(100, Math.max(0, Math.round(progress.progress_rate))) : 0,
     progressText: active ? `${progress.studied_words.toLocaleString(KO)} / ${active.total_words.toLocaleString(KO)} 학습` : null,
+    dailyGoal: goal,
     todayCount,
-    remaining: todayCount === null ? null : Math.max(0, DAILY_GOAL - todayCount),
-    goalPercent: todayCount === null ? 0 : Math.min(100, Math.round((todayCount / DAILY_GOAL) * 100)),
-    goalReached: todayCount !== null && todayCount >= DAILY_GOAL,
+    remaining: todayCount === null ? null : Math.max(0, goal - todayCount),
+    goalPercent: todayCount === null ? 0 : Math.min(100, Math.round((todayCount / goal) * 100)),
+    goalReached: todayCount !== null && todayCount >= goal,
     streakText: streak > 0 ? `${streak}일 연속` : null,
   };
 }

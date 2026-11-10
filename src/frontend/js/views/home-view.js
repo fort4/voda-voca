@@ -1,20 +1,27 @@
 /*
- * 2026-11-05 - voda-voca - 홈 화면: 활성 단어장, 오늘 목표·남은 문항, 15문항 학습 시작(퀴즈/플래시카드)
+ * 2026-11-05 - voda-voca - 홈 화면: 활성 단어장, 오늘 목표·남은 문항, 학습 시작(퀴즈/플래시카드), 학습 개수 설정(REQ-147)
  * 파일 위치: src/frontend/js/views/home-view.js
  */
 
 import { api } from "../core/api.js";
-import { button, h, icon } from "../core/dom.js";
-import { SESSION_SIZE, homeModel, loadMode, saveMode } from "../core/home-model.js";
+import { button, clear, h, icon, refreshIcons } from "../core/dom.js";
+import { homeModel, loadMode, saveMode } from "../core/home-model.js";
+import { applySetting, normalizeSettings, startLabel } from "../core/settings-model.js";
+import { toast } from "../core/toast.js";
+import { renderSettingsCard } from "./components/settings-card.js";
 import { progressBar } from "./components/progress-bar.js";
 import { mountLoader } from "./components/loader.js";
 import { renderModeToggle } from "./components/mode-toggle.js";
 import { openSession } from "./components/study-nav.js";
 
-/** 통계는 없어도 홈이 동작해야 하므로 실패하면 null 로 둔다. */
+/** 통계·설정은 없어도 홈이 동작해야 하므로 실패하면 null 로 둔다 (설정은 기본값 10 으로 폴백). */
 async function loadHome() {
-  const [catalog, stats] = await Promise.all([api("/vocabularies"), api("/study/stats").catch(() => null)]);
-  return { active: catalog.find((v) => v.user_progress.is_active) ?? null, stats };
+  const [catalog, stats, settings] = await Promise.all([
+    api("/vocabularies"),
+    api("/study/stats").catch(() => null),
+    api("/users/me/settings").catch(() => null),
+  ]);
+  return { active: catalog.find((v) => v.user_progress.is_active) ?? null, stats, settings: normalizeSettings(settings) };
 }
 
 /**
@@ -25,10 +32,45 @@ async function loadHome() {
 export function homeView(root, ctx) {
   const storage = globalThis.localStorage;
   let mode = loadMode(storage);
-  return mountLoader(root, loadHome, (data) => root.append(renderHome(data, ctx, () => mode, (next) => { mode = next; saveMode(storage, next); })));
+  return mountLoader(root, loadHome, (data) => {
+    let settings = data.settings;
+
+    /** 다시 그린다. 키보드로 칩을 고르던 중이면 같은 칩에 포커스를 되돌린다. */
+    function repaint() {
+      const focused = root.querySelector("[data-setting]:focus")?.getAttribute("data-setting");
+      clear(root);
+      root.append(renderHome({ ...data, settings }, ctx, { mode, setMode, changeSetting }));
+      refreshIcons();
+      if (focused) root.querySelector(`[data-setting="${focused}"]`)?.focus();
+    }
+
+    function setMode(next) {
+      mode = next;
+      saveMode(storage, next);
+      repaint();
+    }
+
+    /** 낙관적으로 먼저 반영하고, 저장에 실패하면 이전 값으로 되돌린다. */
+    async function changeSetting(key, value) {
+      const previous = settings[key];
+      const next = applySetting(settings, key, value);
+      if (next === settings) return;
+      settings = next;
+      repaint();
+      try {
+        await api("/users/me/settings", { method: "PATCH", body: { [key]: value } });
+      } catch {
+        if (settings[key] === value) settings = applySetting(settings, key, previous);
+        toast("설정을 저장하지 못했어요", "error");
+        repaint();
+      }
+    }
+
+    repaint();
+  });
 }
 
-function renderHome(data, ctx, getMode, setMode) {
+function renderHome(data, ctx, { mode, setMode, changeSetting }) {
   const m = homeModel(data);
   return h(
     "div",
@@ -50,9 +92,10 @@ function renderHome(data, ctx, getMode, setMode) {
     h(
       "section",
       { class: "space-y-3" },
-      renderModeToggle({ value: getMode(), onChange: setMode }),
-      button({ variant: "primary", full: true, disabled: !m.canStart, size: "lg", onClick: () => openSession(ctx.navigate, getMode()) }, icon("play", "h-5 w-5"), `${SESSION_SIZE}문항 학습 시작`),
+      renderModeToggle({ value: mode, onChange: setMode }),
+      button({ variant: "primary", full: true, disabled: !m.canStart, size: "lg", onClick: () => openSession(ctx.navigate, mode) }, icon("play", "h-5 w-5"), startLabel(data.settings, mode)),
     ),
+    renderSettingsCard({ settings: data.settings, onChange: changeSetting }),
   );
 }
 
@@ -63,7 +106,7 @@ function goalCard(m) {
       : [
           h("p", { class: "text-2xl font-extrabold tracking-tight text-zinc-900" }, m.goalReached ? "오늘 목표를 채웠어요 🎉" : `${m.remaining}문항 남았어요`),
           progressBar(m.goalPercent, "오늘 목표"),
-          h("p", { class: "text-sm text-zinc-600" }, `오늘 ${m.todayCount}개 학습`),
+          h("p", { class: "text-sm text-zinc-600" }, `오늘 ${m.todayCount}개 학습 · 목표 ${m.dailyGoal}개`),
         ];
   return h(
     "section",

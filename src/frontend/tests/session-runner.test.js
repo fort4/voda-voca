@@ -120,7 +120,7 @@ test("START: LOADING 으로 가고 세션 생성 효과를 낸다 (기본 15문�
   const { state, effects } = reduce(initialState(), { type: ACTION.START });
   assert.equal(state.phase, PHASE.LOADING);
   assert.deepEqual(effects, [
-    { type: EFFECT.CREATE_SESSION, requestId: state.requestId, body: { mode: "quiz", count: 15, include_memorized: false, source: "all" } },
+    { type: EFFECT.CREATE_SESSION, requestId: state.requestId, body: { mode: "quiz", include_memorized: false, source: "all" } },
   ]);
 });
 
@@ -630,4 +630,11 @@ test("TRANSITIONS 의 모든 상태는 PHASE 에 있다", () => {
     assert.ok(phases.has(from), from);
     for (const to of targets) assert.ok(phases.has(to), to);
   }
+});
+
+test("START: count 를 생략하면 본문에 싣지 않는다 (서버가 사용자 설정을 쓴다), 명시하면 싣는다", () => {
+  const omitted = reduce(initialState(), { type: ACTION.START, mode: "flashcard" }).effects[0].body;
+  assert.equal("count" in omitted, false);
+  const explicit = reduce(initialState(), { type: ACTION.START, mode: "quiz", count: 5 }).effects[0].body;
+  assert.equal(explicit.count, 5);
 });

@@ -71,7 +71,7 @@ test("START: 세션 생성 API 를 부르고 응답이 오면 첫 문항이 활�
   assert.equal(driver.getState().phase, PHASE.LOADING);
   assert.equal(calls.length, 1);
   assert.equal(calls[0].path, "/study/sessions");
-  assert.deepEqual(calls[0].options, { method: "POST", body: { mode: "quiz", count: 15, include_memorized: false, source: "all" } });
+  assert.deepEqual(calls[0].options, { method: "POST", body: { mode: "quiz", include_memorized: false, source: "all" } });
 
   calls[0].resolve(session());
   await tick();

@@ -68,7 +68,6 @@ export const TRANSITIONS = Object.freeze({
 
 /** 연속 정답이 이 횟수에 닿는 순간이 '방금 숙련'이다 (서버의 숙련 규칙과 같다). */
 export const MEMORIZE_STREAK = 3;
-export const DEFAULT_COUNT = 15;
 const CHOICE_COUNT = 4;
 
 /** 서버의 X-Error-Code → 화면이 다루는 오류 종류 */
@@ -206,7 +205,8 @@ export function reduce(state, action) {
           {
             type: EFFECT.CREATE_SESSION,
             requestId,
-            body: { mode, count: action.count ?? DEFAULT_COUNT, include_memorized: action.includeMemorized === true, source },
+            // count 를 생략하면 서버가 사용자 설정(모드별 문항 수)을 쓴다 (REQ-147)
+            body: { mode, ...(action.count === undefined ? {} : { count: action.count }), include_memorized: action.includeMemorized === true, source },
           },
         ],
       };

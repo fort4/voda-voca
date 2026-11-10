@@ -6,7 +6,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { DAILY_GOAL, SESSION_SIZE, homeModel, loadMode, saveMode, startPath } from "../js/core/home-model.js";
+import * as homeModule from "../js/core/home-model.js";
+import { homeModel, loadMode, saveMode, startPath } from "../js/core/home-model.js";
+import { FALLBACK_SETTINGS } from "../js/core/settings-model.js";
 
 const active = { id: 2, title: "중고등 기본 1,000제", total_words: 1000, user_progress: { studied_words: 520, memorized_words: 140, progress_rate: 52, is_active: true } };
 const stats = (todayCount, streak = 3) => ({
@@ -17,21 +19,32 @@ const stats = (todayCount, streak = 3) => ({
   ],
 });
 
-test("상수: 하루 목표와 한 세션은 모두 15", () => {
-  assert.equal(DAILY_GOAL, 15);
-  assert.equal(SESSION_SIZE, 15);
+const settings = (daily_goal) => ({ ...FALLBACK_SETTINGS, daily_goal });
+
+test("하루 목표·세션 크기 상수는 없다 (사용자 설정으로 대체, REQ-147)", () => {
+  assert.equal("DAILY_GOAL" in homeModule, false);
+  assert.equal("SESSION_SIZE" in homeModule, false);
+});
+
+test("목표는 설정의 daily_goal 을 따르고, 설정이 없으면 10", () => {
+  assert.equal(homeModel({ active, stats: stats(6), settings: settings(30) }).remaining, 24);
+  assert.equal(homeModel({ active, stats: stats(6), settings: settings(20) }).goalPercent, 30);
+  assert.equal(homeModel({ active, stats: stats(6) }).remaining, 4);
+  assert.equal(homeModel({ active, stats: stats(10), settings: settings(10) }).goalReached, true);
+  assert.equal(homeModel({ active, stats: stats(10), settings: settings(20) }).goalReached, false);
+  assert.equal(homeModel({ active, stats: stats(6), settings: settings(20) }).dailyGoal, 20);
 });
 
 test("오늘 푼 수가 목표보다 적으면 남은 수를 센다", () => {
-  const m = homeModel({ active, stats: stats(6) });
+  const m = homeModel({ active, stats: stats(6), settings: settings(15 + 5) });
   assert.equal(m.todayCount, 6);
-  assert.equal(m.remaining, 9);
+  assert.equal(m.remaining, 14);
   assert.equal(m.goalReached, false);
-  assert.equal(m.goalPercent, 40);
+  assert.equal(m.goalPercent, 30);
 });
 
 test("목표를 넘기면 남은 수는 0 이고 진행률은 100 으로 멈춘다", () => {
-  const m = homeModel({ active, stats: stats(22) });
+  const m = homeModel({ active, stats: stats(22), settings: settings(20) });
   assert.equal(m.remaining, 0);
   assert.equal(m.goalPercent, 100);
   assert.equal(m.goalReached, true);
@@ -40,7 +53,7 @@ test("목표를 넘기면 남은 수는 0 이고 진행률은 100 으로 멈춘�
 test("오늘 항목이 weekly 에 없으면 0 으로 본다", () => {
   const m = homeModel({ active, stats: { streak_days: 0, weekly: [] } });
   assert.equal(m.todayCount, 0);
-  assert.equal(m.remaining, DAILY_GOAL);
+  assert.equal(m.remaining, 10);
 });
 
 test("연속 학습일이 0 이면 숨기고, 있으면 문구를 준다", () => {
