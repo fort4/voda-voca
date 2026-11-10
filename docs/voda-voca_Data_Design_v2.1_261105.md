@@ -213,7 +213,7 @@ erDiagram
 | `meaning` | VARCHAR(200) | N | — | 뜻 |
 | `example` | VARCHAR(500) | Y | NULL | 예문 |
 | `example_meaning` | VARCHAR(500) | Y | NULL | 예문의 한글 뜻. **예문이 없으면 항상 NULL** (D14). |
-| `pos` | VARCHAR(20) | Y | NULL | 품사. **확장 필드, 1단계 미사용** |
+| `pos` | VARCHAR(20) | Y | NULL | 품사 (v2.2 사용, REQ-145). **영문 소문자 단어** (`noun`, `verb`, `adjective`, `adverb`, `preposition`, `conjunction`). 신규 단어장(`exam-core-200`, `business-practical-200`)만 채우고 기존 600단어는 NULL. **API 로 내려가고 화면이 한글 라벨을 입힌다** (REQ-146). 시드 로더는 문자열·20자 이하만 검증하고, 허용 집합은 시드 관문 테스트가 강제한다. 마이그레이션은 없다 (`b1e5c0a7d2f4` 가 이미 만든 컬럼) |
 | `phonetic` | VARCHAR(100) | Y | NULL | 발음기호 (v2.2 사용, REQ-144). **슬래시 없는 미국식 IPA 문자열** (예: `ˈæpəl`). 화면이 `/…/` 서식을 입힌다. NULL 이면 화면이 발음기호 요소를 그리지 않는다. 시드 로더가 IPA 문자만 허용하고 한글·슬래시·대괄호·제어 문자·100자 초과를 거부한다. 값이 없는 단어는 NULL 이며 빈 문자열로 저장하지 않는다. 마이그레이션은 없다 (`b1e5c0a7d2f4` 가 이미 같은 규격으로 만들었다) |
 | `level` | TINYINT | Y | NULL | 단어 난이도. **확장 필드, 1단계 미사용** |
 | `order_index` | INT | N | `0` | 단어장 안의 순서. 미학습 단어는 이 순서로 출제된다 (REQ-012). |
@@ -320,13 +320,15 @@ erDiagram
   "correct_index": 0,
   "example": "I eat an apple.",
   "example_meaning": "나는 매일 아침 사과를 먹는다.",
-  "phonetic": "ˈæpəl"
+  "phonetic": "ˈæpəl",
+  "pos": "noun"
 }
 ```
 
 - 플래시카드 문항은 `choices` 가 `[]`, `correct_index` 가 `null` 이다.
 - **노출 규칙 (v2.1)**: 출제 응답(`POST /api/study/sessions`)은 `question_id`, `word_id`, `term`, `context`(예문)와 퀴즈의 `options` 만 싣는다. `correct_index`, `meaning`, `example_meaning` 은 싣지 않고, **채점 응답**(`POST .../answer`)에서만 공개한다. (플래시카드는 정답이 없으므로 뒷면 뜻을 출제 응답에 함께 싣는다.) v2.0 D11 의 "출제 응답에 정답 포함"은 폐기되었다 (D16).
 - `phonetic` (v2.2) 은 **시작 시점의 `system_words.phonetic` 스냅샷**이다. 읽을 때는 `question.get("phonetic")` 로 다뤄, v2.2 이전에 만든 진행 중 세션(키 없음)은 null 로 응답한다. 퀴즈 출제 응답에는 이 값을 싣지 않고(항상 null), 채점 응답과 플래시카드 출제 응답에서만 내려간다 (REQ-144).
+- `pos` (v2.2, REQ-146) 도 **시작 시점의 `system_words.pos` 스냅샷**이다. `question.get("pos")` 로 읽어 옛 세션(키 없음)은 null 로 응답한다. 발음기호와 달리 **퀴즈 출제 응답에도 싣는다**.
 - `question_id` 는 0부터 시작하는 배열 위치 번호다.
 
 **인덱스**: `PRIMARY KEY (id)`, `KEY idx_quiz_sessions_user (user_id)`, `KEY fk_quiz_sessions_vocabulary (vocabulary_id)` (FK 자동 생성)
@@ -374,10 +376,12 @@ erDiagram
 | `words/beginner-200.json` | `beginner-200` (초급 필수 영단어 200, `ELEMENTARY`, level 1) |
 | `words/intermediate-200.json` | `intermediate-200` (중급 핵심 영단어 200, `SECONDARY`, level 2) |
 | `words/advanced-200.json` | `advanced-200` (고급 심화 영단어 200, `CSAT`, level 3) |
+| `words/exam-core-200.json` | `exam-core-200` (시험 대비 핵심 200, `EXAM`, level 3, `sort_order` 4) — v2.2 |
+| `words/business-practical-200.json` | `business-practical-200` (실무 비즈니스 영단어 200, `BUSINESS`, level 3, `sort_order` 5) — v2.2 |
 
-- 단어 항목은 `{"term", "meaning", "example", "example_meaning"}` 에 선택 키 `"phonetic"`(v2.2, 슬래시 없는 IPA)을 더한 것이다. `phonetic` 키가 없으면 NULL 로 해석한다. 총 600단어이며 v2.2 시드는 600개 전부 값을 가진다. IPA 는 CMU Pronouncing Dictionary(BSD 계열)에서 변환했다 (출처 고지: 요구사항 명세 §10).
+- 단어 항목은 `{"term", "meaning", "example", "example_meaning"}` 에 선택 키 `"phonetic"`(v2.2, 슬래시 없는 IPA)과 `"pos"`(v2.2, 영문 소문자 품사)를 더한 것이다. 신규 2개 단어장은 6개 키가 모두 필수(관문 테스트)이고, 기존 3개는 `pos` 가 없다. `phonetic` 키가 없으면 NULL 로 해석한다. 총 **1,000단어**(기존 600 + 신규 400)이며 v2.2 시드는 1,000개 전부 `phonetic` 을 가진다. IPA 는 CMU Pronouncing Dictionary(BSD 계열)에서 변환했다 (출처 고지: 요구사항 명세 §10).
 - `services/system_seed.py` 가 앱 시작 시(`lifespan` 의 `init_system_seeds`) 시드를 검증하고 적재한다. **검증에 실패하면 DB 에 아무것도 쓰지 않는다** (`SeedValidationError`).
-- **멱등성**: `slug` 가 키다. 파일 내용의 SHA-256 을 `content_hash` 와 비교해 같으면 쓰기를 건너뛴다. 달라지면 단어를 갱신하고 `total_words` 를 실제 개수로 맞춘다. **`content_hash` 입력과 갱신 비교 항목에 `phonetic` 이 포함된다** (v2.2). 값이 바뀌면 UPDATE, 시드에서 지우면 NULL 로 되돌린다. 해시 입력이 바뀐 첫 시작에는 세 단어장이 한 번 재적재된다 (실제 변경은 `phonetic` 뿐).
+- **멱등성**: `slug` 가 키다. 파일 내용의 SHA-256 을 `content_hash` 와 비교해 같으면 쓰기를 건너뛴다. 달라지면 단어를 갱신하고 `total_words` 를 실제 개수로 맞춘다. **`content_hash` 입력과 갱신 비교 항목에 `phonetic` 이 포함된다** (v2.2). `pos` 는 **값이 있을 때만** 단어 항목 끝에 덧붙여 해시에 넣고(갱신 비교에는 항상 포함), 그래서 `pos` 가 없는 기존 3개 단어장의 해시는 이전과 바이트 단위로 같다 (골든 해시 테스트로 고정). 키가 없는 것과 명시적 null 은 같은 내용이다. 신규 단어장은 앱 시작 시 한 번 `created` 로 적재되고, 기존 단어장의 `word_id`·`updated_at` 은 바뀌지 않는다. 값이 바뀌면 UPDATE, 시드에서 지우면 NULL 로 되돌린다. 해시 입력이 바뀐 첫 시작에는 세 단어장이 한 번 재적재된다 (실제 변경은 `phonetic` 뿐).
 - 새 카테고리·단어장은 파일 추가만으로 늘린다 (스키마 변경 없음).
 - 가입 시 `services/auth.py` 의 `signup()` 이 `users` 행을 만들면서 `beginner-200` 을 `active_vocabulary_id` 로 지정한다 (단어 복사 없음).
 - **삭제된 자료**: `beginner_200.json` 등 구 시드와 `intermediate_1000.csv` 프리셋은 제거되었다 (REQ-123, REQ-130 폐기).
@@ -409,6 +413,7 @@ erDiagram
 | REQ-141 | `system_words` (`idx_sysword_vocab_order`), `bookmarks` 조인 |
 | REQ-142 | `users.active_vocabulary_id` (`ON DELETE SET NULL`) |
 | REQ-143 | `system_vocabularies.slug`, `content_hash`, 시드 파일 (§3.9) |
+| REQ-145 | `system_vocabularies` 2행 추가(`category` `EXAM`·`BUSINESS`), `system_words.pos`, 시드 파일 2개 (§3.3, §3.9) |
 
 ---
 
@@ -587,7 +592,7 @@ CREATE TABLE quiz_sessions (
 | :-: | :--- | :--- | :--- |
 | F1 | 서버 기본 collation 정합 | `docker/docker-compose.yml` 은 `utf8mb4_0900_ai_ci` 로 변경됨. 실행 중인 컨테이너 반영은 `docker compose up -d` 재생성이 필요하며 사용자 승인 후 진행 | 사용자 승인 대기 |
 | F2 | 간격 반복 | `user_word_progress` 에 `next_review_at` 등을 추가하는 후속 설계 | 후속 |
-| F3 | 확장 필드 | `system_words.pos`, `level` 은 DDL 에만 있고 미사용 (`phonetic` 은 v2.2 부터 사용, REQ-144) | 후속 |
+| F3 | 확장 필드 | `system_words.level` 만 DDL 에 있고 미사용 (`phonetic` 은 REQ-144, `pos` 는 REQ-145 로 v2.2 부터 사용). `pos` 의 API·화면 노출은 REQ-146 으로 완료 | 후속 |
 | F4 | 만료 세션 정리 | `quiz_sessions` 물리 삭제 배치 | 후속 |
 
 ---
@@ -596,6 +601,8 @@ CREATE TABLE quiz_sessions (
 
 | 버전 | 날짜 | 내용 | 작성 |
 | :--- | :--- | :--- | :--- |
+| v2.1 개정 | 2026-11-10 | `system_words.pos` 를 API·화면에 노출 (REQ-146). `quiz_sessions.questions` 스냅샷 키 `pos` 추가(퀴즈 출제에도 싣는 점이 `phonetic` 과 다름, 옛 세션은 키 없음→null). 스키마·마이그레이션 변경 없음 | Claude |
+| v2.1 개정 | 2026-11-10 | 시험 대비·실무 비즈니스 단어장 2개 추가(REQ-145, v2.2 카탈로그 확충): 시드 파일 2개·총 1,000단어, `system_words.pos` 사용 개시(영문 소문자, API 미노출), `content_hash` 에 `pos` 를 값이 있을 때만 포함해 기존 해시 불변. 카테고리 값 `EXAM`·`BUSINESS`. **스키마·마이그레이션 변경 없음** | Claude |
 | v2.1 개정 | 2026-11-06 | `system_words.phonetic` 사용 개시 (REQ-144, v2.2 발음기호). 저장 형식(슬래시 없는 미국식 IPA, VARCHAR(100), NULL 허용)과 시드 검증, `content_hash`·갱신 규칙에 `phonetic` 포함, `quiz_sessions.questions` 스냅샷 키 `phonetic` 추가(옛 세션은 키 없음→null). **스키마·마이그레이션 변경 없음** (컬럼은 `b1e5c0a7d2f4` 에서 이미 같은 규격) | Claude |
 | v2.1 | 2026-11-05 | 중앙 제공형 단어장 전환 반영. `wordbooks`, `words` 제거(`d1a8e3f5c7b9`), `system_vocabularies`, `system_words`, `user_word_progress` 신설, `users.active_vocabulary_id` 추가, `study_logs`/`bookmarks` FK 를 `system_words` 로 전환, `study_logs.mode`, `quiz_sessions` 의 `vocabulary_id`·`mode`·`answers` 반영, 출제 응답 정답 비노출(D16), 숙련 규칙(D17), 시드 구조 개정. ERD·DDL 은 실제 DB 와 대조. 요구사항 명세 v2.1 과 정합 | Claude |
 | v2.0 | 2026-11-02 | `words.example_meaning` 추가, 퀴즈 문항 JSON `example_meaning`, 시드 형식 명시, D14~D15 | Claude |
