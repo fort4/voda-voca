@@ -3,7 +3,7 @@
  * 파일 위치: src/frontend/js/core/pos.js
  */
 
-/** 시드가 쓰는 품사 6종의 한글 라벨. 목록에 없는 값은 그대로 보인다. */
+/** 시드가 쓰는 품사 8종의 한글 라벨. 목록에 없는 값은 그대로 보인다. */
 export const POS_LABELS = Object.freeze({
   noun: "명사",
   verb: "동사",
@@ -11,6 +11,8 @@ export const POS_LABELS = Object.freeze({
   adverb: "부사",
   preposition: "전치사",
   conjunction: "접속사",
+  pronoun: "대명사",
+  interjection: "감탄사",
 });
 
 /**

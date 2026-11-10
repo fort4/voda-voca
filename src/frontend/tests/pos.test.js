@@ -13,17 +13,17 @@ import { flashcardFaces } from "../js/core/session-view-model.js";
 const ROOT = new URL("..", import.meta.url).pathname;
 const read = (rel) => readFileSync(join(ROOT, rel), "utf8");
 
-test("posLabel: 시드의 품사 6종을 한글 라벨로 바꾼다", () => {
+test("posLabel: 시드의 품사 8종을 한글 라벨로 바꾼다", () => {
   assert.deepEqual(
-    ["noun", "verb", "adjective", "adverb", "preposition", "conjunction"].map(posLabel),
-    ["명사", "동사", "형용사", "부사", "전치사", "접속사"],
+    ["noun", "verb", "adjective", "adverb", "preposition", "conjunction", "pronoun", "interjection"].map(posLabel),
+    ["명사", "동사", "형용사", "부사", "전치사", "접속사", "대명사", "감탄사"],
   );
-  assert.equal(Object.keys(POS_LABELS).length, 6);
+  assert.equal(Object.keys(POS_LABELS).length, 8);
 });
 
 test("posLabel: 대소문자·공백을 무시하고, 모르는 값은 그대로, 없으면 null", () => {
   assert.equal(posLabel(" Noun "), "명사");
-  assert.equal(posLabel("interjection"), "interjection");
+  assert.equal(posLabel("determiner"), "determiner");
   for (const raw of [null, undefined, "", "   "]) assert.equal(posLabel(raw), null, JSON.stringify(raw));
 });
 

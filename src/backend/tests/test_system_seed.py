@@ -629,17 +629,17 @@ def test_content_hash_reacts_to_pos_but_not_to_an_explicit_null(tmp_path: Path) 
     assert hashes["verb"] != hashes["noun"]
 
 
-# 기존 3개 단어장의 content_hash (pos 지원을 넣기 전에 측정). pos 가 없는 시드는 해시가 바뀌면 안 된다.
+# 기존 3개 단어장의 content_hash (품사 채움 후 2026-11-10 측정). 시드 내용이 의도치 않게 바뀌는 것을 막는 고정값이다.
 # 주의: 이 단어장의 내용(뜻·예문·발음기호·순서·메타)을 의도적으로 고쳤다면 이 값도 의도적으로 갱신해야 한다.
 GOLDEN_HASHES = {
-    "beginner-200": "752b297fa8372d2da7c0c07ed818049e5cacf3d7d7c1d7239a79deca9a25563f",
-    "intermediate-200": "09577b2d37aa81162e60edaa128d64168d85fe3dda5c9bb5179c4dc89a0d85df",
-    "advanced-200": "48a5574b816777fe0e02645103be60eaacd48d3c45692bf169f379bb2b62c09d",
+    "beginner-200": "cec63c6f751e6406024c1c83089c625b9aa4229af5963fb7d8eac8a074d07a27",
+    "intermediate-200": "8cad787f78ec878335458e2a8b514c54a581a1dcda3090c7f7b7f9a3f6608e46",
+    "advanced-200": "162e87b3dcd5d9e47b4309c90088446758ee5712b62b2b2d85d73870f4a677a5",
 }
 
 
-def test_existing_vocabularies_keep_their_golden_content_hash() -> None:
-    """pos 지원 추가 후에도 기존 600단어(품사 없음)의 해시가 같아야 DB 에서 'unchanged' 로 남는다."""
+def test_existing_vocabularies_match_their_golden_content_hash() -> None:
+    """기존 600단어 시드의 해시가 고정값과 같아야 한다. 내용을 고쳤다면 이 값도 의도적으로 갱신한다."""
     actual = {v.slug: compute_content_hash(v) for v in load_seed_vocabularies(SEED_DIR) if v.slug in GOLDEN_HASHES}
     assert actual == GOLDEN_HASHES
 
@@ -797,3 +797,13 @@ def test_gate_8_meanings_are_unique_inside_each_new_vocabulary_so_quiz_options_n
         meanings = [w.meaning for w in v.words]
         assert len(v.words) >= 4
         assert len(set(meanings)) == len(meanings), (v.slug, [m for m in set(meanings) if meanings.count(m) > 1])
+
+
+# 8. 기존 600단어 품사 채우기 (v2.2 후속). 실제 시드 전체가 대상이다.
+
+_KNOWN_POS = {"noun", "verb", "adjective", "adverb", "preposition", "conjunction", "pronoun", "interjection"}  # 프론트 POS_LABELS 와 같은 8종
+
+
+def test_every_real_seed_word_has_a_known_pos() -> None:
+    bad = [f"{slug}:{w.term}={w.pos}" for slug, w in _real_words() if w.pos not in _KNOWN_POS]
+    assert bad == [], f"품사가 없거나 알 수 없는 단어 {len(bad)}개: {bad[:10]}"

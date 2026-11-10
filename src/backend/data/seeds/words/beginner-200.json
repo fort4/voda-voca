@@ -2,6 +2,7 @@
   {
     "term": "apple",
     "phonetic": "ˈæpəl",
+    "pos": "noun",
     "meaning": "사과",
     "example": "I eat an apple every morning.",
     "example_meaning": "나는 매일 아침 사과를 먹는다."
@@ -9,6 +10,7 @@
   {
     "term": "book",
     "phonetic": "bʊk",
+    "pos": "noun",
     "meaning": "책",
     "example": "She is reading an interesting book.",
     "example_meaning": "그녀는 흥미로운 책을 읽고 있다."
@@ -16,6 +18,7 @@
   {
     "term": "cat",
     "phonetic": "kæt",
+    "pos": "noun",
     "meaning": "고양이",
     "example": "The cat sleeps on the sofa all day.",
     "example_meaning": "그 고양이는 하루 종일 소파에서 잔다."
@@ -23,6 +26,7 @@
   {
     "term": "dog",
     "phonetic": "dɔɡ",
+    "pos": "noun",
     "meaning": "개",
     "example": "My dog likes to run in the park.",
     "example_meaning": "우리 개는 공원에서 뛰어노는 것을 좋아한다."
@@ -30,6 +34,7 @@
   {
     "term": "school",
     "phonetic": "skul",
+    "pos": "noun",
     "meaning": "학교",
     "example": "We walk to school together every day.",
     "example_meaning": "우리는 매일 함께 학교에 걸어간다."
@@ -37,6 +42,7 @@
   {
     "term": "friend",
     "phonetic": "frɛnd",
+    "pos": "noun",
     "meaning": "친구",
     "example": "She is my best friend from high school.",
     "example_meaning": "그녀는 고등학교 때부터 나의 가장 친한 친구다."
@@ -44,6 +50,7 @@
   {
     "term": "family",
     "phonetic": "ˈfæməli",
+    "pos": "noun",
     "meaning": "가족",
     "example": "My family eats dinner together on Sundays.",
     "example_meaning": "우리 가족은 일요일마다 함께 저녁을 먹는다."
@@ -51,6 +58,7 @@
   {
     "term": "water",
     "phonetic": "ˈwɔtɚ",
+    "pos": "noun",
     "meaning": "물",
     "example": "Please drink a glass of water.",
     "example_meaning": "물을 한 잔 마셔라."
@@ -58,6 +66,7 @@
   {
     "term": "food",
     "phonetic": "fud",
+    "pos": "noun",
     "meaning": "음식",
     "example": "This food tastes really good.",
     "example_meaning": "이 음식은 정말 맛있다."
@@ -65,6 +74,7 @@
   {
     "term": "happy",
     "phonetic": "ˈhæpi",
+    "pos": "adjective",
     "meaning": "행복한, 기쁜",
     "example": "The children were happy at the party.",
     "example_meaning": "아이들은 파티에서 즐거워했다."
@@ -72,6 +82,7 @@
   {
     "term": "big",
     "phonetic": "bɪɡ",
+    "pos": "adjective",
     "meaning": "큰",
     "example": "That house is much bigger than mine.",
     "example_meaning": "저 집은 우리 집보다 훨씬 크다."
@@ -79,6 +90,7 @@
   {
     "term": "small",
     "phonetic": "smɔl",
+    "pos": "adjective",
     "meaning": "작은",
     "example": "The small bird sat on the branch.",
     "example_meaning": "작은 새가 나뭇가지에 앉았다."
@@ -86,6 +98,7 @@
   {
     "term": "run",
     "phonetic": "rʌn",
+    "pos": "verb",
     "meaning": "달리다",
     "example": "I run for thirty minutes before breakfast.",
     "example_meaning": "나는 아침을 먹기 전에 삼십 분 동안 달린다."
@@ -93,6 +106,7 @@
   {
     "term": "eat",
     "phonetic": "it",
+    "pos": "verb",
     "meaning": "먹다",
     "example": "We eat lunch at twelve o'clock.",
     "example_meaning": "우리는 열두 시에 점심을 먹는다."
@@ -100,6 +114,7 @@
   {
     "term": "drink",
     "phonetic": "drɪŋk",
+    "pos": "verb",
     "meaning": "마시다",
     "example": "Let's drink some tea while we talk.",
     "example_meaning": "이야기하는 동안 차를 좀 마시자."
@@ -107,6 +122,7 @@
   {
     "term": "sleep",
     "phonetic": "slip",
+    "pos": "verb",
     "meaning": "자다",
     "example": "Babies sleep for many hours each day.",
     "example_meaning": "아기들은 하루에 여러 시간을 잔다."
@@ -114,6 +130,7 @@
   {
     "term": "play",
     "phonetic": "pleɪ",
+    "pos": "verb",
     "meaning": "놀다, 경기하다",
     "example": "The kids play soccer after school.",
     "example_meaning": "아이들은 방과 후에 축구를 한다."
@@ -121,6 +138,7 @@
   {
     "term": "morning",
     "phonetic": "ˈmɔrnɪŋ",
+    "pos": "noun",
     "meaning": "아침",
     "example": "I feel fresh in the morning.",
     "example_meaning": "나는 아침에 상쾌함을 느낀다."
@@ -128,6 +146,7 @@
   {
     "term": "night",
     "phonetic": "naɪt",
+    "pos": "noun",
     "meaning": "밤",
     "example": "The stars shine brightly at night.",
     "example_meaning": "밤에는 별들이 밝게 빛난다."
@@ -135,6 +154,7 @@
   {
     "term": "today",
     "phonetic": "təˈdeɪ",
+    "pos": "noun",
     "meaning": "오늘",
     "example": "Today is the first day of spring.",
     "example_meaning": "오늘은 봄의 첫날이다."
@@ -142,6 +162,7 @@
   {
     "term": "tomorrow",
     "phonetic": "təˈmɑroʊ",
+    "pos": "noun",
     "meaning": "내일",
     "example": "We will visit the museum tomorrow.",
     "example_meaning": "우리는 내일 박물관에 갈 것이다."
@@ -149,6 +170,7 @@
   {
     "term": "yesterday",
     "phonetic": "ˈjɛstɚˌdeɪ",
+    "pos": "noun",
     "meaning": "어제",
     "example": "Yesterday it rained all afternoon.",
     "example_meaning": "어제는 오후 내내 비가 왔다."
@@ -156,6 +178,7 @@
   {
     "term": "week",
     "phonetic": "wik",
+    "pos": "noun",
     "meaning": "주, 일주일",
     "example": "I have three classes every week.",
     "example_meaning": "나는 매주 수업이 세 개 있다."
@@ -163,6 +186,7 @@
   {
     "term": "month",
     "phonetic": "mʌnθ",
+    "pos": "noun",
     "meaning": "달, 월",
     "example": "The next holiday is in one month.",
     "example_meaning": "다음 휴일은 한 달 뒤에 있다."
@@ -170,6 +194,7 @@
   {
     "term": "year",
     "phonetic": "jɪr",
+    "pos": "noun",
     "meaning": "해, 년",
     "example": "We moved to this city last year.",
     "example_meaning": "우리는 작년에 이 도시로 이사했다."
@@ -177,6 +202,7 @@
   {
     "term": "time",
     "phonetic": "taɪm",
+    "pos": "noun",
     "meaning": "시간",
     "example": "What time does the train leave?",
     "example_meaning": "기차는 몇 시에 출발하나요?"
@@ -184,6 +210,7 @@
   {
     "term": "day",
     "phonetic": "deɪ",
+    "pos": "noun",
     "meaning": "하루, 날",
     "example": "Have a nice day at work.",
     "example_meaning": "직장에서 즐거운 하루 보내세요."
@@ -191,6 +218,7 @@
   {
     "term": "hour",
     "phonetic": "ˈaʊɚ",
+    "pos": "noun",
     "meaning": "시간(60분)",
     "example": "The movie lasts about two hours.",
     "example_meaning": "그 영화는 약 두 시간 동안 상영된다."
@@ -198,6 +226,7 @@
   {
     "term": "minute",
     "phonetic": "ˈmɪnət",
+    "pos": "noun",
     "meaning": "분",
     "example": "Wait a minute, please.",
     "example_meaning": "잠깐만 기다려 주세요."
@@ -205,6 +234,7 @@
   {
     "term": "second",
     "phonetic": "ˈsɛkənd",
+    "pos": "noun",
     "meaning": "초",
     "example": "Count to ten, one second at a time.",
     "example_meaning": "하나, 둘, 셋, 천천히 열까지 세어 보자."
@@ -212,6 +242,7 @@
   {
     "term": "monday",
     "phonetic": "ˈmʌndi",
+    "pos": "noun",
     "meaning": "월요일",
     "example": "The meeting is on Monday morning.",
     "example_meaning": "회의는 월요일 아침에 있다."
@@ -219,6 +250,7 @@
   {
     "term": "color",
     "phonetic": "ˈkʌlɚ",
+    "pos": "noun",
     "meaning": "색, 색깔",
     "example": "My favorite color is blue.",
     "example_meaning": "내가 가장 좋아하는 색은 파란색이다."
@@ -226,6 +258,7 @@
   {
     "term": "red",
     "phonetic": "rɛd",
+    "pos": "noun",
     "meaning": "빨간색",
     "example": "She wore a red dress to the wedding.",
     "example_meaning": "그녀는 결혼식에 빨간 드레스를 입었다."
@@ -233,6 +266,7 @@
   {
     "term": "blue",
     "phonetic": "blu",
+    "pos": "noun",
     "meaning": "파란색",
     "example": "The sky is blue on a clear day.",
     "example_meaning": "맑은 날 하늘은 파랗다."
@@ -240,6 +274,7 @@
   {
     "term": "green",
     "phonetic": "ɡrin",
+    "pos": "noun",
     "meaning": "초록색",
     "example": "The leaves turn green in spring.",
     "example_meaning": "봄이 되면 나뭇잎이 초록색으로 변한다."
@@ -247,6 +282,7 @@
   {
     "term": "white",
     "phonetic": "waɪt",
+    "pos": "noun",
     "meaning": "흰색",
     "example": "The snow covered the field in white.",
     "example_meaning": "눈이 들판을 하얗게 덮었다."
@@ -254,6 +290,7 @@
   {
     "term": "black",
     "phonetic": "blæk",
+    "pos": "noun",
     "meaning": "검은색",
     "example": "He drinks his coffee black.",
     "example_meaning": "그는 커피를 블랙으로 마신다."
@@ -261,6 +298,7 @@
   {
     "term": "yellow",
     "phonetic": "ˈjɛloʊ",
+    "pos": "noun",
     "meaning": "노란색",
     "example": "The sunflowers are bright yellow.",
     "example_meaning": "해바라기가 밝은 노란색으로 피어 있다."
@@ -268,6 +306,7 @@
   {
     "term": "house",
     "phonetic": "haʊs",
+    "pos": "noun",
     "meaning": "집",
     "example": "Our house has a small garden.",
     "example_meaning": "우리 집에는 작은 정원이 있다."
@@ -275,6 +314,7 @@
   {
     "term": "room",
     "phonetic": "rum",
+    "pos": "noun",
     "meaning": "방",
     "example": "My room is on the second floor.",
     "example_meaning": "내 방은 이층에 있다."
@@ -282,6 +322,7 @@
   {
     "term": "door",
     "phonetic": "dɔr",
+    "pos": "noun",
     "meaning": "문",
     "example": "Please close the door when you leave.",
     "example_meaning": "나갈 때 문을 닫아 주세요."
@@ -289,6 +330,7 @@
   {
     "term": "window",
     "phonetic": "ˈwɪndoʊ",
+    "pos": "noun",
     "meaning": "창문",
     "example": "Open the window to let in fresh air.",
     "example_meaning": "신선한 공기가 들어오게 창문을 여세요."
@@ -296,6 +338,7 @@
   {
     "term": "table",
     "phonetic": "ˈteɪbəl",
+    "pos": "noun",
     "meaning": "탁자, 테이블",
     "example": "We set the table for six people.",
     "example_meaning": "우리는 여섯 명을 위해 식탁을 차렸다."
@@ -303,6 +346,7 @@
   {
     "term": "chair",
     "phonetic": "tʃɛr",
+    "pos": "noun",
     "meaning": "의자",
     "example": "Please sit on that chair.",
     "example_meaning": "저 의자에 앉으세요."
@@ -310,6 +354,7 @@
   {
     "term": "bed",
     "phonetic": "bɛd",
+    "pos": "noun",
     "meaning": "침대",
     "example": "I make my bed every morning.",
     "example_meaning": "나는 매일 아침 이불을 갠다."
@@ -317,6 +362,7 @@
   {
     "term": "car",
     "phonetic": "kɑr",
+    "pos": "noun",
     "meaning": "자동차",
     "example": "My father drives a red car.",
     "example_meaning": "아버지는 빨간 차를 운전하신다."
@@ -324,6 +370,7 @@
   {
     "term": "bus",
     "phonetic": "bʌs",
+    "pos": "noun",
     "meaning": "버스",
     "example": "The bus arrives every ten minutes.",
     "example_meaning": "버스는 십 분마다 도착한다."
@@ -331,6 +378,7 @@
   {
     "term": "train",
     "phonetic": "treɪn",
+    "pos": "noun",
     "meaning": "기차",
     "example": "The train goes to Busan at noon.",
     "example_meaning": "기차는 정오에 부산으로 간다."
@@ -338,6 +386,7 @@
   {
     "term": "bike",
     "phonetic": "baɪk",
+    "pos": "noun",
     "meaning": "자전거",
     "example": "I ride my bike to the library.",
     "example_meaning": "나는 자전거를 타고 도서관에 간다."
@@ -345,6 +394,7 @@
   {
     "term": "road",
     "phonetic": "roʊd",
+    "pos": "noun",
     "meaning": "도로, 길",
     "example": "The road is closed for repairs.",
     "example_meaning": "도로는 보수 공사 때문에 통행이 막혔다."
@@ -352,6 +402,7 @@
   {
     "term": "city",
     "phonetic": "ˈsɪti",
+    "pos": "noun",
     "meaning": "도시",
     "example": "Seoul is a very large city.",
     "example_meaning": "서울은 매우 큰 도시다."
@@ -359,6 +410,7 @@
   {
     "term": "village",
     "phonetic": "ˈvɪlədʒ",
+    "pos": "noun",
     "meaning": "마을",
     "example": "The village is quiet in winter.",
     "example_meaning": "겨울에는 마을이 조용하다."
@@ -366,6 +418,7 @@
   {
     "term": "country",
     "phonetic": "ˈkʌntri",
+    "pos": "noun",
     "meaning": "나라, 시골",
     "example": "Which country do you want to visit?",
     "example_meaning": "어느 나라에 가 보고 싶으세요?"
@@ -373,6 +426,7 @@
   {
     "term": "park",
     "phonetic": "pɑrk",
+    "pos": "noun",
     "meaning": "공원",
     "example": "We had a picnic in the park.",
     "example_meaning": "우리는 공원에서 소풍을 즐겼다."
@@ -380,6 +434,7 @@
   {
     "term": "shop",
     "phonetic": "ʃɑp",
+    "pos": "noun",
     "meaning": "가게",
     "example": "The shop opens at nine o'clock.",
     "example_meaning": "가게는 아홉 시에 문을 연다."
@@ -387,6 +442,7 @@
   {
     "term": "market",
     "phonetic": "ˈmɑrkət",
+    "pos": "noun",
     "meaning": "시장",
     "example": "We buy fresh vegetables at the market.",
     "example_meaning": "우리는 시장에서 신선한 채소를 산다."
@@ -394,6 +450,7 @@
   {
     "term": "hospital",
     "phonetic": "ˈhɑspɪtəl",
+    "pos": "noun",
     "meaning": "병원",
     "example": "My aunt works at a hospital downtown.",
     "example_meaning": "이모는 시내에 있는 병원에서 일한다."
@@ -401,6 +458,7 @@
   {
     "term": "doctor",
     "phonetic": "ˈdɑktɚ",
+    "pos": "noun",
     "meaning": "의사",
     "example": "The doctor said I need more rest.",
     "example_meaning": "의사 선생님이 나에게 휴식이 더 필요하다고 하셨다."
@@ -408,6 +466,7 @@
   {
     "term": "teacher",
     "phonetic": "ˈtitʃɚ",
+    "pos": "noun",
     "meaning": "선생님",
     "example": "My teacher explains math very clearly.",
     "example_meaning": "우리 선생님은 수학을 아주 명확하게 설명하신다."
@@ -415,6 +474,7 @@
   {
     "term": "student",
     "phonetic": "ˈstudənt",
+    "pos": "noun",
     "meaning": "학생",
     "example": "Each student received a new notebook.",
     "example_meaning": "학생마다 새 공책을 한 권씩 받았다."
@@ -422,6 +482,7 @@
   {
     "term": "mother",
     "phonetic": "ˈmʌðɚ",
+    "pos": "noun",
     "meaning": "어머니",
     "example": "My mother makes the best soup.",
     "example_meaning": "우리 엄마는 수프를 제일 맛있게 만드신다."
@@ -429,6 +490,7 @@
   {
     "term": "father",
     "phonetic": "ˈfɑðɚ",
+    "pos": "noun",
     "meaning": "아버지",
     "example": "My father reads the newspaper every morning.",
     "example_meaning": "아버지는 매일 아침 신문을 읽으신다."
@@ -436,6 +498,7 @@
   {
     "term": "brother",
     "phonetic": "ˈbrʌðɚ",
+    "pos": "noun",
     "meaning": "남자 형제",
     "example": "My brother plays the guitar.",
     "example_meaning": "우리 형은 기타를 연주한다."
@@ -443,6 +506,7 @@
   {
     "term": "sister",
     "phonetic": "ˈsɪstɚ",
+    "pos": "noun",
     "meaning": "여자 형제",
     "example": "My sister is taller than me.",
     "example_meaning": "누나는 나보다 키가 크다."
@@ -450,6 +514,7 @@
   {
     "term": "baby",
     "phonetic": "ˈbeɪbi",
+    "pos": "noun",
     "meaning": "아기",
     "example": "The baby smiled at her parents.",
     "example_meaning": "아기가 부모님을 보고 방긋 웃었다."
@@ -457,6 +522,7 @@
   {
     "term": "child",
     "phonetic": "tʃaɪld",
+    "pos": "noun",
     "meaning": "아이",
     "example": "Every child needs love and care.",
     "example_meaning": "모든 아이에게는 사랑과 보살핌이 필요하다."
@@ -464,6 +530,7 @@
   {
     "term": "man",
     "phonetic": "mæn",
+    "pos": "noun",
     "meaning": "남자, 사람",
     "example": "The man is waiting at the bus stop.",
     "example_meaning": "그 남자는 버스 정류장에서 기다리고 있다."
@@ -471,6 +538,7 @@
   {
     "term": "woman",
     "phonetic": "ˈwʊmən",
+    "pos": "noun",
     "meaning": "여자",
     "example": "The woman bought three apples.",
     "example_meaning": "그 여자는 사과를 세 개 샀다."
@@ -478,6 +546,7 @@
   {
     "term": "boy",
     "phonetic": "bɔɪ",
+    "pos": "noun",
     "meaning": "소년",
     "example": "The boy kicked the ball over the fence.",
     "example_meaning": "소년이 공을 차서 울타리 너머로 보냈다."
@@ -485,6 +554,7 @@
   {
     "term": "girl",
     "phonetic": "ɡɝl",
+    "pos": "noun",
     "meaning": "소녀",
     "example": "The girl is drawing a picture of a horse.",
     "example_meaning": "소녀는 말 그림을 그리고 있다."
@@ -492,6 +562,7 @@
   {
     "term": "name",
     "phonetic": "neɪm",
+    "pos": "noun",
     "meaning": "이름",
     "example": "What is your name?",
     "example_meaning": "당신의 이름은 무엇인가요?"
@@ -499,6 +570,7 @@
   {
     "term": "hello",
     "phonetic": "həˈloʊ",
+    "pos": "interjection",
     "meaning": "안녕하세요",
     "example": "Hello, nice to meet you.",
     "example_meaning": "안녕하세요, 만나서 반갑습니다."
@@ -506,6 +578,7 @@
   {
     "term": "goodbye",
     "phonetic": "ɡʊdˈbaɪ",
+    "pos": "interjection",
     "meaning": "안녕히 가세요",
     "example": "Goodbye, see you tomorrow!",
     "example_meaning": "안녕히 가세요, 내일 봐요!"
@@ -513,6 +586,7 @@
   {
     "term": "thank",
     "phonetic": "θæŋk",
+    "pos": "verb",
     "meaning": "감사하다",
     "example": "I want to thank you for your help.",
     "example_meaning": "도와주셔서 감사하다는 말을 전하고 싶어요."
@@ -520,6 +594,7 @@
   {
     "term": "please",
     "phonetic": "pliz",
+    "pos": "adverb",
     "meaning": "제발, 부디",
     "example": "Please help me with my homework.",
     "example_meaning": "숙제를 도와주세요."
@@ -527,6 +602,7 @@
   {
     "term": "sorry",
     "phonetic": "ˈsɑri",
+    "pos": "adjective",
     "meaning": "미안한",
     "example": "I am sorry for being late.",
     "example_meaning": "늦어서 미안합니다."
@@ -534,6 +610,7 @@
   {
     "term": "yes",
     "phonetic": "jɛs",
+    "pos": "adverb",
     "meaning": "네, 예",
     "example": "Yes, I would love some tea.",
     "example_meaning": "네, 차 한 잔 마시고 싶어요."
@@ -541,6 +618,7 @@
   {
     "term": "no",
     "phonetic": "noʊ",
+    "pos": "adverb",
     "meaning": "아니요",
     "example": "No, I don't want any more cake.",
     "example_meaning": "아니요, 케이크는 더 먹고 싶지 않아요."
@@ -548,6 +626,7 @@
   {
     "term": "good",
     "phonetic": "ɡʊd",
+    "pos": "adjective",
     "meaning": "좋은",
     "example": "This is a good book for beginners.",
     "example_meaning": "이것은 초보자에게 좋은 책이다."
@@ -555,6 +634,7 @@
   {
     "term": "bad",
     "phonetic": "bæd",
+    "pos": "adjective",
     "meaning": "나쁜",
     "example": "Eating too much sugar is bad for you.",
     "example_meaning": "설탕을 너무 많이 먹는 것은 몸에 나쁘다."
@@ -562,6 +642,7 @@
   {
     "term": "new",
     "phonetic": "nu",
+    "pos": "adjective",
     "meaning": "새로운",
     "example": "She bought a new pair of shoes.",
     "example_meaning": "그녀는 새 신발을 한 켤레 샀다."
@@ -569,6 +650,7 @@
   {
     "term": "old",
     "phonetic": "oʊld",
+    "pos": "adjective",
     "meaning": "오래된, 나이 든",
     "example": "That old tree is over a hundred years old.",
     "example_meaning": "저 오래된 나무는 백 년이 넘었다."
@@ -576,6 +658,7 @@
   {
     "term": "hot",
     "phonetic": "hɑt",
+    "pos": "adjective",
     "meaning": "뜨거운, 더운",
     "example": "The soup is too hot to eat now.",
     "example_meaning": "수프가 너무 뜨거워서 지금은 먹을 수 없다."
@@ -583,6 +666,7 @@
   {
     "term": "cold",
     "phonetic": "koʊld",
+    "pos": "adjective",
     "meaning": "차가운, 추운",
     "example": "It is very cold in January.",
     "example_meaning": "일월에는 날씨가 매우 춥다."
@@ -590,6 +674,7 @@
   {
     "term": "fast",
     "phonetic": "fæst",
+    "pos": "adjective",
     "meaning": "빠른",
     "example": "The cheetah is the fastest land animal.",
     "example_meaning": "치타는 육지에서 가장 빠른 동물이다."
@@ -597,6 +682,7 @@
   {
     "term": "slow",
     "phonetic": "sloʊ",
+    "pos": "adjective",
     "meaning": "느린",
     "example": "The old man walks slowly to the store.",
     "example_meaning": "그 노인은 가게까지 천천히 걸어간다."
@@ -604,6 +690,7 @@
   {
     "term": "tall",
     "phonetic": "tɔl",
+    "pos": "adjective",
     "meaning": "키가 큰",
     "example": "My uncle is very tall.",
     "example_meaning": "삼촌은 키가 아주 크다."
@@ -611,6 +698,7 @@
   {
     "term": "short",
     "phonetic": "ʃɔrt",
+    "pos": "adjective",
     "meaning": "키가 작은, 짧은",
     "example": "The story was short but interesting.",
     "example_meaning": "그 이야기는 짧았지만 재미있었다."
@@ -618,6 +706,7 @@
   {
     "term": "long",
     "phonetic": "lɔŋ",
+    "pos": "adjective",
     "meaning": "긴",
     "example": "The river is very long.",
     "example_meaning": "그 강은 아주 길다."
@@ -625,6 +714,7 @@
   {
     "term": "easy",
     "phonetic": "ˈizi",
+    "pos": "adjective",
     "meaning": "쉬운",
     "example": "This puzzle is easy to solve.",
     "example_meaning": "이 퍼즐은 풀기 쉽다."
@@ -632,6 +722,7 @@
   {
     "term": "hard",
     "phonetic": "hɑrd",
+    "pos": "adjective",
     "meaning": "어려운, 단단한",
     "example": "Learning a new language is hard work.",
     "example_meaning": "새로운 언어를 배우는 것은 힘든 일이다."
@@ -639,6 +730,7 @@
   {
     "term": "right",
     "phonetic": "raɪt",
+    "pos": "adjective",
     "meaning": "옳은, 오른쪽의",
     "example": "Turn right at the next corner.",
     "example_meaning": "다음 모퉁이에서 오른쪽으로 도세요."
@@ -646,6 +738,7 @@
   {
     "term": "left",
     "phonetic": "lɛft",
+    "pos": "adjective",
     "meaning": "왼쪽의",
     "example": "Keep to the left when you drive in London.",
     "example_meaning": "런던에서 운전할 때는 왼쪽으로 달리세요."
@@ -653,6 +746,7 @@
   {
     "term": "open",
     "phonetic": "ˈoʊpən",
+    "pos": "verb",
     "meaning": "열다, 열린",
     "example": "The store is open until nine.",
     "example_meaning": "그 가게는 아홉 시까지 문을 연다."
@@ -660,6 +754,7 @@
   {
     "term": "close",
     "phonetic": "kloʊz",
+    "pos": "verb",
     "meaning": "닫다",
     "example": "Please close the gate behind you.",
     "example_meaning": "나갈 때 대문을 닫아 주세요."
@@ -667,6 +762,7 @@
   {
     "term": "start",
     "phonetic": "stɑrt",
+    "pos": "verb",
     "meaning": "시작하다",
     "example": "Let's start the lesson now.",
     "example_meaning": "이제 수업을 시작합시다."
@@ -674,6 +770,7 @@
   {
     "term": "stop",
     "phonetic": "stɑp",
+    "pos": "verb",
     "meaning": "멈추다",
     "example": "The bus stops in front of the school.",
     "example_meaning": "버스는 학교 앞에 선다."
@@ -681,6 +778,7 @@
   {
     "term": "come",
     "phonetic": "kʌm",
+    "pos": "verb",
     "meaning": "오다",
     "example": "Come to my house after school.",
     "example_meaning": "방과 후에 우리 집에 와."
@@ -688,6 +786,7 @@
   {
     "term": "go",
     "phonetic": "ɡoʊ",
+    "pos": "verb",
     "meaning": "가다",
     "example": "We go to the beach every summer.",
     "example_meaning": "우리는 여름마다 바닷가에 간다."
@@ -695,6 +794,7 @@
   {
     "term": "walk",
     "phonetic": "wɔk",
+    "pos": "verb",
     "meaning": "걷다",
     "example": "I walk my dog in the evening.",
     "example_meaning": "저녁에 개를 산책시킨다."
@@ -702,6 +802,7 @@
   {
     "term": "jump",
     "phonetic": "dʒʌmp",
+    "pos": "verb",
     "meaning": "뛰다, 점프하다",
     "example": "The frog can jump very far.",
     "example_meaning": "그 개구리는 아주 멀리 뛸 수 있다."
@@ -709,6 +810,7 @@
   {
     "term": "swim",
     "phonetic": "swɪm",
+    "pos": "verb",
     "meaning": "수영하다",
     "example": "I learned to swim when I was seven.",
     "example_meaning": "나는 일곱 살 때 수영을 배웠다."
@@ -716,6 +818,7 @@
   {
     "term": "read",
     "phonetic": "rid",
+    "pos": "verb",
     "meaning": "읽다",
     "example": "I read a short story before bed.",
     "example_meaning": "나는 자기 전에 짧은 이야기를 읽는다."
@@ -723,6 +826,7 @@
   {
     "term": "write",
     "phonetic": "raɪt",
+    "pos": "verb",
     "meaning": "쓰다",
     "example": "Please write your name on the paper.",
     "example_meaning": "종이에 이름을 써 주세요."
@@ -730,6 +834,7 @@
   {
     "term": "listen",
     "phonetic": "ˈlɪsən",
+    "pos": "verb",
     "meaning": "듣다",
     "example": "Listen carefully to the teacher.",
     "example_meaning": "선생님의 말씀을 주의 깊게 들어라."
@@ -737,6 +842,7 @@
   {
     "term": "speak",
     "phonetic": "spik",
+    "pos": "verb",
     "meaning": "말하다",
     "example": "She can speak three languages.",
     "example_meaning": "그녀는 세 가지 언어를 말할 수 있다."
@@ -744,6 +850,7 @@
   {
     "term": "say",
     "phonetic": "seɪ",
+    "pos": "verb",
     "meaning": "말하다",
     "example": "What did you say to him?",
     "example_meaning": "그에게 무슨 말을 했니?"
@@ -751,6 +858,7 @@
   {
     "term": "ask",
     "phonetic": "æsk",
+    "pos": "verb",
     "meaning": "묻다, 부탁하다",
     "example": "You can ask me any question.",
     "example_meaning": "나에게 무엇이든 물어봐도 된다."
@@ -758,6 +866,7 @@
   {
     "term": "answer",
     "phonetic": "ˈænsɚ",
+    "pos": "verb",
     "meaning": "대답하다, 대답",
     "example": "Please answer the question in English.",
     "example_meaning": "영어로 질문에 대답해 주세요."
@@ -765,6 +874,7 @@
   {
     "term": "learn",
     "phonetic": "lɝn",
+    "pos": "verb",
     "meaning": "배우다",
     "example": "I want to learn how to cook.",
     "example_meaning": "나는 요리하는 법을 배우고 싶다."
@@ -772,6 +882,7 @@
   {
     "term": "teach",
     "phonetic": "titʃ",
+    "pos": "verb",
     "meaning": "가르치다",
     "example": "My grandmother teaches me to knit.",
     "example_meaning": "할머니는 나에게 뜨개질을 가르쳐 주신다."
@@ -779,6 +890,7 @@
   {
     "term": "know",
     "phonetic": "noʊ",
+    "pos": "verb",
     "meaning": "알다",
     "example": "I know where the library is.",
     "example_meaning": "나는 도서관이 어디에 있는지 알고 있다."
@@ -786,6 +898,7 @@
   {
     "term": "think",
     "phonetic": "θɪŋk",
+    "pos": "verb",
     "meaning": "생각하다",
     "example": "I think it will rain tonight.",
     "example_meaning": "오늘 밤에 비가 올 것 같다."
@@ -793,6 +906,7 @@
   {
     "term": "see",
     "phonetic": "si",
+    "pos": "verb",
     "meaning": "보다",
     "example": "Can you see the mountain from here?",
     "example_meaning": "여기서 산이 보이니?"
@@ -800,6 +914,7 @@
   {
     "term": "look",
     "phonetic": "lʊk",
+    "pos": "verb",
     "meaning": "보다, 바라보다",
     "example": "Look at that beautiful rainbow!",
     "example_meaning": "저 아름다운 무지개를 봐!"
@@ -807,6 +922,7 @@
   {
     "term": "watch",
     "phonetic": "wɑtʃ",
+    "pos": "verb",
     "meaning": "지켜보다, 시청하다",
     "example": "We watch a movie on Friday nights.",
     "example_meaning": "우리는 금요일 밤마다 영화를 본다."
@@ -814,6 +930,7 @@
   {
     "term": "hear",
     "phonetic": "hir",
+    "pos": "verb",
     "meaning": "듣다, 들리다",
     "example": "I can hear the birds singing.",
     "example_meaning": "새들이 노래하는 소리가 들린다."
@@ -821,6 +938,7 @@
   {
     "term": "make",
     "phonetic": "meɪk",
+    "pos": "verb",
     "meaning": "만들다",
     "example": "We make pancakes on Sunday mornings.",
     "example_meaning": "우리는 일요일 아침마다 팬케이크를 만든다."
@@ -828,6 +946,7 @@
   {
     "term": "take",
     "phonetic": "teɪk",
+    "pos": "verb",
     "meaning": "가져가다, 취하다",
     "example": "Please take your umbrella with you.",
     "example_meaning": "우산을 가지고 가세요."
@@ -835,6 +954,7 @@
   {
     "term": "give",
     "phonetic": "ɡɪv",
+    "pos": "verb",
     "meaning": "주다",
     "example": "He will give me a birthday present.",
     "example_meaning": "그는 내 생일 선물을 줄 것이다."
@@ -842,6 +962,7 @@
   {
     "term": "buy",
     "phonetic": "baɪ",
+    "pos": "verb",
     "meaning": "사다",
     "example": "I want to buy a new backpack.",
     "example_meaning": "나는 새 가방을 사고 싶다."
@@ -849,6 +970,7 @@
   {
     "term": "sell",
     "phonetic": "sɛl",
+    "pos": "verb",
     "meaning": "팔다",
     "example": "The farmer sells fresh eggs.",
     "example_meaning": "농부는 신선한 달걀을 판다."
@@ -856,6 +978,7 @@
   {
     "term": "pay",
     "phonetic": "peɪ",
+    "pos": "verb",
     "meaning": "지불하다",
     "example": "How much do I have to pay?",
     "example_meaning": "얼마를 내야 하나요?"
@@ -863,6 +986,7 @@
   {
     "term": "cook",
     "phonetic": "kʊk",
+    "pos": "verb",
     "meaning": "요리하다",
     "example": "My dad likes to cook on weekends.",
     "example_meaning": "우리 아빠는 주말에 요리하는 것을 좋아하신다."
@@ -870,6 +994,7 @@
   {
     "term": "wash",
     "phonetic": "wɑʃ",
+    "pos": "verb",
     "meaning": "씻다",
     "example": "Wash your hands before you eat.",
     "example_meaning": "먹기 전에 손을 씻어라."
@@ -877,6 +1002,7 @@
   {
     "term": "clean",
     "phonetic": "klin",
+    "pos": "adjective",
     "meaning": "깨끗한, 청소하다",
     "example": "Please clean your room today.",
     "example_meaning": "오늘 방을 청소하세요."
@@ -884,6 +1010,7 @@
   {
     "term": "sit",
     "phonetic": "sɪt",
+    "pos": "verb",
     "meaning": "앉다",
     "example": "Please sit down and relax.",
     "example_meaning": "앉아서 편히 쉬세요."
@@ -891,6 +1018,7 @@
   {
     "term": "stand",
     "phonetic": "stænd",
+    "pos": "verb",
     "meaning": "서다",
     "example": "Everyone stands up when the teacher comes in.",
     "example_meaning": "선생님이 들어오시면 모두 일어선다."
@@ -898,6 +1026,7 @@
   {
     "term": "sing",
     "phonetic": "sɪŋ",
+    "pos": "verb",
     "meaning": "노래하다",
     "example": "The children sing together in class.",
     "example_meaning": "아이들은 수업 시간에 함께 노래한다."
@@ -905,6 +1034,7 @@
   {
     "term": "dance",
     "phonetic": "dæns",
+    "pos": "verb",
     "meaning": "춤추다",
     "example": "They dance at every family party.",
     "example_meaning": "그들은 가족 모임마다 춤을 춘다."
@@ -912,6 +1042,7 @@
   {
     "term": "draw",
     "phonetic": "drɔ",
+    "pos": "verb",
     "meaning": "그리다",
     "example": "I like to draw pictures of animals.",
     "example_meaning": "나는 동물 그림 그리는 것을 좋아한다."
@@ -919,6 +1050,7 @@
   {
     "term": "paint",
     "phonetic": "peɪnt",
+    "pos": "verb",
     "meaning": "그림을 그리다, 페인트",
     "example": "She paints beautiful landscapes.",
     "example_meaning": "그녀는 아름다운 풍경화를 그린다."
@@ -926,6 +1058,7 @@
   {
     "term": "game",
     "phonetic": "ɡeɪm",
+    "pos": "noun",
     "meaning": "게임, 경기",
     "example": "Let's play a game of chess.",
     "example_meaning": "체스 한 판 두자."
@@ -933,6 +1066,7 @@
   {
     "term": "ball",
     "phonetic": "bɔl",
+    "pos": "noun",
     "meaning": "공",
     "example": "Throw me the ball, please.",
     "example_meaning": "공 좀 던져 주세요."
@@ -940,6 +1074,7 @@
   {
     "term": "toy",
     "phonetic": "tɔɪ",
+    "pos": "noun",
     "meaning": "장난감",
     "example": "The little boy loves his new toy.",
     "example_meaning": "그 어린 소년은 새 장난감을 아주 좋아한다."
@@ -947,6 +1082,7 @@
   {
     "term": "money",
     "phonetic": "ˈmʌni",
+    "pos": "noun",
     "meaning": "돈",
     "example": "I saved some money for a bicycle.",
     "example_meaning": "자전거를 사려고 돈을 조금 모았다."
@@ -954,6 +1090,7 @@
   {
     "term": "price",
     "phonetic": "praɪs",
+    "pos": "noun",
     "meaning": "가격",
     "example": "What is the price of this shirt?",
     "example_meaning": "이 셔츠의 가격은 얼마인가요?"
@@ -961,6 +1098,7 @@
   {
     "term": "cheap",
     "phonetic": "tʃip",
+    "pos": "adjective",
     "meaning": "싼",
     "example": "This restaurant is cheap and tasty.",
     "example_meaning": "이 식당은 값이 싸고 맛있다."
@@ -968,6 +1106,7 @@
   {
     "term": "expensive",
     "phonetic": "ɪkˈspɛnsɪv",
+    "pos": "adjective",
     "meaning": "비싼",
     "example": "Those shoes are too expensive for me.",
     "example_meaning": "저 신발은 나에게 너무 비싸다."
@@ -975,6 +1114,7 @@
   {
     "term": "bread",
     "phonetic": "brɛd",
+    "pos": "noun",
     "meaning": "빵",
     "example": "We had fresh bread for breakfast.",
     "example_meaning": "아침으로 신선한 빵을 먹었다."
@@ -982,6 +1122,7 @@
   {
     "term": "milk",
     "phonetic": "mɪlk",
+    "pos": "noun",
     "meaning": "우유",
     "example": "Children should drink milk every day.",
     "example_meaning": "아이들은 매일 우유를 마셔야 한다."
@@ -989,6 +1130,7 @@
   {
     "term": "egg",
     "phonetic": "ɛɡ",
+    "pos": "noun",
     "meaning": "달걀",
     "example": "I cooked two eggs for lunch.",
     "example_meaning": "점심으로 달걀 두 개를 요리했다."
@@ -996,6 +1138,7 @@
   {
     "term": "rice",
     "phonetic": "raɪs",
+    "pos": "noun",
     "meaning": "쌀, 밥",
     "example": "We eat rice with almost every meal.",
     "example_meaning": "우리는 거의 매 끼니마다 밥을 먹는다."
@@ -1003,6 +1146,7 @@
   {
     "term": "meat",
     "phonetic": "mit",
+    "pos": "noun",
     "meaning": "고기",
     "example": "I don't eat much meat.",
     "example_meaning": "나는 고기를 많이 먹지 않는다."
@@ -1010,6 +1154,7 @@
   {
     "term": "fish",
     "phonetic": "fɪʃ",
+    "pos": "noun",
     "meaning": "물고기, 생선",
     "example": "The fish swam quickly in the pond.",
     "example_meaning": "물고기가 연못에서 빠르게 헤엄쳤다."
@@ -1017,6 +1162,7 @@
   {
     "term": "fruit",
     "phonetic": "frut",
+    "pos": "noun",
     "meaning": "과일",
     "example": "Eat more fruit and vegetables.",
     "example_meaning": "과일과 채소를 더 많이 먹어라."
@@ -1024,6 +1170,7 @@
   {
     "term": "vegetable",
     "phonetic": "ˈvɛdʒtəbəl",
+    "pos": "noun",
     "meaning": "채소",
     "example": "Carrots and spinach are healthy vegetables.",
     "example_meaning": "당근과 시금치는 건강에 좋은 채소다."
@@ -1031,6 +1178,7 @@
   {
     "term": "sugar",
     "phonetic": "ˈʃʊɡɚ",
+    "pos": "noun",
     "meaning": "설탕",
     "example": "Please add a spoon of sugar to my tea.",
     "example_meaning": "차에 설탕을 한 숟가락 넣어 주세요."
@@ -1038,6 +1186,7 @@
   {
     "term": "salt",
     "phonetic": "sɔlt",
+    "pos": "noun",
     "meaning": "소금",
     "example": "This soup needs a little more salt.",
     "example_meaning": "이 수프에는 소금이 조금 더 필요하다."
@@ -1045,6 +1194,7 @@
   {
     "term": "lunch",
     "phonetic": "lʌntʃ",
+    "pos": "noun",
     "meaning": "점심",
     "example": "We have lunch at school at noon.",
     "example_meaning": "우리는 정오에 학교에서 점심을 먹는다."
@@ -1052,6 +1202,7 @@
   {
     "term": "dinner",
     "phonetic": "ˈdɪnɚ",
+    "pos": "noun",
     "meaning": "저녁 식사",
     "example": "Dinner is ready, so please come to the table.",
     "example_meaning": "저녁 다 됐으니 식탁으로 오세요."
@@ -1059,6 +1210,7 @@
   {
     "term": "breakfast",
     "phonetic": "ˈbrɛkfəst",
+    "pos": "noun",
     "meaning": "아침 식사",
     "example": "I always have breakfast before school.",
     "example_meaning": "나는 학교 가기 전에 항상 아침을 먹는다."
@@ -1066,6 +1218,7 @@
   {
     "term": "hungry",
     "phonetic": "ˈhʌŋɡri",
+    "pos": "adjective",
     "meaning": "배고픈",
     "example": "I am so hungry after the soccer game.",
     "example_meaning": "축구 경기 후에 배가 너무 고프다."
@@ -1073,6 +1226,7 @@
   {
     "term": "thirsty",
     "phonetic": "ˈθɝsti",
+    "pos": "adjective",
     "meaning": "목마른",
     "example": "It is hot today, and I feel thirsty.",
     "example_meaning": "오늘은 덥고, 나는 목이 마르다."
@@ -1080,6 +1234,7 @@
   {
     "term": "tired",
     "phonetic": "ˈtaɪɚd",
+    "pos": "adjective",
     "meaning": "피곤한",
     "example": "I am tired after a long day at work.",
     "example_meaning": "나는 긴 하루 일을 마치고 피곤하다."
@@ -1087,6 +1242,7 @@
   {
     "term": "sad",
     "phonetic": "sæd",
+    "pos": "adjective",
     "meaning": "슬픈",
     "example": "The movie was sad, and she cried.",
     "example_meaning": "그 영화는 슬펐고, 그녀는 울었다."
@@ -1094,6 +1250,7 @@
   {
     "term": "angry",
     "phonetic": "ˈæŋɡri",
+    "pos": "adjective",
     "meaning": "화난",
     "example": "My brother was angry about the broken vase.",
     "example_meaning": "남동생은 깨진 꽃병 때문에 화가 나 있었다."
@@ -1101,6 +1258,7 @@
   {
     "term": "afraid",
     "phonetic": "əˈfreɪd",
+    "pos": "adjective",
     "meaning": "두려운",
     "example": "Don't be afraid of the dark.",
     "example_meaning": "어둠을 무서워하지 마라."
@@ -1108,6 +1266,7 @@
   {
     "term": "beautiful",
     "phonetic": "ˈbjutəfəl",
+    "pos": "adjective",
     "meaning": "아름다운",
     "example": "The garden is beautiful in spring.",
     "example_meaning": "봄의 정원은 아름답다."
@@ -1115,6 +1274,7 @@
   {
     "term": "ugly",
     "phonetic": "ˈʌɡli",
+    "pos": "adjective",
     "meaning": "못생긴, 추한",
     "example": "The old building looks ugly today.",
     "example_meaning": "그 낡은 건물은 오늘따라 보기 흉하다."
@@ -1122,6 +1282,7 @@
   {
     "term": "clever",
     "phonetic": "ˈklɛvɚ",
+    "pos": "adjective",
     "meaning": "영리한",
     "example": "The clever fox found a way out.",
     "example_meaning": "영리한 여우가 탈출할 방법을 찾았다."
@@ -1129,6 +1290,7 @@
   {
     "term": "kind",
     "phonetic": "kaɪnd",
+    "pos": "adjective",
     "meaning": "친절한",
     "example": "My neighbor is very kind to children.",
     "example_meaning": "우리 이웃은 아이들에게 아주 친절하다."
@@ -1136,6 +1298,7 @@
   {
     "term": "strong",
     "phonetic": "strɔŋ",
+    "pos": "adjective",
     "meaning": "강한",
     "example": "The strong wind knocked down a tree.",
     "example_meaning": "강한 바람에 나무가 쓰러졌다."
@@ -1143,6 +1306,7 @@
   {
     "term": "weak",
     "phonetic": "wik",
+    "pos": "adjective",
     "meaning": "약한",
     "example": "I felt weak after the long illness.",
     "example_meaning": "오랜 병을 앓고 나서 기운이 없었다."
@@ -1150,6 +1314,7 @@
   {
     "term": "rich",
     "phonetic": "rɪtʃ",
+    "pos": "adjective",
     "meaning": "부유한",
     "example": "The rich man built a large hospital.",
     "example_meaning": "그 부자는 커다란 병원을 지었다."
@@ -1157,6 +1322,7 @@
   {
     "term": "poor",
     "phonetic": "pur",
+    "pos": "adjective",
     "meaning": "가난한",
     "example": "The poor family shared everything they had.",
     "example_meaning": "그 가난한 가족은 가진 것을 모두 나눴다."
@@ -1164,6 +1330,7 @@
   {
     "term": "busy",
     "phonetic": "ˈbɪzi",
+    "pos": "adjective",
     "meaning": "바쁜",
     "example": "I am too busy to see a movie this week.",
     "example_meaning": "이번 주에는 너무 바빠서 영화를 볼 수 없다."
@@ -1171,6 +1338,7 @@
   {
     "term": "lazy",
     "phonetic": "ˈleɪzi",
+    "pos": "adjective",
     "meaning": "게으른",
     "example": "Don't be lazy; clean your room now.",
     "example_meaning": "게으름 피우지 말고 지금 방을 치워라."
@@ -1178,6 +1346,7 @@
   {
     "term": "same",
     "phonetic": "seɪm",
+    "pos": "adjective",
     "meaning": "같은",
     "example": "We wear the same school uniform.",
     "example_meaning": "우리는 같은 교복을 입는다."
@@ -1185,6 +1354,7 @@
   {
     "term": "different",
     "phonetic": "ˈdɪfərənt",
+    "pos": "adjective",
     "meaning": "다른",
     "example": "Each person has different ideas.",
     "example_meaning": "사람마다 생각이 다르다."
@@ -1192,6 +1362,7 @@
   {
     "term": "many",
     "phonetic": "ˈmɛni",
+    "pos": "adjective",
     "meaning": "많은",
     "example": "There are many birds in this forest.",
     "example_meaning": "이 숲에는 많은 새가 있다."
@@ -1199,6 +1370,7 @@
   {
     "term": "few",
     "phonetic": "fju",
+    "pos": "adjective",
     "meaning": "적은",
     "example": "Only a few people came to the party.",
     "example_meaning": "파티에는 몇 사람만 왔다."
@@ -1206,6 +1378,7 @@
   {
     "term": "all",
     "phonetic": "ɔl",
+    "pos": "adjective",
     "meaning": "모든, 전부",
     "example": "All students must wear a name tag.",
     "example_meaning": "모든 학생은 이름표를 달아야 한다."
@@ -1213,6 +1386,7 @@
   {
     "term": "some",
     "phonetic": "sʌm",
+    "pos": "adjective",
     "meaning": "약간의, 몇몇",
     "example": "I need some paper for my project.",
     "example_meaning": "프로젝트에 쓸 종이가 조금 필요하다."
@@ -1220,6 +1394,7 @@
   {
     "term": "every",
     "phonetic": "ˈɛvri",
+    "pos": "adjective",
     "meaning": "모든, 매~",
     "example": "I brush my teeth every night.",
     "example_meaning": "나는 매일 밤 이를 닦는다."
@@ -1227,6 +1402,7 @@
   {
     "term": "much",
     "phonetic": "mʌtʃ",
+    "pos": "adjective",
     "meaning": "많은 (불가산)",
     "example": "There isn't much time left.",
     "example_meaning": "남은 시간이 많지 않다."
@@ -1234,6 +1410,7 @@
   {
     "term": "enough",
     "phonetic": "ɪˈnʌf",
+    "pos": "adjective",
     "meaning": "충분한",
     "example": "Do we have enough chairs for everyone?",
     "example_meaning": "모두에게 줄 의자가 충분한가요?"
@@ -1241,6 +1418,7 @@
   {
     "term": "always",
     "phonetic": "ˈɔlweɪz",
+    "pos": "adverb",
     "meaning": "항상",
     "example": "She always arrives early for class.",
     "example_meaning": "그녀는 항상 수업에 일찍 도착한다."
@@ -1248,6 +1426,7 @@
   {
     "term": "never",
     "phonetic": "ˈnɛvɚ",
+    "pos": "adverb",
     "meaning": "결코 ~ 않다",
     "example": "I never eat fast food on weekdays.",
     "example_meaning": "나는 평일에는 절대 패스트푸드를 먹지 않는다."
@@ -1255,6 +1434,7 @@
   {
     "term": "often",
     "phonetic": "ˈɔfən",
+    "pos": "adverb",
     "meaning": "자주",
     "example": "We often go hiking in the mountains.",
     "example_meaning": "우리는 자주 산에 하이킹을 간다."
@@ -1262,6 +1442,7 @@
   {
     "term": "sometimes",
     "phonetic": "ˈsʌmtaɪmz",
+    "pos": "adverb",
     "meaning": "가끔",
     "example": "Sometimes I walk to work.",
     "example_meaning": "나는 가끔 걸어서 출근한다."
@@ -1269,6 +1450,7 @@
   {
     "term": "here",
     "phonetic": "hir",
+    "pos": "adverb",
     "meaning": "여기에",
     "example": "Please sit here next to me.",
     "example_meaning": "내 옆에 여기 앉으세요."
@@ -1276,6 +1458,7 @@
   {
     "term": "there",
     "phonetic": "ðɛr",
+    "pos": "adverb",
     "meaning": "저기에",
     "example": "The museum is over there.",
     "example_meaning": "박물관은 저쪽에 있다."
@@ -1283,6 +1466,7 @@
   {
     "term": "inside",
     "phonetic": "ɪnˈsaɪd",
+    "pos": "adverb",
     "meaning": "안에",
     "example": "It is warm inside the house.",
     "example_meaning": "집 안은 따뜻하다."
@@ -1290,6 +1474,7 @@
   {
     "term": "outside",
     "phonetic": "ˌaʊtˈsaɪd",
+    "pos": "adverb",
     "meaning": "밖에",
     "example": "Let's play outside before dinner.",
     "example_meaning": "저녁 전에 밖에서 놀자."
@@ -1297,6 +1482,7 @@
   {
     "term": "under",
     "phonetic": "ˈʌndɚ",
+    "pos": "preposition",
     "meaning": "~ 아래에",
     "example": "The cat hid under the bed.",
     "example_meaning": "고양이가 침대 밑에 숨었다."
@@ -1304,6 +1490,7 @@
   {
     "term": "over",
     "phonetic": "ˈoʊvɚ",
+    "pos": "preposition",
     "meaning": "~ 위에",
     "example": "A bird flew over the river.",
     "example_meaning": "새 한 마리가 강 위를 날았다."
@@ -1311,6 +1498,7 @@
   {
     "term": "near",
     "phonetic": "nɪr",
+    "pos": "adverb",
     "meaning": "가까이에",
     "example": "The bank is near the train station.",
     "example_meaning": "은행은 기차역 근처에 있다."
@@ -1318,6 +1506,7 @@
   {
     "term": "far",
     "phonetic": "fɑr",
+    "pos": "adverb",
     "meaning": "멀리",
     "example": "The school is not far from my house.",
     "example_meaning": "학교는 우리 집에서 멀지 않다."
@@ -1325,6 +1514,7 @@
   {
     "term": "with",
     "phonetic": "wɪð",
+    "pos": "preposition",
     "meaning": "~와 함께",
     "example": "I went to the zoo with my friends.",
     "example_meaning": "나는 친구들과 함께 동물원에 갔다."
@@ -1332,6 +1522,7 @@
   {
     "term": "without",
     "phonetic": "wɪðˈaʊt",
+    "pos": "preposition",
     "meaning": "~ 없이",
     "example": "I can't live without music.",
     "example_meaning": "나는 음악 없이는 살 수 없다."
@@ -1339,6 +1530,7 @@
   {
     "term": "and",
     "phonetic": "ænd",
+    "pos": "conjunction",
     "meaning": "그리고",
     "example": "I like apples and bananas.",
     "example_meaning": "나는 사과와 바나나를 좋아한다."
@@ -1346,6 +1538,7 @@
   {
     "term": "but",
     "phonetic": "bʌt",
+    "pos": "conjunction",
     "meaning": "하지만",
     "example": "I wanted to go, but it was raining.",
     "example_meaning": "가고 싶었지만, 비가 오고 있었다."
@@ -1353,6 +1546,7 @@
   {
     "term": "because",
     "phonetic": "bɪˈkɔz",
+    "pos": "conjunction",
     "meaning": "~ 때문에",
     "example": "I stayed home because I was sick.",
     "example_meaning": "아파서 집에 머물렀다."
@@ -1360,6 +1554,7 @@
   {
     "term": "if",
     "phonetic": "ɪf",
+    "pos": "conjunction",
     "meaning": "만약 ~라면",
     "example": "If it rains, we will stay inside.",
     "example_meaning": "비가 오면 우리는 실내에 있을 것이다."
@@ -1367,6 +1562,7 @@
   {
     "term": "when",
     "phonetic": "wɛn",
+    "pos": "conjunction",
     "meaning": "~할 때",
     "example": "Call me when you arrive.",
     "example_meaning": "도착하면 나에게 전화해라."
@@ -1374,6 +1570,7 @@
   {
     "term": "where",
     "phonetic": "wɛr",
+    "pos": "adverb",
     "meaning": "어디에",
     "example": "Where is the nearest bank?",
     "example_meaning": "가장 가까운 은행은 어디인가요?"
@@ -1381,6 +1578,7 @@
   {
     "term": "what",
     "phonetic": "wʌt",
+    "pos": "pronoun",
     "meaning": "무엇",
     "example": "What time is it now?",
     "example_meaning": "지금 몇 시예요?"
@@ -1388,6 +1586,7 @@
   {
     "term": "who",
     "phonetic": "hu",
+    "pos": "pronoun",
     "meaning": "누구",
     "example": "Who is that tall man?",
     "example_meaning": "저 키 큰 남자는 누구인가요?"
@@ -1395,6 +1594,7 @@
   {
     "term": "why",
     "phonetic": "waɪ",
+    "pos": "adverb",
     "meaning": "왜",
     "example": "Why are you so happy today?",
     "example_meaning": "오늘 왜 그렇게 기분이 좋아?"
