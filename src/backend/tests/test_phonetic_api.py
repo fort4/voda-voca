@@ -222,7 +222,7 @@ async def _activate_real(client, slug: str):
 async def test_new_vocabulary_quiz_hides_phonetic_but_grading_reveals_it(client, slug: str) -> None:
     token = await _activate_real(client, slug)
     started = (await create(client, token, mode="quiz")).json()
-    assert started["total_questions"] == 15
+    assert started["total_questions"] == 10  # 사용자 설정 기본값 (REQ-147)
     assert all(item["phonetic"] is None for item in started["items"]), "퀴즈 출제에는 발음기호가 없다"
     graded = (await answer(client, token, started["session_id"], question_id=0, choice_index=0)).json()
     assert graded["phonetic"], "채점 응답에는 발음기호가 있다"

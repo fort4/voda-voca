@@ -107,24 +107,24 @@ async def test_create_requires_login(client: httpx.AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_create_defaults_to_a_15_question_quiz_without_leaking_answers(client, make_vocabulary) -> None:
+async def test_create_defaults_to_a_10_question_quiz_without_leaking_answers(client, make_vocabulary) -> None:
     token, user_id, vocab, response = await start(client, make_vocabulary, n_words=30)
 
     assert response.status_code == 201, response.text
     body = response.json()
     assert (body["mode"], body["vocabulary_id"], body["vocabulary_title"], body["total_questions"]) == (
-        "quiz", vocab.id, "세션 테스트", 15
+        "quiz", vocab.id, "세션 테스트", 10
     )
     assert body["expires_at"] == "2026-11-05T09:30:00Z"
-    assert len(body["items"]) == 15
-    assert [i["question_id"] for i in body["items"]] == list(range(15))
+    assert len(body["items"]) == 10  # 사용자 설정 기본값 (REQ-147)
+    assert [i["question_id"] for i in body["items"]] == list(range(10))
     meanings = {f"{t}의 뜻" for t in vocab.word_ids}
     for item in body["items"]:
         assert len(item["options"]) == 4 and len(set(item["options"])) == 4
         assert set(item["options"]) <= meanings, "오답 보기는 같은 단어장에서만 뽑는다"
         assert item["context"] == f"I like {item['term']}."
         assert not ({"correct_index", "meaning", "example_meaning"} & {k for k, v in item.items() if v is not None})
-    assert len({i["word_id"] for i in body["items"]}) == 15
+    assert len({i["word_id"] for i in body["items"]}) == 10
     row = await stored_session(body["session_id"])
     assert (row.mode, row.source, row.vocabulary_id, row.user_id, row.is_submitted, row.answers) == (
         "quiz", "vocabulary", vocab.id, user_id, False, {}
@@ -182,7 +182,7 @@ async def test_waterfall_composition_wrong_review_unseen(client, make_vocabulary
     for i in range(10, 15):  # w10..w14 복습 대상
         await put_progress(user_id, vocab.word_ids[f"w{i:02d}"], minutes=i)
 
-    body = (await create(client, token)).json()
+    body = (await create(client, token, count=15)).json()
 
     assert body["composition"] == {"wrong": 4, "review": 1, "unseen": 10}
     terms = {i["term"] for i in body["items"]}
@@ -201,7 +201,7 @@ async def test_unseen_shortage_is_filled_by_review(client, make_vocabulary) -> N
     for i in range(17):  # 미학습은 w17..w19 세 개뿐
         await put_progress(user_id, vocab.word_ids[f"w{i:02d}"], minutes=i)
 
-    body = (await create(client, token)).json()
+    body = (await create(client, token, count=15)).json()
 
     assert body["composition"] == {"wrong": 0, "review": 12, "unseen": 3}
     assert len(body["items"]) == 15

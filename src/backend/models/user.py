@@ -3,8 +3,8 @@
 
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, ForeignKey, String, UniqueConstraint
-from sqlalchemy.dialects.mysql import BIGINT, DATETIME
+from sqlalchemy import CheckConstraint, ForeignKey, String, UniqueConstraint, text
+from sqlalchemy.dialects.mysql import BIGINT, DATETIME, SMALLINT
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.models.base import TABLE_OPTIONS, UTC_NOW_DEFAULT, Base, utcnow
@@ -15,6 +15,10 @@ class User(Base):
     __table_args__ = (
         UniqueConstraint("nickname", name="uk_users_nickname"),
         CheckConstraint("CHAR_LENGTH(TRIM(nickname)) > 0", name="ck_users_nickname_not_blank"),
+        # 허용 값(10/20/30)은 앱이 검증한다. DB 는 양수만 보장해 옵션을 늘려도 마이그레이션이 필요 없다 (REQ-147).
+        CheckConstraint("quiz_count > 0", name="ck_users_quiz_count_positive"),
+        CheckConstraint("flashcard_count > 0", name="ck_users_flashcard_count_positive"),
+        CheckConstraint("daily_goal > 0", name="ck_users_daily_goal_positive"),
         TABLE_OPTIONS,
     )
 
@@ -28,6 +32,10 @@ class User(Base):
         ForeignKey("system_vocabularies.id", ondelete="SET NULL", name="fk_users_active_vocabulary"),
         nullable=True,
     )
+    # 학습 개수 설정 (REQ-147): 퀴즈·플래시카드 1회 문항 수와 하루 목표. 기본 10.
+    quiz_count: Mapped[int] = mapped_column(SMALLINT(unsigned=True), nullable=False, server_default=text("10"))
+    flashcard_count: Mapped[int] = mapped_column(SMALLINT(unsigned=True), nullable=False, server_default=text("10"))
+    daily_goal: Mapped[int] = mapped_column(SMALLINT(unsigned=True), nullable=False, server_default=text("10"))
     created_at: Mapped[datetime] = mapped_column(
         DATETIME(fsp=3), nullable=False, server_default=UTC_NOW_DEFAULT
     )

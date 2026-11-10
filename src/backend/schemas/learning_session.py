@@ -2,25 +2,37 @@
 # 파일 위치: src/backend/schemas/learning_session.py
 
 from datetime import datetime
-from typing import Literal, Self
+from typing import Any, Literal, Self
 
 from pydantic import BaseModel, Field, field_serializer, model_validator
 
 from backend.schemas.common import to_utc_iso
 
-SESSION_COUNT_DEFAULT = 15
-SESSION_COUNT_MAX = 30
+SESSION_COUNT_MAX = 30  # count 를 직접 보낼 때의 상한. 생략하면 사용자 설정(10/20/30)을 쓴다 (REQ-147)
 CHOICE_MAX_INDEX = 3  # 4지선다의 마지막 선지 번호
 
 
 class SessionCreate(BaseModel):
     mode: Literal["quiz", "flashcard"] = Field(default="quiz", description="quiz: 4지선다, flashcard: 알아요/헷갈려요")
-    count: int = Field(default=SESSION_COUNT_DEFAULT, ge=1, le=SESSION_COUNT_MAX, description="요청 문항 수. 단어가 적으면 줄어든다")
+    count: int | None = Field(
+        default=None,
+        ge=1,
+        le=SESSION_COUNT_MAX,
+        description="요청 문항 수. 생략하면 내 설정(mode 별 quiz_count/flashcard_count)을 쓴다. 단어가 적으면 줄어든다",
+    )
     include_memorized: bool = Field(default=False, description="true 면 숙련한 단어도 출제 대상에 넣는다 (source 가 all 일 때만 적용)")
     source: Literal["all", "bookmarks", "wrong"] = Field(
         default="all",
         description="all: 활성 단어장 워터폴 출제, bookmarks: 내 북마크 복습, wrong: 단어별 마지막 결과가 오답인 단어 복습",
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_explicit_null_count(cls, data: Any) -> Any:
+        # 생략은 "설정을 따른다"이고, null 은 잘못된 입력이다 (이전에도 422 였다).
+        if isinstance(data, dict) and "count" in data and data["count"] is None:
+            raise ValueError("count 는 null 일 수 없습니다. 설정을 따르려면 생략하세요.")
+        return data
 
 
 class SessionItemOut(BaseModel):

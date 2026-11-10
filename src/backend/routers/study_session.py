@@ -100,10 +100,11 @@ async def create_session(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session),
 ) -> SessionOut:
-    """한 라운드(기본 15문항)를 출제한다. source 로 활성 단어장(all)·북마크·오답 풀을 고른다. 퀴즈 문항에는 정답을 싣지 않는다."""
+    """한 라운드를 출제한다. count 를 생략하면 내 설정(퀴즈·플래시카드별 문항 수, 기본 10)을 쓴다. source 로 활성 단어장(all)·북마크·오답 풀을 고른다. 퀴즈 문항에는 정답을 싣지 않는다."""
+    count = body.count if body.count is not None else (user.quiz_count if body.mode == "quiz" else user.flashcard_count)
     try:
         return await session_service.create_session(
-            db, user, body.mode, body.count, body.include_memorized, now=_now(), source=body.source
+            db, user, body.mode, count, body.include_memorized, now=_now(), source=body.source
         )
     except session_service.NoWordsToStudyError as exc:
         raise HTTPException(

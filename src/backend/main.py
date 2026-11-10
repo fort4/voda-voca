@@ -17,6 +17,7 @@ from backend.routers.auth import router as auth_router
 from backend.routers.bookmark import router as bookmark_router
 from backend.routers.study import router as study_router
 from backend.routers.study_session import router as study_session_router
+from backend.routers.user_settings import router as user_settings_router
 from backend.routers.vocabulary import me_router as me_vocabulary_router
 from backend.routers.vocabulary import router as vocabulary_router
 from backend.services.system_seed import init_system_seeds
@@ -37,6 +38,7 @@ app.include_router(study_router)
 app.include_router(study_session_router)
 app.include_router(vocabulary_router)
 app.include_router(me_vocabulary_router)
+app.include_router(user_settings_router)
 
 
 @app.get("/health")

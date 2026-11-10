@@ -186,7 +186,6 @@ async def create_session(
     if source in REVIEW_TITLES:
         return await _create_review_session(db, user, mode, count, source, now, rng)
     vocabulary = await _active_vocabulary(db, user)
-    vocabulary = await _active_vocabulary(db, user)
 
     rows = (
         await db.execute(
