@@ -11,8 +11,9 @@ from backend.models.base import TABLE_OPTIONS, Base
 class SystemWord(Base):
     """표준 단어. 이름은 기존 words 와 같게 유지한다 (term, meaning, example, example_meaning).
 
-    phonetic(미국식 IPA, 슬래시 없음)은 v2.2 부터 시드로 채우고 API 로 내보낸다. pos, level 은 확장용 필드로
-    DDL 에만 있고 아직 채우거나 읽지 않는다.
+    phonetic(미국식 IPA, 슬래시 없음)은 v2.2 부터 시드로 채우고 API 로 내보낸다. pos(품사, 영문 소문자)는 v2.2 신규
+    단어장(exam-core-200, business-practical-200)부터 시드로 채우고 API 로 내보낸다(화면이 한글 라벨을 입힌다).
+    level 은 확장용 필드로 DDL 에만 있고 아직 채우거나 읽지 않는다.
     """
 
     __tablename__ = "system_words"
@@ -37,7 +38,7 @@ class SystemWord(Base):
     example: Mapped[str | None] = mapped_column(String(500), nullable=True)
     # 예문이 없으면 항상 NULL (기존 words 와 같은 규칙).
     example_meaning: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    # 확장 필드: pos, level 은 아직 미사용
+    # 품사(영문 소문자). v2.2 신규 단어장부터 시드로 채우고 API 로 내보낸다. level 은 아직 미사용
     pos: Mapped[str | None] = mapped_column(String(20), nullable=True)
     # 미국식 IPA. 슬래시 없이 저장하고 화면에서 /…/ 를 입힌다. 없으면 NULL.
     phonetic: Mapped[str | None] = mapped_column(String(100), nullable=True)

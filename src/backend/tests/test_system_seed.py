@@ -1,4 +1,4 @@
-# 2026-11-05 - voda-voca - 표준 단어장 시드 로더 테스트: 파일 검증, 해시, 멱등 적재, 동시 실행, 실제 시드 600단어
+# 2026-11-05 - voda-voca - 표준 단어장 시드 로더 테스트: 파일 검증, 해시, 멱등 적재, 동시 실행, 실제 시드 1,000단어
 # 파일 위치: src/backend/tests/test_system_seed.py
 
 import asyncio
@@ -22,6 +22,8 @@ from backend.services.system_seed import (
 )
 
 PREFIX = "tvoda-"
+REAL_SLUGS = ["beginner-200", "intermediate-200", "advanced-200", "exam-core-200", "business-practical-200"]
+NEW_SLUGS = ["exam-core-200", "business-practical-200"]
 
 
 # ---------------------------------------------------------------------------
@@ -149,14 +151,16 @@ def test_content_hash_is_stable_and_sensitive_to_changes(tmp_path: Path) -> None
 # ---------------------------------------------------------------------------
 
 
-def test_real_seed_has_exactly_three_vocabularies_of_200_words() -> None:
+def test_real_seed_has_exactly_five_vocabularies_of_200_words() -> None:
     vocabularies = load_seed_vocabularies(SEED_DIR)
-    assert [(v.slug, v.category, v.level, len(v.words)) for v in vocabularies] == [
-        ("beginner-200", "ELEMENTARY", 1, 200),
-        ("intermediate-200", "SECONDARY", 2, 200),
-        ("advanced-200", "CSAT", 3, 200),
+    assert [(v.slug, v.category, v.level, v.sort_order, len(v.words)) for v in vocabularies] == [
+        ("beginner-200", "ELEMENTARY", 1, 1, 200),
+        ("intermediate-200", "SECONDARY", 2, 2, 200),
+        ("advanced-200", "CSAT", 3, 3, 200),
+        ("exam-core-200", "EXAM", 3, 4, 200),
+        ("business-practical-200", "BUSINESS", 3, 5, 200),
     ]
-    assert sum(len(v.words) for v in vocabularies) == 600
+    assert sum(len(v.words) for v in vocabularies) == 1000
 
 
 def test_real_seed_excludes_the_1000_word_preset() -> None:
@@ -347,21 +351,22 @@ async def test_invalid_seed_writes_nothing(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 4. 실제 시드 적재 (개발 DB 에 600단어가 남는다. 반복해도 같아야 한다)
+# 4. 실제 시드 적재 (개발 DB 에 1,000단어가 남는다. 반복해도 같아야 한다)
+#    주의: 이 테스트는 개발 DB 에 신규 단어장 2개를 INSERT 한다. 사용자 승인·백업 전에는 --deselect 로 제외하고 돌린다.
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_real_seed_loads_600_words_and_is_idempotent() -> None:
+async def test_real_seed_loads_1000_words_and_is_idempotent() -> None:
     await _run(SEED_DIR)
     report = await _run(SEED_DIR)
-    assert report.created == 0 and report.updated == 0 and report.unchanged == 3
+    assert report.created == 0 and report.updated == 0 and report.unchanged == 5
     async with get_session_factory()() as session:
         rows = (
             await session.execute(
                 select(SystemVocabulary.slug, SystemVocabulary.total_words, func.count(SystemWord.id))
                 .join(SystemWord, SystemWord.vocabulary_id == SystemVocabulary.id)
-                .where(SystemVocabulary.slug.in_(["beginner-200", "intermediate-200", "advanced-200"]))
+                .where(SystemVocabulary.slug.in_(REAL_SLUGS))
                 .group_by(SystemVocabulary.id)
                 .order_by(SystemVocabulary.sort_order)
             )
@@ -370,6 +375,8 @@ async def test_real_seed_loads_600_words_and_is_idempotent() -> None:
         ("beginner-200", 200, 200),
         ("intermediate-200", 200, 200),
         ("advanced-200", 200, 200),
+        ("exam-core-200", 200, 200),
+        ("business-practical-200", 200, 200),
     ]
 
 
@@ -581,3 +588,212 @@ def test_each_vocabulary_has_a_phonetic_for_every_word_and_no_duplicated_primary
     """한 단어에 1차 강세(ˈ)가 둘 이상이면 변환 오류다 (수기 지정한 outside 등 예외는 2차 강세로 구분)."""
     many = [(w.term, w.phonetic) for _, w in _real_words() if w.phonetic and w.phonetic.count("ˈ") > 1]
     assert many == []
+
+
+# ---------------------------------------------------------------------------
+# 7. 품사(pos) 지원 (v2.2 카탈로그 확충, REQ-145). 합성 시드만 쓰므로 실제 단어장은 바뀌지 않는다.
+# ---------------------------------------------------------------------------
+
+
+def _pos(term: str, meaning: str, pos: str | None) -> dict:
+    return {**_word(term, meaning), "pos": pos}
+
+
+def test_load_reads_pos_and_missing_key_means_none(tmp_path: Path) -> None:
+    _simple_seed(tmp_path, words=[_pos("apple", "사과", "noun"), _word("book", "책"), _pos("cat", "고양이", None)])
+    words = load_seed_vocabularies(tmp_path)[0].words
+    assert [w.pos for w in words] == ["noun", None, None]
+
+
+def test_load_trims_pos_and_blank_means_none(tmp_path: Path) -> None:
+    _simple_seed(tmp_path, words=[_pos("apple", "사과", "  noun "), _pos("book", "책", "   ")])
+    assert [w.pos for w in load_seed_vocabularies(tmp_path)[0].words] == ["noun", None]
+
+
+@pytest.mark.parametrize("pos", ["x" * 21, 3, ["noun"]])
+def test_invalid_pos_is_rejected(tmp_path: Path, pos: object) -> None:
+    _simple_seed(tmp_path, words=[{**_word("apple", "사과"), "pos": pos}])
+    with pytest.raises(SeedValidationError, match="pos"):
+        load_seed_vocabularies(tmp_path)
+
+
+def test_content_hash_reacts_to_pos_but_not_to_an_explicit_null(tmp_path: Path) -> None:
+    base = [_word("apple", "사과"), _word("book", "책"), _word("cat", "고양이")]
+    _simple_seed(tmp_path / "none", words=base)
+    _simple_seed(tmp_path / "null", words=[_pos("apple", "사과", None), _word("book", "책"), _word("cat", "고양이")])
+    _simple_seed(tmp_path / "noun", words=[_pos("apple", "사과", "noun"), _word("book", "책"), _word("cat", "고양이")])
+    _simple_seed(tmp_path / "verb", words=[_pos("apple", "사과", "verb"), _word("book", "책"), _word("cat", "고양이")])
+    hashes = {n: compute_content_hash(load_seed_vocabularies(tmp_path / n)[0]) for n in ("none", "null", "noun", "verb")}
+    assert hashes["none"] == hashes["null"], "키가 없는 것과 명시적 null 은 같은 내용이다"
+    assert hashes["noun"] != hashes["none"], "품사를 채우면 해시가 바뀌어야 DB 에 반영된다"
+    assert hashes["verb"] != hashes["noun"]
+
+
+# 기존 3개 단어장의 content_hash (pos 지원을 넣기 전에 측정). pos 가 없는 시드는 해시가 바뀌면 안 된다.
+# 주의: 이 단어장의 내용(뜻·예문·발음기호·순서·메타)을 의도적으로 고쳤다면 이 값도 의도적으로 갱신해야 한다.
+GOLDEN_HASHES = {
+    "beginner-200": "752b297fa8372d2da7c0c07ed818049e5cacf3d7d7c1d7239a79deca9a25563f",
+    "intermediate-200": "09577b2d37aa81162e60edaa128d64168d85fe3dda5c9bb5179c4dc89a0d85df",
+    "advanced-200": "48a5574b816777fe0e02645103be60eaacd48d3c45692bf169f379bb2b62c09d",
+}
+
+
+def test_existing_vocabularies_keep_their_golden_content_hash() -> None:
+    """pos 지원 추가 후에도 기존 600단어(품사 없음)의 해시가 같아야 DB 에서 'unchanged' 로 남는다."""
+    actual = {v.slug: compute_content_hash(v) for v in load_seed_vocabularies(SEED_DIR) if v.slug in GOLDEN_HASHES}
+    assert actual == GOLDEN_HASHES
+
+
+@pytest.mark.asyncio
+async def test_pos_is_stored_and_missing_pos_is_null(tmp_path: Path) -> None:
+    _simple_seed(tmp_path, words=[_pos("apple", "사과", "noun"), _word("book", "책")])
+    await _run(tmp_path)
+    words = await _words(f"{PREFIX}a")
+    assert words["apple"].pos == "noun"
+    assert words["book"].pos is None
+
+
+@pytest.mark.asyncio
+async def test_same_seed_with_pos_is_idempotent(tmp_path: Path) -> None:
+    _simple_seed(tmp_path, words=[_pos("apple", "사과", "noun"), _pos("book", "책", "noun")])
+    await _run(tmp_path)
+    report = await _run(tmp_path)
+    assert (report.created, report.updated, report.unchanged) == (0, 0, 1)
+    assert report.words_inserted == 0 and report.words_updated == 0
+
+
+@pytest.mark.asyncio
+async def test_adding_pos_later_updates_in_place_and_keeps_word_id(tmp_path: Path) -> None:
+    _simple_seed(tmp_path, words=[_word("apple", "사과")])
+    await _run(tmp_path)
+    before = (await _words(f"{PREFIX}a"))["apple"].id
+    _simple_seed(tmp_path, words=[_pos("apple", "사과", "noun")])
+    report = await _run(tmp_path)
+    after = (await _words(f"{PREFIX}a"))["apple"]
+    assert (report.updated, report.words_updated, report.words_inserted) == (1, 1, 0)
+    assert after.id == before and after.pos == "noun"
+
+
+@pytest.mark.asyncio
+async def test_removing_pos_from_seed_returns_the_column_to_null(tmp_path: Path) -> None:
+    _simple_seed(tmp_path, words=[_pos("apple", "사과", "noun")])
+    await _run(tmp_path)
+    _simple_seed(tmp_path, words=[_word("apple", "사과")])
+    await _run(tmp_path)
+    assert (await _words(f"{PREFIX}a"))["apple"].pos is None
+
+
+# ---------------------------------------------------------------------------
+# 8. 신규 2개 단어장 데이터 완성도 관문 (DB 없음). 시험 대비 200 + 실무 비즈니스 200 (v2.2 카탈로그 확충).
+#    데이터가 없으면 전부 실패(Red)하고, 400단어가 채워져야 통과(Green)한다.
+# ---------------------------------------------------------------------------
+
+ALLOWED_POS = {"noun", "verb", "adjective", "adverb", "preposition", "conjunction"}
+_HANGUL = __import__("re").compile(r"[\uAC00-\uD7A3]")
+
+# 예문에 표제어의 불규칙 활용형이 들어가는 경우만 여기에 올린다 ({표제어: 예문 속 형태}). 규칙 활용(s, es, ed, ing, ies, ied, er 등)은 자동 허용한다.
+EXAMPLE_FORM_EXCEPTIONS: dict[str, str] = {}
+EXAMPLE_FORM_EXCEPTIONS_LIMIT = 25
+
+
+def _new_words() -> list[tuple[str, system_seed.SeedWordData]]:
+    return [(v.slug, w) for v in load_seed_vocabularies(SEED_DIR) if v.slug in NEW_SLUGS for w in v.words]
+
+
+def _forms(term: str) -> set[str]:
+    """표제어의 규칙 활용형. 어미 s/es/ed/ing/er/ly, y→i, 끝 e 탈락, 자음 겹침."""
+    t = term.lower()
+    forms = {t, t + "s", t + "es", t + "d", t + "ed", t + "ing", t + "er", t + "ers", t + "ly", t + "'s"}
+    if t.endswith("e"):
+        forms |= {t[:-1] + "ing", t[:-1] + "ed", t[:-1] + "er", t[:-1] + "ers", t + "r", t + "rs"}
+    if t.endswith("y"):
+        forms |= {t[:-1] + "ies", t[:-1] + "ied", t[:-1] + "ier", t[:-1] + "ily"}
+    if len(t) >= 2:
+        forms |= {t + t[-1] + "ed", t + t[-1] + "ing", t + t[-1] + "er", t + t[-1] + "ers"}
+    return forms
+
+
+def example_has_headword(term: str, example: str, exceptions: dict[str, str] | None = None) -> bool:
+    """예문 안에 표제어 또는 그 활용형이 단어 경계로 들어 있는가."""
+    import re
+
+    tokens = set(re.findall(r"[a-z]+(?:'[a-z]+)?", example.lower()))
+    extra = (exceptions or {}).get(term.lower())
+    return bool(tokens & _forms(term)) or (extra is not None and extra.lower() in tokens)
+
+
+def test_example_has_headword_checker_itself() -> None:
+    assert example_has_headword("invoice", "Please send the invoice by Friday.")
+    assert example_has_headword("negotiate", "They negotiated a lower price.")
+    assert example_has_headword("apply", "Applies to all staff.")  # y → ies
+    assert example_has_headword("apply", "She applies for jobs.")
+    assert example_has_headword("stop", "The bus stopped suddenly.")
+    assert example_has_headword("buy", "We bought it.") is False
+    assert example_has_headword("buy", "We bought it.", {"buy": "bought"})
+    assert example_has_headword("cat", "The category is wide.") is False, "단어 경계로만 일치한다"
+
+
+def test_gate_1_new_vocabularies_have_200_words_each_and_the_total_is_1000() -> None:
+    sizes = {v.slug: len(v.words) for v in load_seed_vocabularies(SEED_DIR)}
+    assert sizes.get("exam-core-200") == 200 and sizes.get("business-practical-200") == 200
+    assert sum(sizes.values()) == 1000
+
+
+def test_gate_2_every_new_word_has_all_six_fields() -> None:
+    missing = [
+        f"{slug}:{w.term}"
+        for slug, w in _new_words()
+        if not (w.term and w.phonetic and w.pos and w.meaning and w.example and w.example_meaning)
+    ]
+    assert len(_new_words()) == 400, "신규 400단어가 있어야 한다"
+    assert missing == [], f"6개 필드가 비어 있는 단어 {len(missing)}개: {missing[:10]}"
+
+
+def test_gate_3_all_1000_words_have_plain_ipa_with_syllable_rules() -> None:
+    words = _real_words()
+    assert len(words) == 1000
+    assert [w.term for _, w in words if not w.phonetic] == []
+    assert [(w.term, w.phonetic) for _, w in words if w.phonetic and any(c in w.phonetic for c in "/[]()")] == []
+    vowel = "aeiouæɑɔɛɪʊʌəɚɝ"
+    bad_mono = [(w.term, w.phonetic) for _, w in words if w.phonetic and "ˈ" in w.phonetic and sum(c in vowel for c in w.phonetic) <= 1]
+    assert bad_mono == [], "단음절 단어에는 강세 표시를 하지 않는다"
+    assert [(w.term, w.phonetic) for _, w in words if w.phonetic and w.phonetic.count("ˈ") > 1] == [], "1차 강세는 단어당 1개 이하"
+
+
+def test_gate_4_pos_is_one_of_the_allowed_english_words() -> None:
+    bad = [(w.term, w.pos) for _, w in _new_words() if w.pos not in ALLOWED_POS]
+    assert len(_new_words()) == 400 and bad == [], f"허용 집합 밖의 품사: {bad[:10]}"
+
+
+def test_gate_5_example_contains_the_headword_or_a_listed_inflection() -> None:
+    assert len(EXAMPLE_FORM_EXCEPTIONS) <= EXAMPLE_FORM_EXCEPTIONS_LIMIT, "예외표가 커지면 예문을 고쳐라"
+    words = _new_words()
+    assert len(words) == 400
+    bad = [(w.term, w.example) for _, w in words if not example_has_headword(w.term, w.example or "", EXAMPLE_FORM_EXCEPTIONS)]
+    assert bad == [], f"예문에 표제어가 없는 단어 {len(bad)}개: {bad[:5]}"
+
+
+def test_gate_6_no_term_is_shared_across_all_1000_words() -> None:
+    from collections import Counter
+
+    counts = Counter(system_seed._term_key(w.term) for _, w in _real_words())
+    assert len(_real_words()) == 1000
+    assert [t for t, n in counts.items() if n > 1] == []
+
+
+def test_gate_7_meaning_and_translation_are_korean_and_example_is_english() -> None:
+    words = _new_words()
+    assert len(words) == 400
+    assert [w.term for _, w in words if not _HANGUL.search(w.meaning)] == []
+    assert [w.term for _, w in words if not _HANGUL.search(w.example_meaning or "")] == []
+    assert [w.term for _, w in words if _HANGUL.search(w.example or "")] == [], "영문 예문에 한글이 섞이면 안 된다"
+    assert [w.term for _, w in words if " " in w.term or "-" in w.term] == [], "표제어는 단일 단어만 수록한다"
+
+
+def test_gate_8_meanings_are_unique_inside_each_new_vocabulary_so_quiz_options_never_tie() -> None:
+    vocabularies = [v for v in load_seed_vocabularies(SEED_DIR) if v.slug in NEW_SLUGS]
+    assert len(vocabularies) == 2
+    for v in vocabularies:
+        meanings = [w.meaning for w in v.words]
+        assert len(v.words) >= 4
+        assert len(set(meanings)) == len(meanings), (v.slug, [m for m in set(meanings) if meanings.count(m) > 1])

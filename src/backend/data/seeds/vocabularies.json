@@ -22,5 +22,21 @@
     "level": 3,
     "description": "고난도 독해를 위한 심화 어휘",
     "sort_order": 3
+  },
+  {
+    "slug": "exam-core-200",
+    "title": "시험 대비 핵심 200",
+    "category": "EXAM",
+    "level": 3,
+    "description": "영어 공인시험의 지문과 문제에 자주 나오는 비즈니스·일상 어휘",
+    "sort_order": 4
+  },
+  {
+    "slug": "business-practical-200",
+    "title": "실무 비즈니스 영단어 200",
+    "category": "BUSINESS",
+    "level": 3,
+    "description": "회의·이메일·협상 등 직장에서 바로 쓰는 어휘",
+    "sort_order": 5
   }
 ]

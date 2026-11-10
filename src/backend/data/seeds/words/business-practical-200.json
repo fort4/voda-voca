@@ -1,0 +1,1602 @@
+[
+  {
+    "term": "stakeholder",
+    "phonetic": "ˈsteɪkhoʊldɚ",
+    "pos": "noun",
+    "meaning": "이해관계자",
+    "example": "We need to update every stakeholder on the plan.",
+    "example_meaning": "모든 이해관계자에게 계획을 알려야 한다."
+  },
+  {
+    "term": "objective",
+    "phonetic": "əbˈdʒɛktɪv",
+    "pos": "noun",
+    "meaning": "목표",
+    "example": "Our main objective this quarter is to cut costs.",
+    "example_meaning": "이번 분기 우리의 주된 목표는 비용 절감이다."
+  },
+  {
+    "term": "strategy",
+    "phonetic": "ˈstrætədʒi",
+    "pos": "noun",
+    "meaning": "전략",
+    "example": "The new strategy focuses on online sales.",
+    "example_meaning": "새 전략은 온라인 판매에 초점을 둔다."
+  },
+  {
+    "term": "milestone",
+    "phonetic": "ˈmaɪlstoʊn",
+    "pos": "noun",
+    "meaning": "이정표",
+    "example": "Finishing the prototype was a major milestone.",
+    "example_meaning": "시제품 완성은 중요한 이정표였다."
+  },
+  {
+    "term": "deliverable",
+    "phonetic": "dɪˈlɪvərəbəl",
+    "pos": "noun",
+    "meaning": "납품 결과물",
+    "example": "The first deliverable is due next Friday.",
+    "example_meaning": "첫 번째 납품 결과물은 다음 주 금요일까지이다."
+  },
+  {
+    "term": "priority",
+    "phonetic": "praɪˈɔrəti",
+    "pos": "noun",
+    "meaning": "우선순위",
+    "example": "Customer safety is our top priority.",
+    "example_meaning": "고객 안전이 우리의 최우선 순위이다."
+  },
+  {
+    "term": "workflow",
+    "phonetic": "ˈwɝkfloʊ",
+    "pos": "noun",
+    "meaning": "업무 흐름",
+    "example": "The new tool simplifies our workflow.",
+    "example_meaning": "새 도구가 우리의 업무 흐름을 단순하게 해 준다."
+  },
+  {
+    "term": "bandwidth",
+    "phonetic": "ˈbændwɪdθ",
+    "pos": "noun",
+    "meaning": "업무 여력",
+    "example": "I don't have the bandwidth to take on another project.",
+    "example_meaning": "나는 또 다른 프로젝트를 맡을 업무 여력이 없다."
+  },
+  {
+    "term": "leverage",
+    "phonetic": "ˈlɛvərɪdʒ",
+    "pos": "verb",
+    "meaning": "활용하다",
+    "example": "We can leverage our existing network to find clients.",
+    "example_meaning": "기존 인맥을 활용해 고객을 찾을 수 있다."
+  },
+  {
+    "term": "collaborate",
+    "phonetic": "kəˈlæbəˌreɪt",
+    "pos": "verb",
+    "meaning": "협업하다",
+    "example": "Our teams collaborate closely on product design.",
+    "example_meaning": "우리 팀들은 제품 디자인에서 긴밀히 협업한다."
+  },
+  {
+    "term": "coordinate",
+    "phonetic": "koʊˈɔrdəˌneɪt",
+    "pos": "verb",
+    "meaning": "조율하다",
+    "example": "She coordinates schedules for the whole department.",
+    "example_meaning": "그녀는 부서 전체의 일정을 조율한다."
+  },
+  {
+    "term": "delegate",
+    "phonetic": "ˈdɛləˌɡeɪt",
+    "pos": "verb",
+    "meaning": "위임하다",
+    "example": "A good manager knows when to delegate.",
+    "example_meaning": "좋은 관리자는 언제 위임해야 하는지 안다."
+  },
+  {
+    "term": "prioritize",
+    "phonetic": "praɪˈɔrəˌtaɪz",
+    "pos": "verb",
+    "meaning": "우선순위를 정하다",
+    "example": "Let's prioritize the tasks that are most urgent.",
+    "example_meaning": "가장 급한 업무부터 우선순위를 정합시다."
+  },
+  {
+    "term": "streamline",
+    "phonetic": "ˈstrimlaɪn",
+    "pos": "verb",
+    "meaning": "간소화하다",
+    "example": "We want to streamline the approval process.",
+    "example_meaning": "우리는 승인 절차를 간소화하고 싶다."
+  },
+  {
+    "term": "optimize",
+    "phonetic": "ˈɑptəˌmaɪz",
+    "pos": "verb",
+    "meaning": "최적화하다",
+    "example": "The engineers optimized the website for mobile.",
+    "example_meaning": "엔지니어들은 웹사이트를 모바일에 맞게 최적화했다."
+  },
+  {
+    "term": "brainstorm",
+    "phonetic": "ˈbreɪnstɔrm",
+    "pos": "verb",
+    "meaning": "아이디어를 모으다",
+    "example": "The team will brainstorm ideas for the campaign.",
+    "example_meaning": "팀은 캠페인을 위한 아이디어를 모아 볼 것이다."
+  },
+  {
+    "term": "outsource",
+    "phonetic": "aʊtˈsɔrs",
+    "pos": "verb",
+    "meaning": "외주를 맡기다",
+    "example": "Many firms outsource their customer support.",
+    "example_meaning": "많은 회사가 고객 지원을 외주로 맡긴다."
+  },
+  {
+    "term": "mentor",
+    "phonetic": "ˈmɛntɚ",
+    "pos": "noun",
+    "meaning": "멘토",
+    "example": "My mentor gave me excellent career advice.",
+    "example_meaning": "내 멘토는 훌륭한 진로 조언을 해 주었다."
+  },
+  {
+    "term": "appraisal",
+    "phonetic": "əˈpreɪzəl",
+    "pos": "noun",
+    "meaning": "인사 평가",
+    "example": "Annual appraisals take place in December.",
+    "example_meaning": "연례 인사 평가는 12월에 이루어진다."
+  },
+  {
+    "term": "performance",
+    "phonetic": "pɚˈfɔrməns",
+    "pos": "noun",
+    "meaning": "성과",
+    "example": "His performance this year exceeded expectations.",
+    "example_meaning": "올해 그의 성과는 기대를 넘어섰다."
+  },
+  {
+    "term": "productivity",
+    "phonetic": "ˌproʊdəkˈtɪvəti",
+    "pos": "noun",
+    "meaning": "생산성",
+    "example": "Remote work increased our productivity.",
+    "example_meaning": "원격 근무가 우리의 생산성을 높였다."
+  },
+  {
+    "term": "initiative",
+    "phonetic": "ɪˈnɪʃətɪv",
+    "pos": "noun",
+    "meaning": "주도적 계획",
+    "example": "She launched an initiative to reduce waste.",
+    "example_meaning": "그녀는 낭비를 줄이기 위한 계획을 주도했다."
+  },
+  {
+    "term": "pitch",
+    "phonetic": "pɪtʃ",
+    "pos": "noun",
+    "meaning": "설득용 발표",
+    "example": "His sales pitch impressed the investors.",
+    "example_meaning": "그의 영업용 설득 발표는 투자자들에게 깊은 인상을 주었다."
+  },
+  {
+    "term": "presentation",
+    "phonetic": "ˌprɛzənˈteɪʃən",
+    "pos": "noun",
+    "meaning": "프레젠테이션",
+    "example": "I have a presentation to the board on Monday.",
+    "example_meaning": "나는 월요일에 이사회에서 프레젠테이션을 한다."
+  },
+  {
+    "term": "spreadsheet",
+    "phonetic": "ˈsprɛdʃit",
+    "pos": "noun",
+    "meaning": "스프레드시트",
+    "example": "The figures are in the shared spreadsheet.",
+    "example_meaning": "수치는 공유 스프레드시트에 있다."
+  },
+  {
+    "term": "template",
+    "phonetic": "ˈtɛmplət",
+    "pos": "noun",
+    "meaning": "서식 틀",
+    "example": "Use the template to write your weekly report.",
+    "example_meaning": "주간 보고서는 서식 틀을 사용해 작성하세요."
+  },
+  {
+    "term": "draft",
+    "phonetic": "dræft",
+    "pos": "noun",
+    "meaning": "초안",
+    "example": "Please review the first draft by noon.",
+    "example_meaning": "정오까지 초안을 검토해 주세요."
+  },
+  {
+    "term": "revise",
+    "phonetic": "rɪˈvaɪz",
+    "pos": "verb",
+    "meaning": "수정하다",
+    "example": "I revised the schedule after the meeting.",
+    "example_meaning": "나는 회의 후에 일정을 수정했다."
+  },
+  {
+    "term": "proofread",
+    "phonetic": "ˈprufrid",
+    "pos": "verb",
+    "meaning": "교정하다",
+    "example": "Could you proofread this email before I send it?",
+    "example_meaning": "제가 보내기 전에 이 이메일을 교정해 주시겠어요?"
+  },
+  {
+    "term": "summary",
+    "phonetic": "ˈsʌməri",
+    "pos": "noun",
+    "meaning": "요약본",
+    "example": "A one-page summary is attached below.",
+    "example_meaning": "한 쪽짜리 요약본을 아래에 첨부했습니다."
+  },
+  {
+    "term": "overview",
+    "phonetic": "ˈoʊvɚˌvju",
+    "pos": "noun",
+    "meaning": "개요",
+    "example": "He gave a quick overview of the project.",
+    "example_meaning": "그는 프로젝트의 개요를 간단히 설명했다."
+  },
+  {
+    "term": "outline",
+    "phonetic": "ˈaʊtlaɪn",
+    "pos": "noun",
+    "meaning": "윤곽",
+    "example": "Send me an outline of your talk.",
+    "example_meaning": "발표의 윤곽을 보내 주세요."
+  },
+  {
+    "term": "highlight",
+    "phonetic": "ˈhaɪlaɪt",
+    "pos": "verb",
+    "meaning": "강조하다",
+    "example": "The report highlights three major risks.",
+    "example_meaning": "보고서는 세 가지 주요 위험을 강조한다."
+  },
+  {
+    "term": "clarify",
+    "phonetic": "ˈklɛrəˌfaɪ",
+    "pos": "verb",
+    "meaning": "명확히 하다",
+    "example": "Let me clarify what I meant.",
+    "example_meaning": "제가 한 말의 뜻을 명확히 하겠습니다."
+  },
+  {
+    "term": "elaborate",
+    "phonetic": "ɪˈlæbəˌreɪt",
+    "pos": "verb",
+    "meaning": "상세히 설명하다",
+    "example": "Could you elaborate on that point?",
+    "example_meaning": "그 점을 좀 더 상세히 설명해 주시겠어요?"
+  },
+  {
+    "term": "emphasize",
+    "phonetic": "ˈɛmfəˌsaɪz",
+    "pos": "verb",
+    "meaning": "역설하다",
+    "example": "The CEO emphasized the need for speed.",
+    "example_meaning": "최고 경영자는 속도의 필요성을 역설했다."
+  },
+  {
+    "term": "summarize",
+    "phonetic": "ˈsʌməˌraɪz",
+    "pos": "verb",
+    "meaning": "요약하다",
+    "example": "Let me summarize the main points.",
+    "example_meaning": "주요 사항을 요약해 보겠습니다."
+  },
+  {
+    "term": "recap",
+    "phonetic": "ˈrikæp",
+    "pos": "noun",
+    "meaning": "요약 정리",
+    "example": "Here is a quick recap of today's meeting.",
+    "example_meaning": "오늘 회의의 요약 정리는 다음과 같습니다."
+  },
+  {
+    "term": "update",
+    "phonetic": "ˈʌpˌdeɪt",
+    "pos": "noun",
+    "meaning": "최신 소식",
+    "example": "I'll send you an update tomorrow.",
+    "example_meaning": "내일 최신 상황을 보내 드리겠습니다."
+  },
+  {
+    "term": "reply",
+    "phonetic": "rɪˈplaɪ",
+    "pos": "verb",
+    "meaning": "답장하다",
+    "example": "Please reply to this message by Thursday.",
+    "example_meaning": "목요일까지 이 메시지에 답장해 주세요."
+  },
+  {
+    "term": "respond",
+    "phonetic": "rɪˈspɑnd",
+    "pos": "verb",
+    "meaning": "응답하다",
+    "example": "We will respond to all requests within a day.",
+    "example_meaning": "모든 요청에 하루 안에 응답하겠습니다."
+  },
+  {
+    "term": "acknowledge",
+    "phonetic": "ækˈnɑlɪdʒ",
+    "pos": "verb",
+    "meaning": "수신을 확인하다",
+    "example": "Please acknowledge receipt of this email.",
+    "example_meaning": "이 이메일을 받았음을 확인해 주세요."
+  },
+  {
+    "term": "greeting",
+    "phonetic": "ˈɡritɪŋ",
+    "pos": "noun",
+    "meaning": "인사말",
+    "example": "He opened the email with a warm greeting.",
+    "example_meaning": "그는 따뜻한 인사말로 이메일을 시작했다."
+  },
+  {
+    "term": "sincerely",
+    "phonetic": "sɪnˈsɪrli",
+    "pos": "adverb",
+    "meaning": "진심으로",
+    "example": "Sincerely, Anna Lee, Marketing Director",
+    "example_meaning": "진심을 담아, 마케팅 이사 애나 리"
+  },
+  {
+    "term": "apology",
+    "phonetic": "əˈpɑləˌdʒi",
+    "pos": "noun",
+    "meaning": "사과",
+    "example": "Please accept our apology for the delay.",
+    "example_meaning": "지연에 대한 저희의 사과를 받아 주세요."
+  },
+  {
+    "term": "inconvenience",
+    "phonetic": "ˌɪnkənˈvinjəns",
+    "pos": "noun",
+    "meaning": "불편",
+    "example": "We apologize for any inconvenience.",
+    "example_meaning": "불편을 끼쳐 드린 점 사과드립니다."
+  },
+  {
+    "term": "assistance",
+    "phonetic": "əˈsɪstəns",
+    "pos": "noun",
+    "meaning": "도움",
+    "example": "Thank you for your assistance with the move.",
+    "example_meaning": "이사에 도움을 주셔서 감사합니다."
+  },
+  {
+    "term": "cooperation",
+    "phonetic": "koʊˌɑpəˈreɪʃən",
+    "pos": "noun",
+    "meaning": "협조",
+    "example": "We appreciate your cooperation during the audit.",
+    "example_meaning": "감사 기간 동안의 협조에 감사드립니다."
+  },
+  {
+    "term": "appreciate",
+    "phonetic": "əˈpriʃiˌeɪt",
+    "pos": "verb",
+    "meaning": "고마워하다",
+    "example": "I really appreciate your quick response.",
+    "example_meaning": "빠른 답변에 정말 고맙게 생각합니다."
+  },
+  {
+    "term": "grateful",
+    "phonetic": "ˈɡreɪtfəl",
+    "pos": "adjective",
+    "meaning": "감사하는",
+    "example": "We are grateful for your continued support.",
+    "example_meaning": "변함없는 지원에 감사드립니다."
+  },
+  {
+    "term": "urgent",
+    "phonetic": "ˈɝdʒənt",
+    "pos": "adjective",
+    "meaning": "긴급한",
+    "example": "This is an urgent request from the client.",
+    "example_meaning": "이것은 고객사의 긴급한 요청이다."
+  },
+  {
+    "term": "confidential",
+    "phonetic": "ˌkɑnfəˈdɛnʃəl",
+    "pos": "adjective",
+    "meaning": "기밀의",
+    "example": "Please keep this information confidential.",
+    "example_meaning": "이 정보는 기밀로 유지해 주세요."
+  },
+  {
+    "term": "tentative",
+    "phonetic": "ˈtɛntətɪv",
+    "pos": "adjective",
+    "meaning": "잠정적인",
+    "example": "The date is tentative until we confirm the venue.",
+    "example_meaning": "장소가 확정되기 전까지 날짜는 잠정적이다."
+  },
+  {
+    "term": "pending",
+    "phonetic": "ˈpɛndɪŋ",
+    "pos": "adjective",
+    "meaning": "보류 중인",
+    "example": "The order is pending approval.",
+    "example_meaning": "그 주문은 승인이 보류 중이다."
+  },
+  {
+    "term": "ongoing",
+    "phonetic": "ˈɑnɡoʊɪŋ",
+    "pos": "adjective",
+    "meaning": "진행 중인",
+    "example": "The ongoing project will end in June.",
+    "example_meaning": "진행 중인 프로젝트는 6월에 끝난다."
+  },
+  {
+    "term": "redundant",
+    "phonetic": "rɪˈdʌndənt",
+    "pos": "adjective",
+    "meaning": "불필요하게 중복된",
+    "example": "Two of these steps are redundant.",
+    "example_meaning": "이 단계 중 둘은 불필요하게 중복된다."
+  },
+  {
+    "term": "viable",
+    "phonetic": "ˈvaɪəbəl",
+    "pos": "adjective",
+    "meaning": "실행 가능한",
+    "example": "We need a viable plan to reduce costs.",
+    "example_meaning": "비용을 줄일 실행 가능한 계획이 필요하다."
+  },
+  {
+    "term": "realistic",
+    "phonetic": "ˌriəˈlɪstɪk",
+    "pos": "adjective",
+    "meaning": "현실적인",
+    "example": "Set realistic goals for the next quarter.",
+    "example_meaning": "다음 분기에는 현실적인 목표를 세우세요."
+  },
+  {
+    "term": "ambitious",
+    "phonetic": "æmˈbɪʃəs",
+    "pos": "adjective",
+    "meaning": "야심 찬",
+    "example": "They set an ambitious target for growth.",
+    "example_meaning": "그들은 야심 찬 성장 목표를 세웠다."
+  },
+  {
+    "term": "scalable",
+    "phonetic": "ˈskeɪləbəl",
+    "pos": "adjective",
+    "meaning": "확장할 수 있는",
+    "example": "We need a scalable solution for our growing team.",
+    "example_meaning": "성장하는 팀에 맞는 확장할 수 있는 해결책이 필요하다."
+  },
+  {
+    "term": "sustainable",
+    "phonetic": "səˈsteɪnəbəl",
+    "pos": "adjective",
+    "meaning": "지속 가능한",
+    "example": "The company invests in sustainable energy.",
+    "example_meaning": "그 회사는 지속 가능한 에너지에 투자한다."
+  },
+  {
+    "term": "transparent",
+    "phonetic": "trænˈspɛrənt",
+    "pos": "adjective",
+    "meaning": "투명한",
+    "example": "The process must be open and transparent.",
+    "example_meaning": "절차는 공개적이고 투명해야 한다."
+  },
+  {
+    "term": "accountable",
+    "phonetic": "əˈkaʊntəbəl",
+    "pos": "adjective",
+    "meaning": "책임을 져야 하는",
+    "example": "Managers are accountable for their team's results.",
+    "example_meaning": "관리자는 팀의 성과에 책임을 져야 한다."
+  },
+  {
+    "term": "responsible",
+    "phonetic": "riˈspɑnsəbəl",
+    "pos": "adjective",
+    "meaning": "책임감 있는",
+    "example": "She is responsible for the budget.",
+    "example_meaning": "그녀가 예산을 책임진다."
+  },
+  {
+    "term": "proactive",
+    "phonetic": "proʊˈæktɪv",
+    "pos": "adjective",
+    "meaning": "선제적인",
+    "example": "We took a proactive approach to the problem.",
+    "example_meaning": "우리는 그 문제에 선제적으로 접근했다."
+  },
+  {
+    "term": "resourceful",
+    "phonetic": "riˈsɔrsfəl",
+    "pos": "adjective",
+    "meaning": "수완이 좋은",
+    "example": "He is a resourceful employee who finds solutions fast.",
+    "example_meaning": "그는 해결책을 빨리 찾아내는 수완 좋은 직원이다."
+  },
+  {
+    "term": "diplomatic",
+    "phonetic": "ˌdɪpləˈmætɪk",
+    "pos": "adjective",
+    "meaning": "요령 있는",
+    "example": "She gave a diplomatic answer to the question.",
+    "example_meaning": "그녀는 그 질문에 요령 있게 답했다."
+  },
+  {
+    "term": "persuasive",
+    "phonetic": "pɚˈsweɪsɪv",
+    "pos": "adjective",
+    "meaning": "설득력 있는",
+    "example": "His argument was clear and persuasive.",
+    "example_meaning": "그의 주장은 명확하고 설득력이 있었다."
+  },
+  {
+    "term": "assertive",
+    "phonetic": "əˈsɝtɪv",
+    "pos": "adjective",
+    "meaning": "단호한",
+    "example": "Be assertive but polite in negotiations.",
+    "example_meaning": "협상에서는 단호하되 공손하게 하세요."
+  },
+  {
+    "term": "approachable",
+    "phonetic": "əˈproʊtʃəbəl",
+    "pos": "adjective",
+    "meaning": "다가가기 쉬운",
+    "example": "Our director is friendly and approachable.",
+    "example_meaning": "우리 이사님은 친절하고 다가가기 쉽다."
+  },
+  {
+    "term": "supportive",
+    "phonetic": "səˈpɔrtɪv",
+    "pos": "adjective",
+    "meaning": "지원을 아끼지 않는",
+    "example": "My team was very supportive during the move.",
+    "example_meaning": "내 팀은 이사 기간 내내 지원을 아끼지 않았다."
+  },
+  {
+    "term": "dedicated",
+    "phonetic": "ˈdɛdəkeɪtəd",
+    "pos": "adjective",
+    "meaning": "헌신적인",
+    "example": "She is a dedicated member of the staff.",
+    "example_meaning": "그녀는 헌신적인 직원이다."
+  },
+  {
+    "term": "competent",
+    "phonetic": "ˈkɑmpətɪnt",
+    "pos": "adjective",
+    "meaning": "유능한",
+    "example": "We hired a competent accountant.",
+    "example_meaning": "우리는 유능한 회계사를 채용했다."
+  },
+  {
+    "term": "capable",
+    "phonetic": "ˈkeɪpəbəl",
+    "pos": "adjective",
+    "meaning": "역량 있는",
+    "example": "He is a capable leader.",
+    "example_meaning": "그는 역량 있는 지도자이다."
+  },
+  {
+    "term": "skilled",
+    "phonetic": "skɪld",
+    "pos": "adjective",
+    "meaning": "숙련된",
+    "example": "The factory hires skilled workers.",
+    "example_meaning": "그 공장은 숙련된 근로자를 채용한다."
+  },
+  {
+    "term": "experienced",
+    "phonetic": "ɪkˈspɪriənst",
+    "pos": "adjective",
+    "meaning": "경험이 풍부한",
+    "example": "We need an experienced project manager.",
+    "example_meaning": "우리는 경험이 풍부한 프로젝트 관리자가 필요하다."
+  },
+  {
+    "term": "negotiable",
+    "phonetic": "nəˈɡoʊʃəbəl",
+    "pos": "adjective",
+    "meaning": "협상할 수 있는",
+    "example": "The price is negotiable.",
+    "example_meaning": "가격은 협상할 수 있다."
+  },
+  {
+    "term": "binding",
+    "phonetic": "ˈbaɪndɪŋ",
+    "pos": "adjective",
+    "meaning": "구속력 있는",
+    "example": "The agreement is legally binding.",
+    "example_meaning": "그 합의는 법적 구속력이 있다."
+  },
+  {
+    "term": "exclusive",
+    "phonetic": "ɪkˈsklusɪv",
+    "pos": "adjective",
+    "meaning": "독점적인",
+    "example": "They signed an exclusive deal with the supplier.",
+    "example_meaning": "그들은 공급업체와 독점 계약을 맺었다."
+  },
+  {
+    "term": "confidentiality",
+    "phonetic": "ˌkɑnfəˌdɛnʃiˈæləti",
+    "pos": "noun",
+    "meaning": "기밀 유지",
+    "example": "All staff sign a confidentiality agreement.",
+    "example_meaning": "모든 직원은 기밀 유지 서약서에 서명한다."
+  },
+  {
+    "term": "compliance",
+    "phonetic": "kəmˈplaɪəns",
+    "pos": "noun",
+    "meaning": "규정 준수",
+    "example": "Compliance with the law is not optional.",
+    "example_meaning": "법규 준수는 선택이 아니다."
+  },
+  {
+    "term": "regulation",
+    "phonetic": "ˌrɛɡjəˈleɪʃən",
+    "pos": "noun",
+    "meaning": "규정",
+    "example": "New regulations take effect in January.",
+    "example_meaning": "새 규정은 1월에 시행된다."
+  },
+  {
+    "term": "policy",
+    "phonetic": "ˈpɑləsi",
+    "pos": "noun",
+    "meaning": "정책",
+    "example": "The company has a strict return policy.",
+    "example_meaning": "그 회사에는 엄격한 반품 정책이 있다."
+  },
+  {
+    "term": "guideline",
+    "phonetic": "ˈɡaɪdlaɪn",
+    "pos": "noun",
+    "meaning": "지침",
+    "example": "Follow the guidelines in the handbook.",
+    "example_meaning": "안내서의 지침을 따르세요."
+  },
+  {
+    "term": "protocol",
+    "phonetic": "ˈproʊtəˌkɑl",
+    "pos": "noun",
+    "meaning": "의전 절차",
+    "example": "Security protocol requires a visitor badge.",
+    "example_meaning": "보안 절차상 방문증이 필요하다."
+  },
+  {
+    "term": "procedure",
+    "phonetic": "prəˈsidʒɚ",
+    "pos": "noun",
+    "meaning": "절차",
+    "example": "The procedure takes about ten minutes.",
+    "example_meaning": "그 절차는 약 10분이 걸린다."
+  },
+  {
+    "term": "standard",
+    "phonetic": "ˈstændɚd",
+    "pos": "noun",
+    "meaning": "기준",
+    "example": "The product meets international standards.",
+    "example_meaning": "그 제품은 국제 기준을 충족한다."
+  },
+  {
+    "term": "benchmark",
+    "phonetic": "ˈbɛntʃmɑrk",
+    "pos": "noun",
+    "meaning": "비교 기준",
+    "example": "We use last year's results as a benchmark.",
+    "example_meaning": "우리는 작년 실적을 비교 기준으로 쓴다."
+  },
+  {
+    "term": "metric",
+    "phonetic": "ˈmɛtrɪk",
+    "pos": "noun",
+    "meaning": "측정 지표",
+    "example": "Customer satisfaction is our key metric.",
+    "example_meaning": "고객 만족도가 우리의 핵심 지표이다."
+  },
+  {
+    "term": "target",
+    "phonetic": "ˈtɑrɡət",
+    "pos": "noun",
+    "meaning": "목표치",
+    "example": "We hit our sales target in May.",
+    "example_meaning": "우리는 5월에 판매 목표치를 달성했다."
+  },
+  {
+    "term": "quota",
+    "phonetic": "ˈkwoʊtə",
+    "pos": "noun",
+    "meaning": "할당량",
+    "example": "Each salesperson has a monthly quota.",
+    "example_meaning": "영업 사원마다 월별 할당량이 있다."
+  },
+  {
+    "term": "forecast",
+    "phonetic": "ˈfɔrkæst",
+    "pos": "noun",
+    "meaning": "전망",
+    "example": "The forecast predicts slow growth next year.",
+    "example_meaning": "그 전망은 내년에 완만한 성장을 예측한다."
+  },
+  {
+    "term": "projection",
+    "phonetic": "prəˈdʒɛkʃən",
+    "pos": "noun",
+    "meaning": "추정치",
+    "example": "The projection assumes stable demand.",
+    "example_meaning": "그 추정치는 안정적인 수요를 가정한다."
+  },
+  {
+    "term": "trend",
+    "phonetic": "trɛnd",
+    "pos": "noun",
+    "meaning": "추세",
+    "example": "There is a clear trend toward online shopping.",
+    "example_meaning": "온라인 쇼핑으로 향하는 뚜렷한 추세가 있다."
+  },
+  {
+    "term": "margin",
+    "phonetic": "ˈmɑrdʒən",
+    "pos": "noun",
+    "meaning": "이윤폭",
+    "example": "The profit margin on this item is small.",
+    "example_meaning": "이 품목의 이윤폭은 작다."
+  },
+  {
+    "term": "liability",
+    "phonetic": "ˌlaɪəˈbɪlɪti",
+    "pos": "noun",
+    "meaning": "법적 책임",
+    "example": "The firm denied any liability for the accident.",
+    "example_meaning": "회사는 그 사고에 대한 법적 책임을 부인했다."
+  },
+  {
+    "term": "asset",
+    "phonetic": "ˈæsɛt",
+    "pos": "noun",
+    "meaning": "자산",
+    "example": "Our best asset is our team.",
+    "example_meaning": "우리의 가장 큰 자산은 팀이다."
+  },
+  {
+    "term": "equity",
+    "phonetic": "ˈɛkwəti",
+    "pos": "noun",
+    "meaning": "지분",
+    "example": "He holds ten percent equity in the firm.",
+    "example_meaning": "그는 그 회사의 지분을 10퍼센트 갖고 있다."
+  },
+  {
+    "term": "investor",
+    "phonetic": "ɪnˈvɛstɚ",
+    "pos": "noun",
+    "meaning": "투자자",
+    "example": "The investors approved the new budget.",
+    "example_meaning": "투자자들은 새 예산을 승인했다."
+  },
+  {
+    "term": "shareholder",
+    "phonetic": "ˈʃɛrhoʊldɚ",
+    "pos": "noun",
+    "meaning": "주주",
+    "example": "Shareholders voted on the plan.",
+    "example_meaning": "주주들이 그 계획에 대해 표결했다."
+  },
+  {
+    "term": "merger",
+    "phonetic": "ˈmɝdʒɚ",
+    "pos": "noun",
+    "meaning": "합병",
+    "example": "The merger created the largest bank in the region.",
+    "example_meaning": "그 합병으로 지역 최대 은행이 탄생했다."
+  },
+  {
+    "term": "acquisition",
+    "phonetic": "ˌækwəˈzɪʃən",
+    "pos": "noun",
+    "meaning": "인수",
+    "example": "The acquisition was completed in March.",
+    "example_meaning": "인수는 3월에 완료되었다."
+  },
+  {
+    "term": "startup",
+    "phonetic": "ˈstɑrtʌp",
+    "pos": "noun",
+    "meaning": "신생 기업",
+    "example": "She founded a startup after leaving the bank.",
+    "example_meaning": "그녀는 은행을 떠난 뒤 신생 기업을 세웠다."
+  },
+  {
+    "term": "venture",
+    "phonetic": "ˈvɛntʃɚ",
+    "pos": "noun",
+    "meaning": "벤처 사업",
+    "example": "The new venture received funding from two investors.",
+    "example_meaning": "그 벤처 사업은 투자자 두 곳에서 자금을 받았다."
+  },
+  {
+    "term": "entrepreneur",
+    "phonetic": "ˌɑntrəprəˈnɝ",
+    "pos": "noun",
+    "meaning": "기업가",
+    "example": "The young entrepreneur opened her third store.",
+    "example_meaning": "그 젊은 기업가는 세 번째 매장을 열었다."
+  },
+  {
+    "term": "competitor",
+    "phonetic": "kəmˈpɛtətɚ",
+    "pos": "noun",
+    "meaning": "경쟁사",
+    "example": "Our main competitor lowered its prices.",
+    "example_meaning": "우리의 주요 경쟁사가 가격을 내렸다."
+  },
+  {
+    "term": "rival",
+    "phonetic": "ˈraɪvəl",
+    "pos": "noun",
+    "meaning": "라이벌",
+    "example": "The two rival firms compete for the same clients.",
+    "example_meaning": "두 라이벌 회사는 같은 고객을 두고 경쟁한다."
+  },
+  {
+    "term": "demand",
+    "phonetic": "dɪˈmænd",
+    "pos": "noun",
+    "meaning": "수요",
+    "example": "Demand for electric cars keeps rising.",
+    "example_meaning": "전기차 수요는 계속 오르고 있다."
+  },
+  {
+    "term": "consumer",
+    "phonetic": "kənˈsumɚ",
+    "pos": "noun",
+    "meaning": "소비자",
+    "example": "Consumers are spending less on luxury goods.",
+    "example_meaning": "소비자들은 사치품에 쓰는 돈을 줄이고 있다."
+  },
+  {
+    "term": "client",
+    "phonetic": "ˈklaɪənt",
+    "pos": "noun",
+    "meaning": "고객사",
+    "example": "The client asked for a revised quote.",
+    "example_meaning": "고객사가 수정된 견적을 요청했다."
+  },
+  {
+    "term": "prospect",
+    "phonetic": "ˈprɑspɛkt",
+    "pos": "noun",
+    "meaning": "잠재 고객",
+    "example": "Our sales team follows up with every prospect.",
+    "example_meaning": "영업팀은 모든 잠재 고객에게 후속 연락을 한다."
+  },
+  {
+    "term": "loyalty",
+    "phonetic": "ˈlɔɪəlti",
+    "pos": "noun",
+    "meaning": "충성도",
+    "example": "The rewards program builds customer loyalty.",
+    "example_meaning": "보상 프로그램이 고객 충성도를 높인다."
+  },
+  {
+    "term": "retention",
+    "phonetic": "riˈtɛnʃən",
+    "pos": "noun",
+    "meaning": "유지율",
+    "example": "Employee retention improved after the raise.",
+    "example_meaning": "급여 인상 후 직원 유지율이 좋아졌다."
+  },
+  {
+    "term": "turnover",
+    "phonetic": "ˈtɝnoʊvɚ",
+    "pos": "noun",
+    "meaning": "이직률",
+    "example": "High turnover is costly for the company.",
+    "example_meaning": "높은 이직률은 회사에 비용 부담이 된다."
+  },
+  {
+    "term": "branding",
+    "phonetic": "ˈbrændɪŋ",
+    "pos": "noun",
+    "meaning": "브랜드 구축",
+    "example": "Good branding helps a product stand out.",
+    "example_meaning": "좋은 브랜드 구축은 제품이 돋보이게 한다."
+  },
+  {
+    "term": "logo",
+    "phonetic": "ˈloʊɡoʊ",
+    "pos": "noun",
+    "meaning": "로고",
+    "example": "They changed the company logo last year.",
+    "example_meaning": "그들은 작년에 회사 로고를 바꿨다."
+  },
+  {
+    "term": "slogan",
+    "phonetic": "ˈsloʊɡən",
+    "pos": "noun",
+    "meaning": "광고 문구",
+    "example": "The slogan is short and easy to remember.",
+    "example_meaning": "그 광고 문구는 짧고 기억하기 쉽다."
+  },
+  {
+    "term": "outreach",
+    "phonetic": "ˈaʊtritʃ",
+    "pos": "noun",
+    "meaning": "대외 활동",
+    "example": "Our outreach program supports local schools.",
+    "example_meaning": "우리의 대외 활동 프로그램은 지역 학교를 지원한다."
+  },
+  {
+    "term": "networking",
+    "phonetic": "ˈnɛtwɝkɪŋ",
+    "pos": "noun",
+    "meaning": "인맥 쌓기",
+    "example": "Networking events are good for finding clients.",
+    "example_meaning": "인맥 쌓기 행사는 고객을 찾는 데 좋다."
+  },
+  {
+    "term": "referral",
+    "phonetic": "rɪˈfɝəl",
+    "pos": "noun",
+    "meaning": "추천 소개",
+    "example": "Most of our new clients come through referral.",
+    "example_meaning": "우리의 신규 고객 대부분은 추천 소개로 온다."
+  },
+  {
+    "term": "commission",
+    "phonetic": "kəˈmɪʃən",
+    "pos": "noun",
+    "meaning": "판매 수당",
+    "example": "Salespeople earn a ten percent commission.",
+    "example_meaning": "영업 사원은 10퍼센트의 판매 수당을 받는다."
+  },
+  {
+    "term": "perk",
+    "phonetic": "pɝk",
+    "pos": "noun",
+    "meaning": "복지 혜택",
+    "example": "Free lunch is one of the perks of the job.",
+    "example_meaning": "무료 점심은 이 직장의 복지 혜택 중 하나이다."
+  },
+  {
+    "term": "overtime",
+    "phonetic": "ˈoʊvɚˌtaɪm",
+    "pos": "noun",
+    "meaning": "초과 근무",
+    "example": "Overtime is paid at one and a half times the rate.",
+    "example_meaning": "초과 근무는 1.5배의 시급으로 지급된다."
+  },
+  {
+    "term": "shift",
+    "phonetic": "ʃɪft",
+    "pos": "noun",
+    "meaning": "교대 근무",
+    "example": "She works the night shift on weekends.",
+    "example_meaning": "그녀는 주말마다 야간 교대 근무를 한다."
+  },
+  {
+    "term": "probation",
+    "phonetic": "proʊˈbeɪʃən",
+    "pos": "noun",
+    "meaning": "수습 기간",
+    "example": "New staff are on probation for three months.",
+    "example_meaning": "신입 직원은 3개월간 수습 기간을 거친다."
+  },
+  {
+    "term": "tenure",
+    "phonetic": "ˈtɛnjɚ",
+    "pos": "noun",
+    "meaning": "재직 기간",
+    "example": "Her tenure as director lasted ten years.",
+    "example_meaning": "그녀의 이사 재직 기간은 10년이었다."
+  },
+  {
+    "term": "demote",
+    "phonetic": "dɪˈmoʊt",
+    "pos": "verb",
+    "meaning": "강등시키다",
+    "example": "He was demoted after the mistake.",
+    "example_meaning": "그는 그 실수 후에 강등되었다."
+  },
+  {
+    "term": "layoff",
+    "phonetic": "ˈleɪɔf",
+    "pos": "noun",
+    "meaning": "정리 해고",
+    "example": "The company announced layoffs in the factory.",
+    "example_meaning": "회사는 공장의 정리 해고를 발표했다."
+  },
+  {
+    "term": "severance",
+    "phonetic": "ˈsɛvɝəns",
+    "pos": "noun",
+    "meaning": "퇴직 보상금",
+    "example": "Laid-off workers received severance pay.",
+    "example_meaning": "해고된 근로자들은 퇴직 보상금을 받았다."
+  },
+  {
+    "term": "resignation",
+    "phonetic": "ˌrɛzəɡˈneɪʃən",
+    "pos": "noun",
+    "meaning": "사직서",
+    "example": "She submitted her resignation on Friday.",
+    "example_meaning": "그녀는 금요일에 사직서를 제출했다."
+  },
+  {
+    "term": "dismiss",
+    "phonetic": "dɪˈsmɪs",
+    "pos": "verb",
+    "meaning": "해고하다",
+    "example": "The firm dismissed him for breaking the rules.",
+    "example_meaning": "회사는 규정 위반으로 그를 해고했다."
+  },
+  {
+    "term": "recruiter",
+    "phonetic": "rɪˈkrutɚ",
+    "pos": "noun",
+    "meaning": "채용 담당자",
+    "example": "A recruiter called me about a job opening.",
+    "example_meaning": "채용 담당자가 일자리 공석 건으로 내게 전화했다."
+  },
+  {
+    "term": "freelance",
+    "phonetic": "ˈfrilæns",
+    "pos": "adjective",
+    "meaning": "프리랜서로 일하는",
+    "example": "She is a freelance designer.",
+    "example_meaning": "그녀는 프리랜서로 일하는 디자이너이다."
+  },
+  {
+    "term": "consultant",
+    "phonetic": "kənˈsʌltənt",
+    "pos": "noun",
+    "meaning": "컨설턴트",
+    "example": "We hired a consultant to review our costs.",
+    "example_meaning": "우리는 비용을 검토할 컨설턴트를 고용했다."
+  },
+  {
+    "term": "executive",
+    "phonetic": "ɪɡˈzɛkjətɪv",
+    "pos": "noun",
+    "meaning": "임원",
+    "example": "The executives met to discuss the merger.",
+    "example_meaning": "임원들은 합병을 논의하려고 모였다."
+  },
+  {
+    "term": "director",
+    "phonetic": "dɪˈrɛktɚ",
+    "pos": "noun",
+    "meaning": "이사",
+    "example": "The marketing director will join the call.",
+    "example_meaning": "마케팅 이사가 통화에 참여할 것이다."
+  },
+  {
+    "term": "chairman",
+    "phonetic": "ˈtʃɛrmən",
+    "pos": "noun",
+    "meaning": "의장",
+    "example": "The chairman opened the meeting at nine.",
+    "example_meaning": "의장이 9시에 회의를 열었다."
+  },
+  {
+    "term": "intern",
+    "phonetic": "ˈɪntɚn",
+    "pos": "noun",
+    "meaning": "인턴",
+    "example": "The intern helped prepare the slides.",
+    "example_meaning": "인턴이 슬라이드 준비를 도왔다."
+  },
+  {
+    "term": "trainee",
+    "phonetic": "ˌtreɪˈni",
+    "pos": "noun",
+    "meaning": "교육 대상자",
+    "example": "Each trainee works with an experienced mentor.",
+    "example_meaning": "교육 대상자는 각자 경험 많은 멘토와 함께 일한다."
+  },
+  {
+    "term": "teammate",
+    "phonetic": "ˈtimeɪt",
+    "pos": "noun",
+    "meaning": "팀 동료",
+    "example": "My teammates helped me finish on time.",
+    "example_meaning": "내 팀 동료들이 제시간에 끝내도록 도와주었다."
+  },
+  {
+    "term": "counterpart",
+    "phonetic": "ˈkaʊntɚˌpɑrt",
+    "pos": "noun",
+    "meaning": "상대편 담당자",
+    "example": "I will speak with my counterpart in Tokyo.",
+    "example_meaning": "나는 도쿄의 상대편 담당자와 이야기할 것이다."
+  },
+  {
+    "term": "subordinate",
+    "phonetic": "səˈbɔrdənət",
+    "pos": "noun",
+    "meaning": "부하 직원",
+    "example": "A good boss listens to his subordinates.",
+    "example_meaning": "좋은 상사는 부하 직원의 말을 듣는다."
+  },
+  {
+    "term": "department",
+    "phonetic": "dɪˈpɑrtmənt",
+    "pos": "noun",
+    "meaning": "부서",
+    "example": "She transferred to the finance department.",
+    "example_meaning": "그녀는 재무 부서로 옮겼다."
+  },
+  {
+    "term": "headquarters",
+    "phonetic": "ˈhɛdkwɔrtɚz",
+    "pos": "noun",
+    "meaning": "본사",
+    "example": "The headquarters is located in Chicago.",
+    "example_meaning": "본사는 시카고에 있다."
+  },
+  {
+    "term": "branch",
+    "phonetic": "bræntʃ",
+    "pos": "noun",
+    "meaning": "지점",
+    "example": "The bank opened a branch near my house.",
+    "example_meaning": "은행이 우리 집 근처에 지점을 열었다."
+  },
+  {
+    "term": "subsidiary",
+    "phonetic": "səbˈsɪdiˌɛri",
+    "pos": "noun",
+    "meaning": "자회사",
+    "example": "It is a subsidiary of a Japanese firm.",
+    "example_meaning": "그곳은 일본 회사의 자회사이다."
+  },
+  {
+    "term": "affiliate",
+    "phonetic": "əˈfɪliət",
+    "pos": "noun",
+    "meaning": "계열사",
+    "example": "The affiliate handles sales in Europe.",
+    "example_meaning": "그 계열사가 유럽 영업을 맡는다."
+  },
+  {
+    "term": "partnership",
+    "phonetic": "ˈpɑrtnɚˌʃɪp",
+    "pos": "noun",
+    "meaning": "제휴 관계",
+    "example": "The two schools formed a partnership.",
+    "example_meaning": "두 학교는 제휴 관계를 맺었다."
+  },
+  {
+    "term": "collaboration",
+    "phonetic": "kəˌlæbəˈreɪʃən",
+    "pos": "noun",
+    "meaning": "공동 작업",
+    "example": "The product is the result of close collaboration.",
+    "example_meaning": "그 제품은 긴밀한 공동 작업의 결과이다."
+  },
+  {
+    "term": "consensus",
+    "phonetic": "kənˈsɛnsəs",
+    "pos": "noun",
+    "meaning": "의견 일치",
+    "example": "The team reached a consensus on the plan.",
+    "example_meaning": "팀은 계획에 대해 의견 일치를 보았다."
+  },
+  {
+    "term": "compromise",
+    "phonetic": "ˈkɑmprəˌmaɪz",
+    "pos": "noun",
+    "meaning": "타협",
+    "example": "After long talks, they reached a compromise.",
+    "example_meaning": "오랜 논의 끝에 그들은 타협에 이르렀다."
+  },
+  {
+    "term": "concession",
+    "phonetic": "kənˈsɛʃən",
+    "pos": "noun",
+    "meaning": "양보",
+    "example": "The union won a major concession from management.",
+    "example_meaning": "노조는 경영진에게서 중요한 양보를 얻어 냈다."
+  },
+  {
+    "term": "bargain",
+    "phonetic": "ˈbɑrɡən",
+    "pos": "noun",
+    "meaning": "특가품",
+    "example": "At that price, the laptop is a bargain.",
+    "example_meaning": "그 가격이면 그 노트북은 특가품이다."
+  },
+  {
+    "term": "quotation",
+    "phonetic": "kwoʊˈteɪʃən",
+    "pos": "noun",
+    "meaning": "견적서",
+    "example": "Please send us a quotation for fifty units.",
+    "example_meaning": "50개에 대한 견적서를 보내 주세요."
+  },
+  {
+    "term": "payable",
+    "phonetic": "ˈpeɪəbəl",
+    "pos": "adjective",
+    "meaning": "지급해야 하는",
+    "example": "The balance is payable within thirty days.",
+    "example_meaning": "잔액은 30일 이내에 지급해야 한다."
+  },
+  {
+    "term": "remittance",
+    "phonetic": "riˈmɪtəns",
+    "pos": "noun",
+    "meaning": "송금액",
+    "example": "We have not yet received your remittance.",
+    "example_meaning": "송금액이 아직 입금되지 않았습니다."
+  },
+  {
+    "term": "surcharge",
+    "phonetic": "ˈsɝtʃɑrdʒ",
+    "pos": "noun",
+    "meaning": "추가 요금",
+    "example": "A fuel surcharge applies to overseas orders.",
+    "example_meaning": "해외 주문에는 유류 추가 요금이 붙는다."
+  },
+  {
+    "term": "tariff",
+    "phonetic": "ˈtɛrəf",
+    "pos": "noun",
+    "meaning": "관세",
+    "example": "The government raised the tariff on steel.",
+    "example_meaning": "정부는 철강 관세를 올렸다."
+  },
+  {
+    "term": "customs",
+    "phonetic": "ˈkʌstəmz",
+    "pos": "noun",
+    "meaning": "세관",
+    "example": "The parcel was held at customs for a week.",
+    "example_meaning": "소포는 세관에서 일주일간 묶여 있었다."
+  },
+  {
+    "term": "freight",
+    "phonetic": "freɪt",
+    "pos": "noun",
+    "meaning": "화물 운송",
+    "example": "Air freight is faster but more expensive.",
+    "example_meaning": "항공 화물 운송이 더 빠르지만 더 비싸다."
+  },
+  {
+    "term": "logistics",
+    "phonetic": "ləˈdʒɪstɪks",
+    "pos": "noun",
+    "meaning": "물류",
+    "example": "She works in logistics at a shipping company.",
+    "example_meaning": "그녀는 해운 회사에서 물류 일을 한다."
+  },
+  {
+    "term": "warehouse",
+    "phonetic": "ˈwɛrhaʊs",
+    "pos": "noun",
+    "meaning": "창고",
+    "example": "The goods are stored in a warehouse near the port.",
+    "example_meaning": "물품은 항구 근처의 창고에 보관된다."
+  },
+  {
+    "term": "procurement",
+    "phonetic": "proʊˈkjʊrmənt",
+    "pos": "noun",
+    "meaning": "조달",
+    "example": "The procurement team negotiates with suppliers.",
+    "example_meaning": "조달팀이 공급업체와 협상한다."
+  },
+  {
+    "term": "specification",
+    "phonetic": "ˌspɛsɪfɪˈkeɪʃən",
+    "pos": "noun",
+    "meaning": "사양",
+    "example": "The part does not match the specification.",
+    "example_meaning": "그 부품은 사양과 맞지 않는다."
+  },
+  {
+    "term": "prototype",
+    "phonetic": "ˈproʊtəˌtaɪp",
+    "pos": "noun",
+    "meaning": "시제품",
+    "example": "The engineers tested the prototype last week.",
+    "example_meaning": "기술자들은 지난주에 시제품을 시험했다."
+  },
+  {
+    "term": "blueprint",
+    "phonetic": "ˈbluprɪnt",
+    "pos": "noun",
+    "meaning": "청사진",
+    "example": "The blueprint shows the layout of the factory.",
+    "example_meaning": "청사진에는 공장의 배치가 나와 있다."
+  },
+  {
+    "term": "patent",
+    "phonetic": "ˈpætənt",
+    "pos": "noun",
+    "meaning": "특허",
+    "example": "The inventor applied for a patent.",
+    "example_meaning": "발명가는 특허를 출원했다."
+  },
+  {
+    "term": "trademark",
+    "phonetic": "ˈtreɪdmɑrk",
+    "pos": "noun",
+    "meaning": "상표",
+    "example": "The name is a registered trademark.",
+    "example_meaning": "그 이름은 등록 상표이다."
+  },
+  {
+    "term": "copyright",
+    "phonetic": "ˈkɑpiˌraɪt",
+    "pos": "noun",
+    "meaning": "저작권",
+    "example": "The photos are protected by copyright.",
+    "example_meaning": "그 사진들은 저작권으로 보호된다."
+  },
+  {
+    "term": "royalty",
+    "phonetic": "ˈrɔɪəlti",
+    "pos": "noun",
+    "meaning": "사용료",
+    "example": "The author earns a royalty on every copy sold.",
+    "example_meaning": "저자는 팔린 책마다 사용료를 받는다."
+  },
+  {
+    "term": "license",
+    "phonetic": "ˈlaɪsəns",
+    "pos": "noun",
+    "meaning": "사용 허가",
+    "example": "You need a license to sell alcohol.",
+    "example_meaning": "주류를 판매하려면 허가가 필요하다."
+  },
+  {
+    "term": "terminate",
+    "phonetic": "ˈtɝməˌneɪt",
+    "pos": "verb",
+    "meaning": "종료하다",
+    "example": "Either party may terminate the contract with notice.",
+    "example_meaning": "어느 쪽이든 통보하면 계약을 종료할 수 있다."
+  },
+  {
+    "term": "renewal",
+    "phonetic": "rɪˈnuəl",
+    "pos": "noun",
+    "meaning": "갱신 절차",
+    "example": "The renewal of the lease is due in May.",
+    "example_meaning": "임대 계약의 갱신은 5월이 기한이다."
+  },
+  {
+    "term": "amend",
+    "phonetic": "əˈmɛnd",
+    "pos": "verb",
+    "meaning": "개정하다",
+    "example": "The board voted to amend the rules.",
+    "example_meaning": "이사회는 규칙을 개정하기로 표결했다."
+  },
+  {
+    "term": "amendment",
+    "phonetic": "əˈmɛndmənt",
+    "pos": "noun",
+    "meaning": "수정안",
+    "example": "The amendment was approved unanimously.",
+    "example_meaning": "수정안은 만장일치로 승인되었다."
+  },
+  {
+    "term": "revision",
+    "phonetic": "riˈvɪʒən",
+    "pos": "noun",
+    "meaning": "개정판",
+    "example": "The latest revision includes new safety rules.",
+    "example_meaning": "최신 개정판에는 새 안전 규정이 들어 있다."
+  },
+  {
+    "term": "reconvene",
+    "phonetic": "rikənˈvin",
+    "pos": "verb",
+    "meaning": "다시 모이다",
+    "example": "The committee will reconvene after lunch.",
+    "example_meaning": "위원회는 점심 후에 다시 모일 것이다."
+  },
+  {
+    "term": "feasibility",
+    "phonetic": "ˌfizəˈbɪləti",
+    "pos": "noun",
+    "meaning": "타당성",
+    "example": "They studied the feasibility of opening a new branch.",
+    "example_meaning": "그들은 새 지점을 여는 일의 타당성을 검토했다."
+  },
+  {
+    "term": "implication",
+    "phonetic": "ˌɪmpləˈkeɪʃən",
+    "pos": "noun",
+    "meaning": "파급 효과",
+    "example": "The decision has serious implications for our budget.",
+    "example_meaning": "그 결정은 우리 예산에 심각한 파급 효과를 미친다."
+  },
+  {
+    "term": "pitfall",
+    "phonetic": "ˈpɪtfɔl",
+    "pos": "noun",
+    "meaning": "함정",
+    "example": "Avoid the common pitfalls of new projects.",
+    "example_meaning": "새 프로젝트의 흔한 함정을 피하세요."
+  },
+  {
+    "term": "setback",
+    "phonetic": "ˈsɛtbæk",
+    "pos": "noun",
+    "meaning": "차질",
+    "example": "The delay was a setback for the whole project.",
+    "example_meaning": "그 지연은 프로젝트 전체에 차질이었다."
+  },
+  {
+    "term": "bottleneck",
+    "phonetic": "ˈbɑtəlˌnɛk",
+    "pos": "noun",
+    "meaning": "병목 지점",
+    "example": "The approval step is a bottleneck in our process.",
+    "example_meaning": "승인 단계는 우리 절차의 병목 지점이다."
+  },
+  {
+    "term": "rollout",
+    "phonetic": "ˈroʊlaʊt",
+    "pos": "noun",
+    "meaning": "본격 도입",
+    "example": "The rollout of the new system starts in May.",
+    "example_meaning": "새 시스템의 본격 도입은 5월에 시작된다."
+  },
+  {
+    "term": "downturn",
+    "phonetic": "ˈdaʊntɝn",
+    "pos": "noun",
+    "meaning": "경기 침체",
+    "example": "The company survived the economic downturn.",
+    "example_meaning": "그 회사는 경기 침체를 견뎌 냈다."
+  },
+  {
+    "term": "surge",
+    "phonetic": "sɝdʒ",
+    "pos": "noun",
+    "meaning": "급증",
+    "example": "There was a surge in online orders.",
+    "example_meaning": "온라인 주문이 급증했다."
+  },
+  {
+    "term": "plummet",
+    "phonetic": "ˈplʌmət",
+    "pos": "verb",
+    "meaning": "급락하다",
+    "example": "Share prices plummeted after the news.",
+    "example_meaning": "그 소식 후에 주가가 급락했다."
+  },
+  {
+    "term": "soar",
+    "phonetic": "sɔr",
+    "pos": "verb",
+    "meaning": "치솟다",
+    "example": "Profits soared during the holiday season.",
+    "example_meaning": "연휴 기간에 이익이 치솟았다."
+  },
+  {
+    "term": "fluctuation",
+    "phonetic": "ˌflʌktʃuˈeɪʃən",
+    "pos": "noun",
+    "meaning": "변동",
+    "example": "Exchange rate fluctuations affect our costs.",
+    "example_meaning": "환율 변동은 우리 비용에 영향을 준다."
+  },
+  {
+    "term": "thrive",
+    "phonetic": "θraɪv",
+    "pos": "verb",
+    "meaning": "번창하다",
+    "example": "Small businesses thrive in this area.",
+    "example_meaning": "이 지역에서는 소규모 사업체가 번창한다."
+  },
+  {
+    "term": "expand",
+    "phonetic": "ɪkˈspænd",
+    "pos": "verb",
+    "meaning": "확장하다",
+    "example": "The chain plans to expand into Asia.",
+    "example_meaning": "그 체인은 아시아로 확장할 계획이다."
+  },
+  {
+    "term": "diversify",
+    "phonetic": "daɪˈvɝsəˌfaɪ",
+    "pos": "verb",
+    "meaning": "다각화하다",
+    "example": "The firm wants to diversify its products.",
+    "example_meaning": "그 회사는 제품을 다각화하고 싶어 한다."
+  },
+  {
+    "term": "merge",
+    "phonetic": "mɝdʒ",
+    "pos": "verb",
+    "meaning": "합병하다",
+    "example": "The two banks agreed to merge.",
+    "example_meaning": "두 은행은 합병하기로 합의했다."
+  },
+  {
+    "term": "downsize",
+    "phonetic": "ˈdaʊnsaɪz",
+    "pos": "verb",
+    "meaning": "규모를 줄이다",
+    "example": "The firm had to downsize its staff.",
+    "example_meaning": "그 회사는 인원 규모를 줄여야 했다."
+  },
+  {
+    "term": "restructure",
+    "phonetic": "riˈstrʌktʃɚ",
+    "pos": "verb",
+    "meaning": "구조 조정하다",
+    "example": "The company will restructure its sales team.",
+    "example_meaning": "회사는 영업팀을 구조 조정할 것이다."
+  },
+  {
+    "term": "allocate",
+    "phonetic": "ˈæləˌkeɪt",
+    "pos": "verb",
+    "meaning": "배분하다",
+    "example": "We allocated more money to research.",
+    "example_meaning": "우리는 연구에 더 많은 돈을 배분했다."
+  },
+  {
+    "term": "invest",
+    "phonetic": "ɪnˈvɛst",
+    "pos": "verb",
+    "meaning": "투자하다",
+    "example": "They plan to invest in solar energy.",
+    "example_meaning": "그들은 태양광 에너지에 투자할 계획이다."
+  },
+  {
+    "term": "lend",
+    "phonetic": "lɛnd",
+    "pos": "verb",
+    "meaning": "빌려주다",
+    "example": "The bank agreed to lend us the money.",
+    "example_meaning": "은행은 우리에게 그 돈을 빌려주기로 했다."
+  },
+  {
+    "term": "bankrupt",
+    "phonetic": "ˈbæŋkrəpt",
+    "pos": "adjective",
+    "meaning": "파산한",
+    "example": "The company went bankrupt last year.",
+    "example_meaning": "그 회사는 작년에 파산했다."
+  },
+  {
+    "term": "swamped",
+    "phonetic": "swɔmpt",
+    "pos": "adjective",
+    "meaning": "일에 파묻힌",
+    "example": "I'm swamped with emails this week.",
+    "example_meaning": "나는 이번 주에 이메일에 파묻혀 있다."
+  },
+  {
+    "term": "regards",
+    "phonetic": "rɪˈɡɑrdz",
+    "pos": "noun",
+    "meaning": "안부 인사",
+    "example": "Please give my regards to your team.",
+    "example_meaning": "팀원들에게 제 안부를 전해 주세요."
+  }
+]

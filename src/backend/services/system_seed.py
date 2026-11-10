@@ -30,6 +30,7 @@ MEANING_MAX = 200
 EXAMPLE_MAX = 500
 EXAMPLE_MEANING_MAX = 500
 PHONETIC_MAX = 100
+POS_MAX = 20
 LEVEL_RANGE = (1, 5)
 
 
@@ -50,6 +51,7 @@ class SeedWordData:
     example_meaning: str | None
     order_index: int
     phonetic: str | None = None  # 미국식 IPA (슬래시 없음). 없으면 None
+    pos: str | None = None  # 품사 (영문 소문자, 예: noun). 없으면 None. v2.2 신규 단어장부터 채운다
 
 
 @dataclass(frozen=True)
@@ -138,13 +140,14 @@ def _parse_words(slug: str, raw: object) -> tuple[SeedWordData, ...]:
         example = _text(item.get("example"), "example", where, EXAMPLE_MAX, required=False)
         example_meaning = _text(item.get("example_meaning"), "example_meaning", where, EXAMPLE_MEANING_MAX, required=False)
         phonetic = _phonetic(item.get("phonetic"), where)
+        pos = _text(item.get("pos"), "pos", where, POS_MAX, required=False)
         if example is None:
             example_meaning = None  # 예문이 없으면 예문 뜻도 두지 않는다 (기존 words 규칙)
         key = _term_key(term)
         if key in seen:
             raise SeedValidationError(f"{where}: term 중복 ('{term}' 는 '{seen[key]}' 와 같은 단어로 취급됩니다)")
         seen[key] = term
-        words.append(SeedWordData(term, meaning, example, example_meaning, index, phonetic))
+        words.append(SeedWordData(term, meaning, example, example_meaning, index, phonetic, pos))
     return tuple(words)
 
 
@@ -192,8 +195,10 @@ def compute_content_hash(vocabulary: SeedVocabularyData) -> str:
         "level": vocabulary.level,
         "description": vocabulary.description,
         "sort_order": vocabulary.sort_order,
+        # pos 는 값이 있을 때만 항목 끝에 붙인다. 품사가 없는 기존 단어장의 해시가 바뀌지 않아 재적재되지 않는다 (v2.2).
         "words": [
-            [w.term, w.meaning, w.example, w.example_meaning, w.order_index, w.phonetic] for w in vocabulary.words
+            [w.term, w.meaning, w.example, w.example_meaning, w.order_index, w.phonetic] + ([w.pos] if w.pos is not None else [])
+            for w in vocabulary.words
         ],
     }
     canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
@@ -264,13 +269,14 @@ async def _seed_one(session: AsyncSession, data: SeedVocabularyData, report: See
                     "example": word.example,
                     "example_meaning": word.example_meaning,
                     "phonetic": word.phonetic,
+                    "pos": word.pos,
                     "order_index": word.order_index,
                 }
             )
             continue
-        new_values = (word.term, word.meaning, word.example, word.example_meaning, word.order_index, word.phonetic)
-        if (row.term, row.meaning, row.example, row.example_meaning, row.order_index, row.phonetic) != new_values:
-            row.term, row.meaning, row.example, row.example_meaning, row.order_index, row.phonetic = new_values
+        new_values = (word.term, word.meaning, word.example, word.example_meaning, word.order_index, word.phonetic, word.pos)
+        if (row.term, row.meaning, row.example, row.example_meaning, row.order_index, row.phonetic, row.pos) != new_values:
+            row.term, row.meaning, row.example, row.example_meaning, row.order_index, row.phonetic, row.pos = new_values
             updated += 1
     if inserted:
         await session.execute(mysql_insert(SystemWord), inserted)
