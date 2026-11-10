@@ -113,3 +113,29 @@ test("다크 구간은 버튼 토큰(--btn-*, --on-accent)을 교체한다", () 
     assert.ok(dark.includes(token), `html.dark 에서 ${token} 을 정의해야 한다`);
   }
 });
+
+/**
+ * :root 에서 정의한 `--btn-*-edge`·`--btn-*-bg` 토큰 중 `html.dark` 블록에 없는 것을 찾는다.
+ * 라이트 값만 있으면 다크에서 밝은 가장자리·채움색이 그대로 남는 결함이 생긴다.
+ * @param {string} css
+ * @returns {string[]}
+ */
+export function btnTokensMissingInDark(css) {
+  const rootBlock = [...css.matchAll(/(?:^|\n):root\s*\{([\s\S]*?)\n\}/g)].map((m) => m[1]).join("\n");
+  const darkBlock = css.match(/\nhtml\.dark\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+  const pattern = /(--btn-[a-z]+-(?:edge|bg))\s*:/g;
+  const light = [...rootBlock.matchAll(pattern)].map((m) => m[1]);
+  const dark = new Set([...darkBlock.matchAll(pattern)].map((m) => m[1]));
+  return light.filter((token) => !dark.has(token));
+}
+
+test("btnTokensMissingInDark: 다크에 빠진 --btn-*-edge/bg 토큰을 잡아낸다 (검사기 자체 점검)", () => {
+  const css = ":root {\n  --btn-a-bg: #fff;\n  --btn-a-edge: #000;\n  --btn-b-edge: #111;\n}\nhtml.dark {\n  --btn-a-bg: #000;\n  --btn-a-edge: #fff;\n}\n";
+  assert.deepEqual(btnTokensMissingInDark(css), ["--btn-b-edge"]);
+});
+
+test(":root 의 모든 --btn-*-edge/bg 토큰은 html.dark 에서도 재정의된다", () => {
+  const css = readFileSync(join(ROOT, "css/app.css"), "utf8");
+  assert.ok(/(?:^|\n):root\s*\{[\s\S]*?--btn-primary-edge/.test(css), ":root 블록 파싱 실패. 정규식을 확인하라");
+  assert.deepEqual(btnTokensMissingInDark(css), []);
+});
