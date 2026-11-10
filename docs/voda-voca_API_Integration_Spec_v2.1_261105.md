@@ -66,7 +66,8 @@
 | 닉네임 | 2~30자 (공백 제거 후), 중복 불가 | 대소문자 무시 유일 (409) |
 | 카탈로그 `category` | 최대 50자 | 필터 값 |
 | 카탈로그 `level` | 1~5 | 범위 밖은 422 |
-| 세션 `count` | 1~30 (기본 15) | 범위 밖은 422 |
+| 세션 `count` | 1~30 (생략하면 내 설정, 기본 10) | 범위 밖·null 은 422 |
+| 학습 개수 설정 | `quiz_count`, `flashcard_count`, `daily_goal` 각각 10·20·30 (`options` 로 제공) | 그 밖의 값·null·알 수 없는 필드는 422 |
 | 세션 답 | `choice_index` 0~3, `known` boolean — **둘 중 정확히 하나** | 아니면 422 |
 
 ---
@@ -91,9 +92,11 @@
 | 13 | GET | `/api/study/stats` | REQ-131~133 | 필수 | 200 | 401 |
 | 14 | GET | `/api/study/wrong-words` | REQ-129 | 필수 | 200 | 422, 401 |
 | 15 | GET | `/api/study/logs` | REQ-016 | 필수 | 200 | 422, 401 |
+| 16 | GET | `/api/users/me/settings` | REQ-147 | 필수 | 200 | 401 |
+| 17 | PATCH | `/api/users/me/settings` | REQ-147 | 필수 | 200 | 422, 401 |
 | — | GET | `/health` | 운영 | — | 200 | 503 |
 
-> 이 표는 `app.openapi()` 의 경로·메서드 집합과 일치합니다 (인증 5건, 표준 단어장 3건, 북마크 3건, 학습 5건 = 16건 + health).
+> 이 표는 `app.openapi()` 의 경로·메서드 집합과 일치합니다 (인증 5건, 표준 단어장 3건, 북마크 3건, 학습 5건, 설정 2건 = 18건 + health).
 
 ---
 
@@ -184,7 +187,7 @@
   | 필드 | 값 | 기본 | 설명 |
   | :--- | :--- | :--- | :--- |
   | `mode` | `"quiz"` \| `"flashcard"` | `quiz` | 4지선다 / 알아요·헷갈려요 |
-  | `count` | 1~30 | 15 | 요청 문항 수. 가용 단어가 적으면 줄어듭니다 |
+  | `count` | 1~30 | (생략) | 요청 문항 수. **생략하면 내 설정**(`mode` 가 quiz 면 `quiz_count`, flashcard 면 `flashcard_count`, 기본 10)을 씁니다. 가용 단어가 적으면 줄어듭니다 |
   | `include_memorized` | boolean | false | true 면 숙련 단어도 출제 (`source=all` 에만 적용) |
   | `source` | `"all"` \| `"bookmarks"` \| `"wrong"` | `all` | 아래 표 |
 - `source` 별 동작:
@@ -267,6 +270,20 @@
 **GET `/health`** (인증 없음)
 - 200: `{"status": "ok", "db": "connected"}` / 503: `{"status": "error", "db": "disconnected"}`
 - 프론트는 쓰지 않습니다. 운영 점검용입니다.
+
+### 3.7 학습 개수 설정 (REQ-147)
+
+사용자별로 퀴즈·플래시카드 1회 문항 수와 오늘의 목표를 저장합니다. 값은 10·20·30 중 하나이고 기본은 10 입니다.
+
+**#16 GET `/api/users/me/settings`**
+- 응답 200: `{"quiz_count": 10, "flashcard_count": 10, "daily_goal": 10, "options": [10, 20, 30]}`
+- `options` 는 선택 가능한 값 목록입니다. 프론트는 이 목록으로 선택지를 그리며 값을 하드코딩하지 않습니다.
+
+**#17 PATCH `/api/users/me/settings`**
+- 요청: 바꿀 필드만 보냅니다 (`{"daily_goal": 20}`). 빈 객체는 변경 없이 현재 값을 돌려줍니다.
+- 응답 200: GET 과 같은 본문 (변경 후 값)
+- 422: `options` 에 없는 값, 문자열·boolean·null, 알 수 없는 필드. 이때 아무것도 바뀌지 않습니다.
+- 세션 생성(#11)에서 `count` 를 생략하면 이 설정이 적용됩니다.
 
 ---
 
@@ -436,6 +453,7 @@ POST /api/study/sessions  ─►  items[0..N-1]
 | v2.1 개정 | 2026-11-06 | 발음기호 `phonetic` 필드 추가 (REQ-144, v2.2). `VocabularyWordOut`(#6 단어 목록), `SessionItemOut`(#11 출제), `SessionAnswerOut`(#12 채점)에 `string\|null` 추가. **퀴즈 출제 응답은 항상 null**, 플래시카드 출제·채점 응답은 값 (§6.2 표 갱신). 옛 세션은 null. 추가 필드라 하위 호환 | Claude |
 | v2.1 개정 | 2026-11-10 | 품사 `pos` 필드 추가 (REQ-146, v2.2): `VocabularyWordOut`, `SessionItemOut`(**퀴즈 출제 포함**), `SessionAnswerOut` 에 `string\|null`. 이전 "pos 비노출" 문구 폐기. 플래시카드 `phonetic` 은 앞면용으로 용도 표기 정정. 추가 필드라 하위 호환 | Claude |
 | v2.1 개정 | 2026-11-10 | `pos` 값 정정: 기존 600단어도 값이 채워져 전체 1,000단어가 값을 가짐. 값 집합에 `pronoun`·`interjection` 추가. 필드·타입 변경 없음 | Claude |
+| v2.1 개정 | 2026-11-10 | 학습 개수 설정 API 추가 (REQ-147, v2.2): `GET`·`PATCH /api/users/me/settings` (#16, #17). 세션 생성 `count` 가 선택값으로 바뀌어 생략 시 사용자 설정을 쓴다 (기본 15 → 10). 명시한 `count` 는 기존과 같다(하위 호환) | Claude |
 | v2.1 개정 | 2026-11-10 | 카탈로그 확충 반영 (REQ-145, v2.2). 카테고리 값 `EXAM`·`BUSINESS` 와 단어장 2개(총 5개·1,000단어), 통계 예시 `total_words` 1000. **API 스키마 변경 없음** — `pos` 는 응답에 노출하지 않음을 명시. 하위 호환 | Claude |
 | v2.1 | 2026-11-05 | 중앙 제공형 단어장 전환 반영. `/api/wordbooks/*`, `/api/words/*`, `/api/study/flashcards`, `/api/study/quiz/*` 제거. `GET /api/vocabularies`, `GET /api/vocabularies/{id}/words`, `POST /api/users/me/active-vocabulary`, `POST /api/study/sessions`(source: all/bookmarks/wrong), `POST /api/study/sessions/{id}/answer`, `GET /api/study/wrong-words`, `GET /api/study/stats` 추가. 출제 응답 정답 비노출·채점 응답 공개 규격, 멱등 재전송, 숙련도 전이, `X-Error-Code` 표 명시. 요구사항 명세 v2.1, 데이터 설계 v2.1 과 정합 | Claude |
 | v2.0 | 2026-11-02 | `example_meaning`, 학습 로그 `wordbook_id` 등 (`docs/old/voda-voca_API_Integration_Spec_v2.0_261102.md`) | Claude |

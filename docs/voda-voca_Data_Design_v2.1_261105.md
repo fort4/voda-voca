@@ -37,6 +37,9 @@ erDiagram
         VARCHAR password_hash
         VARCHAR nickname UK
         BIGINT active_vocabulary_id FK "NULL 허용"
+        SMALLINT quiz_count "기본 10"
+        SMALLINT flashcard_count "기본 10"
+        SMALLINT daily_goal "기본 10"
         DATETIME created_at
         DATETIME updated_at
     }
@@ -172,6 +175,7 @@ erDiagram
 | `created_at` | DATETIME(3) | N | `(UTC_TIMESTAMP(3))` | UTC |
 | `updated_at` | DATETIME(3) | N | `(UTC_TIMESTAMP(3))` | UTC, 수정 시 앱에서 갱신 |
 | `active_vocabulary_id` | BIGINT UNSIGNED | Y | NULL | **FK** → `system_vocabularies.id` `ON DELETE SET NULL` (`fk_users_active_vocabulary`). 학습 중인 표준 단어장 (REQ-142). 가입 시 `beginner-200`(초급 200제)이 자동 지정된다. 마이그레이션 `b1e5c0a7d2f4`. |
+| `quiz_count`, `flashcard_count`, `daily_goal` | SMALLINT UNSIGNED | N | 10 | 학습 개수 설정 (v2.2, REQ-147): 퀴즈·플래시카드 1회 문항 수, 오늘의 목표. `CHECK (> 0)` 만 DB 가 보장하고 **허용 값(10/20/30)은 앱이 검증**한다(`schemas/user_settings.py`). 기존 사용자도 DEFAULT 10. 마이그레이션 `e2b6d4a9f1c3`. |
 
 **인덱스**: `PRIMARY KEY (id)`, `UNIQUE KEY uk_users_nickname (nickname)`, `KEY fk_users_active_vocabulary (active_vocabulary_id)` (FK 자동 생성)
 
@@ -427,11 +431,17 @@ CREATE TABLE users (
   created_at    DATETIME(3)     NOT NULL DEFAULT (UTC_TIMESTAMP(3)),
   updated_at    DATETIME(3)     NOT NULL DEFAULT (UTC_TIMESTAMP(3)),
   active_vocabulary_id BIGINT UNSIGNED NULL,
+  quiz_count SMALLINT UNSIGNED NOT NULL DEFAULT 10,
+  flashcard_count SMALLINT UNSIGNED NOT NULL DEFAULT 10,
+  daily_goal SMALLINT UNSIGNED NOT NULL DEFAULT 10,
   PRIMARY KEY (id),
   UNIQUE KEY uk_users_nickname (nickname),
   KEY fk_users_active_vocabulary (active_vocabulary_id),
   CONSTRAINT fk_users_active_vocabulary FOREIGN KEY (active_vocabulary_id) REFERENCES system_vocabularies (id) ON DELETE SET NULL,
-  CONSTRAINT ck_users_nickname_not_blank CHECK (CHAR_LENGTH(TRIM(nickname)) > 0)
+  CONSTRAINT ck_users_nickname_not_blank CHECK (CHAR_LENGTH(TRIM(nickname)) > 0),
+  CONSTRAINT ck_users_quiz_count_positive CHECK (quiz_count > 0),
+  CONSTRAINT ck_users_flashcard_count_positive CHECK (flashcard_count > 0),
+  CONSTRAINT ck_users_daily_goal_positive CHECK (daily_goal > 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE system_vocabularies (
@@ -556,6 +566,7 @@ CREATE TABLE quiz_sessions (
 | `b1e5c0a7d2f4` | `system_vocabularies`, `system_words`, `user_word_progress` 신설, `users.active_vocabulary_id` 추가 |
 | `c3f7a9d1e8b2` | **파괴적**: `study_logs`, `bookmarks`, `quiz_sessions` 의 기존 행 삭제 후 FK 를 `system_words`/`system_vocabularies` 로 전환, `mode` 컬럼 추가, `quiz_sessions.wordbook_id` → `vocabulary_id`, `source` 값 `'wordbook'` → `'vocabulary'` |
 | **`d1a8e3f5c7b9` (D-2)** | **`words`, `wordbooks` DROP** (자식 → 부모 순). downgrade 는 구조만 복원하며 데이터는 `ai-agent/backups/` 덤프로 복구한다. 두 테이블을 참조하는 다른 테이블은 없었다 |
+| **`e2b6d4a9f1c3`** | `users` 에 `quiz_count`, `flashcard_count`, `daily_goal` 추가(SMALLINT UNSIGNED NOT NULL DEFAULT 10, 각 `CHECK > 0`). downgrade 는 CHECK 와 컬럼을 지운다(다른 데이터 무영향) |
 
 옛 `wordbooks`/`words` 의 DDL 은 이력으로 `docs/old/voda-voca_Data_Design_v2.0_261102.md` 에 남아 있다.
 
@@ -603,6 +614,7 @@ CREATE TABLE quiz_sessions (
 | :--- | :--- | :--- | :--- |
 | v2.1 개정 | 2026-11-10 | `system_words.pos` 를 API·화면에 노출 (REQ-146). `quiz_sessions.questions` 스냅샷 키 `pos` 추가(퀴즈 출제에도 싣는 점이 `phonetic` 과 다름, 옛 세션은 키 없음→null). 스키마·마이그레이션 변경 없음 | Claude |
 | v2.1 개정 | 2026-11-10 | 기존 600단어에 `pos` 를 채움. 기존 3개 단어장의 `content_hash` 가 바뀌어 시작 시 `system_words` 가 UPDATE 된다 (`word_id` 불변, 진행 기록 유지). 허용 품사 `pronoun`·`interjection` 추가. 스키마·마이그레이션 변경 없음 | Claude |
+| v2.1 개정 | 2026-11-10 | `users` 에 학습 개수 설정 컬럼 3종 추가 (REQ-147, `e2b6d4a9f1c3`). 기본 10, 허용 값은 앱이 검증. 스냅샷·다른 테이블 변경 없음 | Claude |
 | v2.1 개정 | 2026-11-10 | 시험 대비·실무 비즈니스 단어장 2개 추가(REQ-145, v2.2 카탈로그 확충): 시드 파일 2개·총 1,000단어, `system_words.pos` 사용 개시(영문 소문자, API 미노출), `content_hash` 에 `pos` 를 값이 있을 때만 포함해 기존 해시 불변. 카테고리 값 `EXAM`·`BUSINESS`. **스키마·마이그레이션 변경 없음** | Claude |
 | v2.1 개정 | 2026-11-06 | `system_words.phonetic` 사용 개시 (REQ-144, v2.2 발음기호). 저장 형식(슬래시 없는 미국식 IPA, VARCHAR(100), NULL 허용)과 시드 검증, `content_hash`·갱신 규칙에 `phonetic` 포함, `quiz_sessions.questions` 스냅샷 키 `phonetic` 추가(옛 세션은 키 없음→null). **스키마·마이그레이션 변경 없음** (컬럼은 `b1e5c0a7d2f4` 에서 이미 같은 규격) | Claude |
 | v2.1 | 2026-11-05 | 중앙 제공형 단어장 전환 반영. `wordbooks`, `words` 제거(`d1a8e3f5c7b9`), `system_vocabularies`, `system_words`, `user_word_progress` 신설, `users.active_vocabulary_id` 추가, `study_logs`/`bookmarks` FK 를 `system_words` 로 전환, `study_logs.mode`, `quiz_sessions` 의 `vocabulary_id`·`mode`·`answers` 반영, 출제 응답 정답 비노출(D16), 숙련 규칙(D17), 시드 구조 개정. ERD·DDL 은 실제 DB 와 대조. 요구사항 명세 v2.1 과 정합 | Claude |

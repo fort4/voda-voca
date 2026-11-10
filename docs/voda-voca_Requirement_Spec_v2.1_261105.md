@@ -4,7 +4,7 @@
 | :--- | :--- |
 | 프로젝트 | voda-voca (보다보카, 웹 기반 단어장 서비스) |
 | 문서 종류 | 요구사항 명세서 (Requirement Spec, `개발방법론.md` §2.2) |
-| 버전 / 상태 | v2.1 / **승인 (Approved)** — 중앙 제공형 단어장 전환 반영. REQ-125, REQ-137, REQ-138 은 2026-11-05 에, REQ-141 은 2026-11-06 에 v2.2 사양으로 개정, REQ-144 신설, REQ-145·REQ-146 은 2026-11-10 에 신설 |
+| 버전 / 상태 | v2.1 / **승인 (Approved)** — 중앙 제공형 단어장 전환 반영. REQ-125, REQ-137, REQ-138 은 2026-11-05 에, REQ-141 은 2026-11-06 에 v2.2 사양으로 개정, REQ-144 신설, REQ-145·REQ-146·REQ-147 은 2026-11-10 에 신설 |
 | 작성일 | 2026-11-05 (v2.0: 2026-11-02) |
 | 산출물 경로 | `docs/voda-voca_Requirement_Spec_v2.1_261105.md` (이전 버전: `docs/old/voda-voca_Requirement_Spec_v2.0_261102.md` 외 보관) |
 
@@ -59,7 +59,7 @@
 
 - **S-01 신규 학습자 시작**: 회원 가입 → 초급 단어장이 자동으로 학습 단어장이 됨 → 홈에서 바로 학습 시작
 - **S-02 이동 중 학습**: 모바일에서 로그인 → 홈에서 플래시카드 세션 시작 → 카드를 뒤집고 "알아요 / 헷갈려요"로 응답
-- **S-03 실력 점검**: 퀴즈 세션(기본 15문항) → 보기를 고르면 즉시 정오와 해설 → 마지막에 정답 수와 오답 노트 확인
+- **S-03 실력 점검**: 퀴즈 세션(기본 10문항, 설정에서 10·20·30 선택) → 보기를 고르면 즉시 정오와 해설 → 마지막에 정답 수와 오답 노트 확인
 - **S-04 단어장 바꾸기**: 탐색 화면에서 카테고리·레벨로 거르고 다른 표준 단어장을 학습 단어장으로 선택
 - **S-05 중점 복습**: 복습함에서 북마크 또는 틀린 단어로 복습 세션 시작
 
@@ -98,6 +98,7 @@
 | REQ-144 | 단어 발음기호(IPA) 연동 및 표시 | S | (v2.2) 표준 단어에 **미국식 IPA** 발음기호를 싣고 화면에 보인다 (기존 600개, 이어서 REQ-145 의 신규 400개까지 총 1,000개). ① **저장**: `system_words.phonetic`(VARCHAR(100), NULL 허용)에 **슬래시 없는** IPA 문자열로 저장하고(예: `ˈæpəl`), 시드 로더가 IPA 문자(라틴 소문자·IPA 확장·수정 문자·결합 기호·공백)만 허용해 검증한다. 한글·슬래시·대괄호·제어 문자와 100자 초과는 거부한다. 값이 바뀌면 `content_hash` 가 달라져 DB 에 반영된다. ② **API**: 단어 목록(`VocabularyWordOut`)·플래시카드 출제(`SessionItemOut`)·채점(`SessionAnswerOut`)이 `phonetic`(문자열 또는 null)을 싣는다. **퀴즈 출제 응답의 `phonetic` 은 단어에 값이 있어도 항상 null** 이다(채점 전 정보 최소화, REQ-014·REQ-124). ③ **표시**: 화면이 `/…/` 서식을 입힌다. 해설 시트(퀴즈 채점 후)와 단어 시트에서는 표제어 오른쪽에, 플래시카드는 **앞면의 표제어 아래**에 보이고 뒷면과 퀴즈 문제 화면에는 보이지 않는다 (2026-11-10 개정: 소리를 짐작하며 뜻을 떠올리게 하려고 앞면으로 옮겼다). 값이 없으면(null·빈 값) 요소를 그리지 않는다. ④ **접근성**: 발음기호는 `aria-hidden="true"` 시각 전용이며 낭독은 🔊 버튼(REQ-125)이 맡는다. ⑤ **데이터 출처·라이선스**: CMU Pronouncing Dictionary(CMUdict, Copyright (C) 1993-2015 Carnegie Mellon University, BSD 계열 라이선스)의 미국식 발음을 IPA 로 변환하고, 미수록·동형이음 단어는 수기로 확정했다. 저작권 고지와 라이선스 조건은 §10 에 유지한다. |
 | REQ-145 | 시험 대비·실무 비즈니스 카탈로그 확충 | S | (v2.2) 표준 카탈로그를 시험 대비와 직장 영어로 넓힌다. ① **단어장**: `exam-core-200`(제목 "시험 대비 핵심 200", category `EXAM`, level 3, sort_order 4)과 `business-practical-200`(제목 "실무 비즈니스 영단어 200", category `BUSINESS`, level 3, sort_order 5) 각 200단어를 추가해 총 **1,000단어**(5개 단어장)로 한다. 시험 이름은 상표이므로 제목에 쓰지 않고 설명란에 "영어 공인시험"처럼 서술형으로만 표기한다. ② **단어 규격**: 신규 400단어는 **단일 단어**(숙어·구동사 제외)이며 `term`, `phonetic`(REQ-144 규격), `pos`, `meaning`, `example`, `example_meaning` 6개를 모두 갖는다. 예문에는 표제어 또는 그 활용형이 들어 있어야 하고, 전체 1,000단어의 표제어는 서로 겹치지 않으며, 한 단어장 안에서 뜻이 겹치지 않는다(퀴즈 보기 모호성 방지). ③ **품사(`pos`)**: 영문 소문자 `noun`·`verb`·`adjective`·`adverb`·`preposition`·`conjunction` 중 하나(v2.2 후속으로 `pronoun`·`interjection` 추가, REQ-146). `system_words.pos` 에 저장한다 (API·화면 노출은 REQ-146). 기존 600단어도 v2.2 후속에서 품사를 채워 **1,000단어 전부에 값이 있다**. ④ **기존 데이터 불변**: `pos` 는 값이 있을 때만 `content_hash` 에 넣는다. 기존 3개 단어장은 품사를 채우며 해시가 한 번 바뀌어 앱 시작 때 `system_words` 가 갱신(UPDATE)되지만, `word_id`·사용자 진행 기록은 그대로 유지된다. 신규 단어장은 앱 시작 시 한 번 적재된다. ⑤ **화면**: 탐색 화면 카테고리 칩에 `EXAM`=시험, `BUSINESS`=비즈니스 한글 라벨을 쓴다. ⑥ **데이터 출처**: 단어·뜻·예문은 직접 작성했고 발음기호는 CMUdict 변환이다 (요구사항 명세 §10). |
 | REQ-146 | 품사 표시 | S | (v2.2) 시드의 품사(`pos`)를 API 로 내려 화면에 보인다. ① **API**: 단어 목록(`VocabularyWordOut`)·출제(`SessionItemOut`, **퀴즈와 플래시카드 모두**)·채점(`SessionAnswerOut`)이 `pos`(영문 소문자 문자열 또는 null)를 싣는다. 발음기호와 달리 **퀴즈 출제 응답에서도 숨기지 않는다** (품사는 뜻을 직접 알려 주지 않는다). 진행 중인 옛 세션(스냅샷에 키 없음)은 null. 추가 필드라 하위 호환이다. ② **표시**: 화면이 한글 라벨(`noun`=명사, `verb`=동사, `adjective`=형용사, `adverb`=부사, `preposition`=전치사, `conjunction`=접속사, `pronoun`=대명사, `interjection`=감탄사; 그 밖의 값은 그대로)을 작은 알약 `.pos-tag` 로 입힌다. 위치는 단어 미리보기 시트(표제어 오른쪽), 퀴즈 문제 화면(표제어 아래), 플래시카드 **앞면**(표제어 아래, 발음기호 왼쪽), 퀴즈 해설 시트(표제어 오른쪽)다. 플래시카드 뒷면에는 보이지 않는다. 값이 없으면 요소를 그리지 않는다 (현재 시드 1,000단어는 모두 값이 있다). ③ **플래시카드 구성 변경**: 앞면 = 표제어·품사·발음기호, 뒷면 = 뜻·예문·예문 뜻 (뒷면에서 표제어와 발음기호를 뺀다, REQ-144 개정). |
+| REQ-147 | 학습 개수 사용자 설정 | S | (v2.2) 사용자가 퀴즈·플래시카드 1회 문항 수와 오늘의 목표를 고른다. ① **설정 3종**: `quiz_count`(퀴즈 1회 문항 수), `flashcard_count`(플래시카드 1회 문항 수), `daily_goal`(오늘의 목표). 값은 **10·20·30** 중 하나이고 **기본은 10** 이다. 선택 가능한 값은 서버 상수 한 곳에서 정하며 API 응답(`options`)으로 내려 프론트가 하드코딩하지 않는다. ② **저장**: 사용자별로 서버 DB(`users` 컬럼 3개)에 저장한다. DB 는 양수만 검사하고 허용 값은 앱이 검증한다(옵션 확장 시 마이그레이션 불필요). ③ **API**: `GET`·`PATCH /api/users/me/settings`. 부분 수정을 허용하고, 허용 값 밖·null·알 수 없는 필드는 422. ④ **세션 반영**: 세션 생성(`POST /api/study/sessions`)에서 `count` 를 **생략하면** `mode` 에 맞는 설정(`quiz_count`/`flashcard_count`)을 쓴다. 값을 보내면 기존처럼 1~30 으로 그 값을 쓴다. 북마크·오답 복습도 같다. ⑤ **화면**: 홈에 "학습 설정" 카드(행 3개 × 칩 3개). 선택 즉시 반영하고 저장에 실패하면 이전 값으로 되돌린다. 오늘의 목표 카드와 시작 버튼 문구("N문항 학습 시작", 현재 모드 기준)가 설정을 따른다. ⑥ **기본값 변경**: 이전의 고정값 15(세션·목표)는 폐기되고 기존 사용자도 10 으로 시작한다. |
 
 ### 4.3 단어 (Word)
 
@@ -115,7 +116,7 @@
 
 | ID | 요구사항 | 우선순위 | 상세 기준 (Acceptance Criteria) |
 | :--- | :--- | :---: | :--- |
-| REQ-012 | 학습 세션 출제와 플래시카드 모드 | M | 세션을 만든다 (`POST /api/study/sessions`, 부수효과가 있으므로 `GET` 을 쓰지 않는다). 요청: `mode`(`quiz`·`flashcard`, 기본 quiz), `count`(1~30, 기본 15), `include_memorized`(기본 false), `source`(`all`·`bookmarks`·`wrong`, 기본 all). **`all`** 은 활성 단어장에서 **워터폴 규칙**으로 고른다: 오답 풀은 최대 `floor(0.3×N)`, 기학습 복습을 `floor(0.1×N)` 먼저 확보, 나머지는 미학습 단어(`order_index` 순), 미학습이 모자라면 복습으로 충원하며, 숙련한 단어는 `include_memorized=false` 일 때 제외한다. 가용 단어가 N 미만이면 가능한 만큼만 출제하고, 출제 후 순서를 섞는다. 응답에는 `composition`(오답·복습·미학습 개수)이 있다. 출제 가능한 단어가 없으면 409 `NO_WORDS_TO_STUDY`, 활성화할 단어장이 없으면 409 `NO_VOCABULARY`. **플래시카드 모드**는 카드 **앞면에는 단어만** 보여 주고 탭하면 뒷면(뜻, 영문 예문, 예문 해석)을 뒤집어 보이며, "알아요"(true)와 "헷갈려요"(false)로 응답한다. 출제 응답에 뒷면 정보가 함께 실린다 (정답이 없는 모드이므로). |
+| REQ-012 | 학습 세션 출제와 플래시카드 모드 | M | 세션을 만든다 (`POST /api/study/sessions`, 부수효과가 있으므로 `GET` 을 쓰지 않는다). 요청: `mode`(`quiz`·`flashcard`, 기본 quiz), `count`(1~30, 생략하면 내 설정 `quiz_count`/`flashcard_count`, 기본 10 — REQ-147), `include_memorized`(기본 false), `source`(`all`·`bookmarks`·`wrong`, 기본 all). **`all`** 은 활성 단어장에서 **워터폴 규칙**으로 고른다: 오답 풀은 최대 `floor(0.3×N)`, 기학습 복습을 `floor(0.1×N)` 먼저 확보, 나머지는 미학습 단어(`order_index` 순), 미학습이 모자라면 복습으로 충원하며, 숙련한 단어는 `include_memorized=false` 일 때 제외한다. 가용 단어가 N 미만이면 가능한 만큼만 출제하고, 출제 후 순서를 섞는다. 응답에는 `composition`(오답·복습·미학습 개수)이 있다. 출제 가능한 단어가 없으면 409 `NO_WORDS_TO_STUDY`, 활성화할 단어장이 없으면 409 `NO_VOCABULARY`. **플래시카드 모드**는 카드 **앞면에는 단어만** 보여 주고 탭하면 뒷면(뜻, 영문 예문, 예문 해석)을 뒤집어 보이며, "알아요"(true)와 "헷갈려요"(false)로 응답한다. 출제 응답에 뒷면 정보가 함께 실린다 (정답이 없는 모드이므로). |
 | REQ-013 | 플래시카드 셔플 | S | **폐기** (v2.1) — 순서는 서버 출제가 결정하고 섞어 준다 (REQ-012). 사용자 셔플 조작은 두지 않는다 |
 | REQ-014 | 객관식 퀴즈 모드 | M | 표제어와 예문(문맥)을 보여 주고 뜻 4지선다 중 하나를 고르게 한다. 오답 3개는 **같은 단어장의 다른 단어 뜻을 우선**하고 부족하면 전체 표준 단어에서 보충하며, 뜻이 같은 보기는 중복시키지 않는다. 활성 단어장의 단어가 4개 미만이면 퀴즈를 시작할 수 없고(400) 플래시카드는 허용한다. **출제 응답에는 정답을 싣지 않는다** — `options` 만 있고 `correct_index`, `meaning`, `example_meaning` 은 없다. |
 | REQ-015 | 세션 결과 | M | 보기를 고르면 **즉시** 정오를 보여 준다 (정답 초록, 오답 빨강). 모든 문항에 답하면 세션이 끝나며(`is_finished`), 정답 수, 정답률, 오답 노트(틀린 단어, 정답 뜻, 내가 고른 뜻)를 보여 준다. 마지막 응답 후 30분이 지나면 새 답을 받지 않는다 (`QUIZ_EXPIRED`, 푼 문항은 이미 저장되어 있다). |
@@ -319,6 +320,7 @@ v1.0의 질의 사항 Q1~Q8에 대한 결정이다. 사용자가 명시적으로
 | REQ-144 | 단어 발음기호(IPA) 연동 및 표시 | S | UI/UX 설계서 §3.6, §3.3, §12.8, Data Design §3.3·§3.9, API 규격서 §3.2·§3.4·§6.2 | `services/system_seed.py`, `data/seeds/words/*.json`, `schemas/vocabulary.py`, `schemas/learning_session.py`, `core/phonetic.js`, `views/components/phonetic-line.js`, `feedback-sheet.js`, `word-sheet.js`, `study-session-view.js`, `css/app.css` | `test_system_seed.py`, `test_vocabulary_api.py`, `test_learning_session_api.py`, `src/frontend/tests/phonetic.test.js` | 구현 완료 (v2.2) |
 | REQ-145 | 시험 대비·실무 비즈니스 카탈로그 확충 | S | Data Design §3.3·§3.9, API 규격서 §3.2, UI/UX 설계서 §3.3 | `services/system_seed.py`, `models/system_word.py`, `data/seeds/vocabularies.json`, `data/seeds/words/exam-core-200.json`, `business-practical-200.json`, `core/explore-model.js` | `test_system_seed.py`(관문 8종·골든 해시·pos), `test_vocabulary_api.py`, `test_phonetic_api.py`, `src/frontend/tests/explore-model.test.js` | 구현 완료 (v2.2) |
 | REQ-146 | 품사 표시 | S | UI/UX 설계서 §3.3, §3.6, §12.9, API 규격서 §3.2·§3.4·§6.2, Data Design §3.3·§3.7 | `schemas/vocabulary.py`, `schemas/learning_session.py`, `services/learning_session.py`, `services/study.py`, `routers/vocabulary.py`, `core/pos.js`, `views/components/pos-tag.js`, `feedback-sheet.js`, `word-sheet.js`, `study-session-view.js`, `css/app.css` | `test_pos_api.py`, `test_vocabulary_api.py`, `src/frontend/tests/pos.test.js`, `session-view-model.test.js` | 구현 완료 (v2.2) |
+| REQ-147 | 학습 개수 사용자 설정 | S | UI/UX 설계서 §3.2, §12.10, API 규격서 §3.4·§3.7, Data Design §3.1 | `models/user.py`, `schemas/user_settings.py`, `routers/user_settings.py`, `routers/study_session.py`, `schemas/learning_session.py`, `core/settings-model.js`, `core/home-model.js`, `views/home-view.js`, `views/components/settings-card.js` | `test_user_settings_model.py`, `test_user_settings_api.py`, `test_session_count_setting.py`, `settings-model.test.js`, `settings-ui.test.js`, `home-model.test.js` | 구현 완료 (v2.2) |
 
 **상태 값 정의**: `초안` (명세만 작성) / `설계 완료` / `구현 완료` / `검증 완료`.
 **요구사항 ID 체계**: `REQ-0xx` = 기능 요구사항(FR), `REQ-1xx` = 비기능 요구사항(NFR). 번호는 재사용하지 않으며, 폐기 시 상태만 `폐기`로 바꾼다.
@@ -333,6 +335,7 @@ v1.0의 질의 사항 Q1~Q8에 대한 결정이다. 사용자가 명시적으로
 | v1.0 | 2026-11-02 | 사용자 승인 후 `docs/`로 승격 (파일명 `Requirement_Spec` 규칙 적용) | Claude |
 | v2.1 개정 | 2026-11-10 | **REQ-146 신설, REQ-144 개정, REQ-145·Q4 정정**: 품사를 API(`VocabularyWordOut`·`SessionItemOut`·`SessionAnswerOut`, 퀴즈 출제 포함)와 화면(미리보기·퀴즈 문제·플래시카드 앞면·해설 시트)에 노출. 플래시카드는 앞면에 표제어·품사·발음기호, 뒷면은 뜻·예문만 (뒷면에서 표제어·발음기호 제거). 이전 "품사 비노출" 결정(REQ-145 ③) 폐기 | Claude |
 | v2.1 개정 | 2026-11-10 | **기존 600단어 품사 채움(REQ-145·146 정정)**: 기존 3개 단어장(초급·중급·고급)의 600단어에 `pos` 를 채워 전체 1,000단어가 품사를 갖는다. 허용 품사에 `pronoun`(대명사)·`interjection`(감탄사) 추가(`hello`·`goodbye`·`what`·`who` 용). 이전 "기존 600단어는 품사 없음" 문구 폐기. 기존 3개 단어장의 `content_hash` 가 바뀌어 시작 시 UPDATE 되며 `word_id`·진행 기록은 불변 | Claude |
+| v2.1 개정 | 2026-11-10 | **REQ-147 신설**: 퀴즈·플래시카드 문항 수와 오늘의 목표를 사용자별 설정(10·20·30, 기본 10)으로 바꿈. `users` 컬럼 3개 추가, `GET`·`PATCH /api/users/me/settings`, 세션 `count` 생략 시 설정 적용. 이전 "세션·목표 15 고정" 폐기 | Claude |
 | v2.1 개정 | 2026-11-10 | **REQ-125 개정**: 단어 미리보기 시트에서 예문 듣기 버튼 제거(표제어 듣기만 유지). 학습 세션·해설 시트·플래시카드의 예문 듣기는 그대로 | Claude |
 | v2.1 개정 | 2026-11-10 | **REQ-145 신설, REQ-143 개정** (v2.2 카탈로그 확충, 이슈 #24): 시험 대비 핵심 200(`EXAM`)·실무 비즈니스 영단어 200(`BUSINESS`) 추가로 총 1,000단어. 신규 단어는 단일 단어에 6개 필드(품사 포함) 필수, 품사는 DB 저장 전용(API·화면 미노출), 기존 3개 단어장의 해시·`word_id` 불변. 탐색 칩 라벨 시험·비즈니스. 시험명 상표는 제목에 쓰지 않음 | Claude |
 | v2.1 개정 | 2026-11-06 | **REQ-144 신설, REQ-141 개정, Q4 정정** (v2.2 발음기호): 표준 단어 600개에 미국식 IPA 를 싣고(저장은 슬래시 없는 문자열, 화면이 `/…/` 서식), 단어 목록·플래시카드 출제·채점 응답에 `phonetic` 추가, **퀴즈 출제 응답은 항상 null**. 해설 시트·플래시카드 뒷면·단어 시트에 표시하고 `aria-hidden` 처리. 데이터 출처 CMUdict(BSD 계열) 고지를 §10 에 추가. Q4 의 "발음기호 미사용" 문구를 정정 | Claude |
@@ -354,7 +357,7 @@ v1.0의 질의 사항 Q1~Q8에 대한 결정이다. 사용자가 명시적으로
 | :--- | :--- | :--- |
 | **폐기** (후속 있음) | REQ-004·005 → 140 / REQ-006 → 142 / REQ-007 → 122 / REQ-008 → 143 / REQ-009 → 141 / REQ-013 → 012 / REQ-123 → 142 / REQ-128 → 140 / REQ-130 → 143 | 개인 단어장·단어 CRUD, 프리셋, 가입 시 복사, 셔플 |
 | **폐기** (후속 없음) | REQ-010, 011, 135, 136, 139 | 단어 수정·삭제, CSV 내보내기·가져오기 |
-| **신설** | REQ-140~143 (v2.2: REQ-144, 145, 146) | 중앙 제공형 카탈로그 (REQ-144 발음기호, REQ-145 카탈로그 확충, REQ-146 품사 표시) |
+| **신설** | REQ-140~143 (v2.2: REQ-144, 145, 146, 147) | 중앙 제공형 카탈로그 (REQ-144 발음기호, REQ-145 카탈로그 확충, REQ-146 품사 표시, REQ-147 학습 개수 설정) |
 | **개정** | REQ-141 (v2.2), REQ-001, 003, 012, 014, 015, 016, 017, 018, 019, 122, 124, 125, 127, 129, 131, 132, 133, 134, 137 | 세션 러너·표준 콘텐츠 기준 |
 | **유지** | REQ-002, 020~023, 101, 102, 104~121, 126, 138 | REQ-102~106 은 문구만 §5 에서 조정 |
 
