@@ -42,15 +42,16 @@ test("phonetic-line 컴포넌트: 스펙이 없으면 null 을 돌려주고, 있
   assert.match(src, /h\("span"/);
 });
 
-test("flashcardFaces: 뒷면에만 표제어와 발음기호가 있고 앞면은 단어만 (비노출 유지)", () => {
+test("flashcardFaces: 앞면에 표제어와 발음기호가 있고, 뒷면에는 표제어·발음기호가 없다 (2026-11-10 사양 변경)", () => {
   const faces = flashcardFaces({ term: "apple", phonetic: "ˈæpəl", meaning: "사과", context: null, example_meaning: null });
-  assert.deepEqual(faces.front, { term: "apple" });
-  assert.equal(faces.back.term, "apple");
-  assert.equal(faces.back.phonetic, "ˈæpəl");
+  assert.equal(faces.front.term, "apple");
+  assert.equal(faces.front.phonetic, "ˈæpəl");
+  assert.equal("term" in faces.back, false);
+  assert.equal("phonetic" in faces.back, false);
 });
 
-test("flashcardFaces: phonetic 이 없는 문항은 null", () => {
-  assert.equal(flashcardFaces({ term: "apple", meaning: "사과" }).back.phonetic, null);
+test("flashcardFaces: phonetic 이 없는 문항은 앞면 phonetic 이 null", () => {
+  assert.equal(flashcardFaces({ term: "apple", meaning: "사과" }).front.phonetic, null);
 });
 
 test(".phonetic CSS: 토큰만 쓰고 IPA 폴백 폰트 체인을 가진다", () => {
@@ -81,7 +82,12 @@ test("4지선다 문제 화면 렌더러(renderQuestion~renderChoices)에는 발
   assert.doesNotMatch(src.slice(start, end), /phonetic/i);
 });
 
-test("플래시카드 앞면 렌더링 구간에는 발음기호가 없다", () => {
+test("플래시카드: 앞면(.flip-face)에는 발음기호가 있고, 뒷면(.flip-back)에는 없다", () => {
   const src = read("js/views/study-session-view.js");
-  assert.doesNotMatch(src.match(/h\("div", \{ class: "flip-face" \}[^\n]*/)[0], /phonetic/i);
+  const start = src.indexOf('{ class: "flip-face" }');
+  const split = src.indexOf('"flip-face flip-back"');
+  assert.ok(start >= 0 && split > start, "앞면 구간을 찾지 못했다");
+  assert.match(src.slice(start, split), /phoneticLine\(/);
+  const back = src.slice(split, src.indexOf("refs.card = card"));
+  assert.doesNotMatch(back, /phonetic|faces\.back\.term/i);
 });

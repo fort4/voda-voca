@@ -137,7 +137,7 @@ test("36px 아이콘 버튼(h-9 w-9)이 화면에 남아 있지 않다 (REQ-114)
   assert.deepEqual(offenders, []);
 });
 
-test("발음 버튼 배치: 세션 헤더(단어), 해설 시트(단어+예문), 플래시카드 뒷면(예문), 단어 시트(단어+예문)", () => {
+test("발음 버튼 배치: 세션 헤더(단어), 해설 시트(단어+예문), 플래시카드 뒷면(예문), 단어 시트(단어만)", () => {
   assert.match(read("js/views/components/progress-header.js"), /speakButton\(/);
   const sheet = read("js/views/components/feedback-sheet.js");
   assert.match(sheet, /speakButton\([^)]*kind:\s*"word"/s);
@@ -145,7 +145,7 @@ test("발음 버튼 배치: 세션 헤더(단어), 해설 시트(단어+예문),
   assert.match(read("js/views/study-session-view.js"), /speakButton\([^)]*kind:\s*"sentence"/s);
   const words = read("js/views/components/word-sheet.js");
   assert.match(words, /speakButton\([^)]*kind:\s*"word"/s);
-  assert.match(words, /speakButton\([^)]*kind:\s*"sentence"/s);
+  assert.doesNotMatch(words, /kind:\s*"sentence"/, "미리보기 시트에는 예문 듣기를 두지 않는다 (2026-11-10)");
 });
 
 test("정지 시점: 문항 전환·다음·중단·화면 정리(세션), 시트 닫힘(단어 시트), 라우트 이동·탭 숨김(앱)", () => {

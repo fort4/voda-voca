@@ -10,7 +10,7 @@ from backend.services import study as study_service
 
 
 def _word(word_id: int, vocabulary_id: int, meaning: str) -> SimpleNamespace:
-    """서비스가 쓰는 속성(id, vocabulary_id, term, meaning, 예문, 발음기호)만 가진 가짜 단어."""
+    """서비스가 쓰는 속성(id, vocabulary_id, term, meaning, 예문, 발음기호, 품사)만 가진 가짜 단어."""
     return SimpleNamespace(
         id=word_id,
         vocabulary_id=vocabulary_id,
@@ -19,6 +19,7 @@ def _word(word_id: int, vocabulary_id: int, meaning: str) -> SimpleNamespace:
         example=None,
         example_meaning=None,
         phonetic=None,
+        pos=None,
     )
 
 
@@ -78,6 +79,7 @@ def test_question_carries_the_example_and_its_translation_or_none() -> None:
             example=example,
             example_meaning=translation,
             phonetic=None,
+            pos=None,
         )
 
     with_translation = [word(1, "e1", "해석1")] + [word(i, "e", None) for i in range(2, 6)]

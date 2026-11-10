@@ -153,7 +153,7 @@ async def test_words_are_listed_in_order_with_bookmark_flag(client: httpx.AsyncC
     assert [i["term"] for i in body["items"]] == ["apple", "banana", "cherry"]
     assert {i["term"]: i["bookmarked"] for i in body["items"]} == {"apple": False, "banana": True, "cherry": False}
     item = body["items"][0]
-    assert set(item) == {"word_id", "term", "meaning", "example", "example_meaning", "phonetic", "bookmarked"}
+    assert set(item) == {"word_id", "term", "meaning", "example", "example_meaning", "phonetic", "pos", "bookmarked"}
     assert item["word_id"] == vocab.word_ids["apple"] and item["meaning"] == "apple의 뜻"
 
 
@@ -290,3 +290,38 @@ async def test_set_active_rejects_invalid_body(client: httpx.AsyncClient, payloa
 async def test_set_active_requires_login(client: httpx.AsyncClient) -> None:
     response = await client.post("/api/users/me/active-vocabulary", json={"vocabulary_id": 1})
     assert response.status_code == 401
+
+
+# ---------- v2.2 카탈로그 확충: 시험·비즈니스 단어장 (이슈 #24, 실제 시드 기준) ----------
+
+
+@pytest.mark.asyncio
+async def test_catalog_has_the_exam_and_business_vocabularies_after_the_basic_three(client: httpx.AsyncClient) -> None:
+    _, token = await signup_and_login(client)
+    items = await catalog(client, token)
+    by_slug = {i["slug"]: i for i in items}
+    assert [i["slug"] for i in items][:5] == ["beginner-200", "intermediate-200", "advanced-200", "exam-core-200", "business-practical-200"]
+    assert (by_slug["exam-core-200"]["category"], by_slug["exam-core-200"]["level"], by_slug["exam-core-200"]["total_words"]) == ("EXAM", 3, 200)
+    assert (by_slug["business-practical-200"]["category"], by_slug["business-practical-200"]["total_words"]) == ("BUSINESS", 200)
+    assert by_slug["exam-core-200"]["title"] == "시험 대비 핵심 200", "상표(TOEIC)를 제목에 쓰지 않는다"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("category,slug", [("EXAM", "exam-core-200"), ("BUSINESS", "business-practical-200")])
+async def test_catalog_filters_by_the_new_categories(client: httpx.AsyncClient, category: str, slug: str) -> None:
+    _, token = await signup_and_login(client)
+    assert [i["slug"] for i in await catalog(client, token, category=category)] == [slug]
+
+
+@pytest.mark.asyncio
+async def test_new_vocabulary_words_are_listed_with_phonetic_and_pos(client: httpx.AsyncClient) -> None:
+    """품사는 v2.2 에서 단어 목록 API 로 내려간다 (신규 단어장은 모두 값이 있다)."""
+    _, token = await signup_and_login(client)
+    vocab = next(i for i in await catalog(client, token) if i["slug"] == "exam-core-200")
+    response = await client.get(f"/api/vocabularies/{vocab['id']}/words", params={"page": 1, "size": 5}, headers=auth_headers(token))
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total"] == 200 and len(body["items"]) == 5
+    for item in body["items"]:
+        assert item["phonetic"] and item["pos"] in {"noun", "verb", "adjective", "adverb", "preposition", "conjunction"}
+

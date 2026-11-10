@@ -207,14 +207,14 @@ export function completeCopy(summary) {
 }
 
 /**
- * 플래시카드 면 구성. 앞면은 단어만 보여 스스로 떠올리게 하고, 뜻·예문·예문 뜻은 뒷면에서 확인한다.
+ * 플래시카드 면 구성. 앞면은 표제어·발음기호·품사를 보여 스스로 뜻을 떠올리게 하고(발음기호는 앞면에서 소리를 짐작하는 단서),
+ * 뜻·예문·예문 뜻은 뒷면에서 확인한다. 뒷면에는 표제어와 발음기호를 다시 보이지 않는다 (2026-11-10 사양).
  * 없는 값은 null 로 두어 화면이 그 줄을 그리지 않게 한다.
- * 뒷면에는 표제어가 없어 발음기호만 덩그러니 두지 않고 표제어와 함께 보인다. 앞면에는 발음기호를 싣지 않는다.
- * @param {{term: string, phonetic?: string|null, meaning?: string|null, context?: string|null, example_meaning?: string|null}} item
+ * @param {{term: string, phonetic?: string|null, pos?: string|null, meaning?: string|null, context?: string|null, example_meaning?: string|null}} item
  */
 export function flashcardFaces(item) {
   return {
-    front: { term: item.term },
-    back: { term: item.term, phonetic: item.phonetic || null, meaning: item.meaning ?? null, example: item.context || null, exampleMeaning: item.example_meaning || null },
+    front: { term: item.term, phonetic: item.phonetic || null, pos: item.pos || null },
+    back: { meaning: item.meaning ?? null, example: item.context || null, exampleMeaning: item.example_meaning || null },
   };
 }

@@ -118,7 +118,8 @@ def _build_question(
         "correct_index": choices.index(word.meaning),
         "example": word.example,
         "example_meaning": word.example_meaning,
-        "phonetic": word.phonetic,  # 출제 응답에는 싣지 않고, 채점 응답에서만 공개한다
+        "phonetic": word.phonetic,  # 퀴즈 출제 응답에는 싣지 않고, 채점 응답에서만 공개한다
+        "pos": word.pos,  # 품사: 출제·채점 응답 모두에 싣는다 (v2.2)
     }
 
 

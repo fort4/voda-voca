@@ -5,6 +5,7 @@
 
 import { button, h, icon, kbdHint } from "../../core/dom.js";
 import { phoneticLine } from "./phonetic-line.js";
+import { posTag } from "./pos-tag.js";
 import { speakButton } from "./speak-button.js";
 import { feedbackTone } from "../../core/session-view-model.js";
 
@@ -35,19 +36,27 @@ export function renderFeedbackSheet({ state, onNext }) {
         "p",
         { class: "flex flex-wrap items-center gap-x-2 text-lg font-bold" },
         h("span", { class: "break-words" }, feedback.term),
+        posTag(feedback.pos),
         phoneticLine(feedback.phonetic),
         speakButton({ text: feedback.term, kind: "word", key: `word:${feedback.term}` }),
       ),
       h("p", { class: "break-words text-base font-semibold" }, feedback.meaning),
+      // 예문과 해석은 한 열에 묶고 발음 버튼(44px)은 그 옆에 둔다. 버튼 줄 아래에 해석을 따로 두면 줄 높이만큼 틈이 벌어진다.
       feedback.example
         ? h(
             "div",
-            { class: "flex items-start gap-1" },
-            h("p", { class: "sheet-sub min-w-0 flex-1 break-words pt-1 text-body italic leading-relaxed" }, feedback.example),
+            { class: "sheet-example flex items-start gap-1" },
+            h(
+              "div",
+              { class: "sheet-example-text min-w-0 flex-1 space-y-0.5 pt-2.5" },
+              h("p", { class: "sheet-sub break-words text-body italic leading-relaxed" }, feedback.example),
+              feedback.example_meaning ? h("p", { class: "sheet-sub break-words text-sm leading-relaxed" }, feedback.example_meaning) : null,
+            ),
             speakButton({ text: feedback.example, kind: "sentence", key: `sentence:${feedback.term}` }),
           )
-        : null,
-      feedback.example_meaning ? h("p", { class: "sheet-sub break-words text-sm leading-relaxed" }, feedback.example_meaning) : null,
+        : feedback.example_meaning
+          ? h("p", { class: "sheet-sub break-words text-sm leading-relaxed" }, feedback.example_meaning)
+          : null,
     ),
     h("div", { class: "mt-4" }, button({ variant: "primary", full: true, onClick: onNext, "data-autofocus": "true" }, tone.buttonLabel, kbdHint("Enter"))),
   );

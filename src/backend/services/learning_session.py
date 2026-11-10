@@ -80,6 +80,7 @@ def _flashcard_question(word: SystemWord) -> dict:
         "example": word.example,
         "example_meaning": word.example_meaning,
         "phonetic": word.phonetic,
+        "pos": word.pos,
     }
 
 
@@ -93,6 +94,7 @@ def _item(question: dict, mode: str) -> SessionItemOut:
             meaning=question["meaning"],
             example_meaning=question.get("example_meaning"),
             phonetic=question.get("phonetic"),  # 옛 세션 스냅샷에는 키가 없을 수 있다
+            pos=question.get("pos"),
         )
     return SessionItemOut(
         question_id=question["question_id"],
@@ -100,6 +102,7 @@ def _item(question: dict, mode: str) -> SessionItemOut:
         term=question["term"],
         context=question.get("example"),
         options=question["choices"],
+        pos=question.get("pos"),  # 품사는 퀴즈 문제 화면에도 보인다 (옛 세션 스냅샷은 키가 없을 수 있다)
     )
 
 
@@ -281,6 +284,7 @@ def _answer_out(row: QuizSession, question: dict, value: int, progress: Progress
         example=question.get("example"),
         example_meaning=question.get("example_meaning"),
         phonetic=question.get("phonetic"),
+        pos=question.get("pos"),
         progress=ProgressOut(
             correct_count=progress.correct_count,
             wrong_count=progress.wrong_count,

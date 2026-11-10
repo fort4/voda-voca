@@ -17,6 +17,7 @@ import { renderComboRow } from "./components/combo-badge.js";
 import { renderFeedbackSheet } from "./components/feedback-sheet.js";
 import { renderProgressHeader } from "./components/progress-header.js";
 import { phoneticLine } from "./components/phonetic-line.js";
+import { posTag } from "./components/pos-tag.js";
 import { renderSessionResult } from "./components/session-result.js";
 import { speakButton } from "./components/speak-button.js";
 
@@ -210,11 +211,14 @@ export function studySessionView(root, ctx) {
   }
 
   function renderQuizCard(item) {
+    const pos = posTag(item.pos);
     return h(
       "section",
       { class: "session-card" },
       h("p", { class: "session-hint" }, "알맞은 뜻을 고르세요"),
       h("p", { class: "session-term" }, item.term),
+      // 품사는 문제 화면에도 보인다. 발음기호는 채점 후 해설 시트에서만 보인다 (서버가 출제 응답에서 null 로 막는다)
+      pos ? h("p", { class: "session-meta" }, pos) : null,
       item.context ? h("p", { class: "session-context" }, item.context) : null,
     );
   }
@@ -250,11 +254,17 @@ export function studySessionView(root, ctx) {
     const card = h(
       "div",
       { class: `flip-card${flipped && !preview ? " is-flipped" : ""}` },
-      h("div", { class: "flip-face" }, h("p", { class: "session-hint" }, "탭해서 뒤집기"), h("p", { class: "session-term" }, faces.front.term)),
+      h(
+        "div",
+        { class: "flip-face" },
+        h("p", { class: "session-hint" }, "탭해서 뒤집기"),
+        h("p", { class: "session-term" }, faces.front.term),
+        // 앞면: 표제어 아래에 품사와 /발음기호/ 한 줄. 둘 다 없으면 줄 자체를 그리지 않는다
+        faces.front.pos || faces.front.phonetic ? h("p", { class: "session-meta" }, posTag(faces.front.pos), phoneticLine(faces.front.phonetic)) : null,
+      ),
       h(
         "div",
         { class: "flip-face flip-back" },
-        h("p", { class: "session-back-term" }, h("span", { class: "break-words" }, faces.back.term), phoneticLine(faces.back.phonetic)),
         h("p", { class: "session-term" }, faces.back.meaning),
         faces.back.example
           ? h(

@@ -203,3 +203,35 @@ async def test_bookmark_review_sessions_follow_the_same_rules(client, make_vocab
     cards = await create(client, token, mode="flashcard", source="bookmarks")
     assert cards.status_code == 201, cards.text
     assert all(item["phonetic"] == IPA[item["term"]] for item in cards.json()["items"])
+
+
+# ---------- v2.2 카탈로그 확충: 실제 신규 단어장으로 세션이 돌아가고 발음기호 규칙이 지켜진다 (이슈 #24) ----------
+
+
+async def _activate_real(client, slug: str):
+    _, token = await signup_and_login(client)
+    items = (await client.get("/api/vocabularies", headers=auth_headers(token))).json()
+    vocab = next(i for i in items if i["slug"] == slug)
+    response = await client.post("/api/users/me/active-vocabulary", json={"vocabulary_id": vocab["id"]}, headers=auth_headers(token))
+    assert response.status_code == 200, response.text
+    return token
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("slug", ["exam-core-200", "business-practical-200"])
+async def test_new_vocabulary_quiz_hides_phonetic_but_grading_reveals_it(client, slug: str) -> None:
+    token = await _activate_real(client, slug)
+    started = (await create(client, token, mode="quiz")).json()
+    assert started["total_questions"] == 15
+    assert all(item["phonetic"] is None for item in started["items"]), "퀴즈 출제에는 발음기호가 없다"
+    graded = (await answer(client, token, started["session_id"], question_id=0, choice_index=0)).json()
+    assert graded["phonetic"], "채점 응답에는 발음기호가 있다"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("slug", ["exam-core-200", "business-practical-200"])
+async def test_new_vocabulary_flashcards_carry_phonetic_on_the_back(client, slug: str) -> None:
+    token = await _activate_real(client, slug)
+    started = (await create(client, token, mode="flashcard")).json()
+    assert started["items"] and all(item["phonetic"] for item in started["items"])
+

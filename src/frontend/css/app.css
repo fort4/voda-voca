@@ -73,6 +73,7 @@
   --btn-danger-bg: #dc2626;     /* red-600 */
   --btn-danger-hover: #b91c1c;  /* red-700 */
   --btn-danger-edge: #991b1b;   /* red-800 */
+  --btn-secondary-edge: #d4d4d8; /* zinc-300: 표면보다 어두운 아래쪽 가장자리 */
   --hover-bg: #f4f4f5;          /* zinc-100: 고스트·보조 버튼 호버 */
 }
 
@@ -232,7 +233,7 @@ a:focus-visible,
 
 .btn-primary { --btn-bg: var(--btn-primary-bg); --btn-fg: var(--on-accent); --btn-hover: var(--btn-primary-hover); --btn-edge: var(--btn-primary-edge); }
 .btn-danger { --btn-bg: var(--btn-danger-bg); --btn-fg: var(--on-accent); --btn-hover: var(--btn-danger-hover); --btn-edge: var(--btn-danger-edge); }
-.btn-secondary { --btn-edge: var(--border-strong); --btn-fg: var(--text); border-color: var(--border); }
+.btn-secondary { --btn-edge: var(--btn-secondary-edge); --btn-fg: var(--text); border-color: var(--border); }
 .btn-ghost { --btn-bg: transparent; --btn-fg: var(--muted); }
 .btn-ghost:hover:not(:disabled) { color: var(--text); }
 .btn-danger-soft { --btn-bg: var(--bad-soft); --btn-fg: var(--bad-text); --btn-hover: var(--bad-soft); border-color: var(--bad-border); }
@@ -598,6 +599,7 @@ html.dark {
   --btn-danger-bg: #dc2626;
   --btn-danger-hover: #ef4444;  /* red-500 */
   --btn-danger-edge: #7f1d1d;   /* red-900 */
+  --btn-secondary-edge: #050506; /* 표면(zinc-900)보다 어두워야 튀어나와 보인다. 밝은 가장자리(zinc-700)는 움푹 들어간 것처럼 보였다 */
   --hover-bg: #27272a;          /* zinc-800 */
 }
 html.dark .app-header,
@@ -803,8 +805,10 @@ html.dark {
 .session-context { font-size: var(--fs-lead); line-height: 1.6; color: var(--text-2); overflow-wrap: anywhere; }
 /* 발음기호(IPA): 보조 정보라 작고 옅게. 전역 자간(-0.01em)은 IPA 기호에 어울리지 않아 0 으로 둔다. 색은 토큰만 써서 다크 모드가 따라온다 */
 .phonetic { font-family: var(--font-ipa); font-size: var(--fs-caption); font-weight: 400; color: var(--muted); letter-spacing: 0; white-space: nowrap; }
-/* 플래시카드 뒷면 맨 위 보조 줄: `표제어 /발음기호/` (뒷면에는 표제어가 없어 발음기호를 단독으로 두지 않는다) */
-.session-back-term { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; column-gap: 8px; font-size: var(--fs-caption); font-weight: 600; color: var(--text-2); overflow-wrap: anywhere; }
+/* 표제어 아래 보조 줄: `품사 /발음기호/` (퀴즈 문제 화면은 품사만, 플래시카드 앞면은 둘 다). 가운데 정렬, 좁으면 줄바꿈 */
+.session-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; column-gap: 8px; row-gap: 4px; min-height: 22px; }
+/* 품사 태그: 보여 주기만 하는 작은 알약. 색은 토큰만 써서 다크 모드가 따라온다 */
+.pos-tag { display: inline-flex; align-items: center; padding: 1px 8px; border: 1px solid var(--border-strong); border-radius: var(--radius-pill); color: var(--muted); font-size: var(--fs-micro); font-weight: 600; line-height: var(--lh-normal); white-space: nowrap; }
 .session-hint { font-size: var(--fs-micro); font-weight: 600; letter-spacing: 0.04em; color: var(--accent); text-transform: uppercase; }
 
 .choice-list { display: flex; flex-direction: column; gap: 10px; }

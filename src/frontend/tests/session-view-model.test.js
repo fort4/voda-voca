@@ -260,11 +260,11 @@ test("PHASE 상수 확인 (뷰모델이 쓰는 상태 이름)", () => {
   assert.equal(PHASE.FEEDBACK_SHOWING, "FEEDBACK_SHOWING");
 });
 
-test("플래시카드 앞면은 단어만, 뒷면은 표제어·발음기호(없으면 null)·뜻·예문·예문 뜻을 담는다", () => {
+test("플래시카드 앞면은 표제어·발음기호·품사(없으면 null), 뒷면은 뜻·예문·예문 뜻만 담는다", () => {
   const item = { term: "apple", context: "I ate an apple.", meaning: "사과", example_meaning: "나는 사과를 먹었다." };
   assert.deepEqual(flashcardFaces(item), {
-    front: { term: "apple" },
-    back: { term: "apple", phonetic: null, meaning: "사과", example: "I ate an apple.", exampleMeaning: "나는 사과를 먹었다." },
+    front: { term: "apple", phonetic: null, pos: null },
+    back: { meaning: "사과", example: "I ate an apple.", exampleMeaning: "나는 사과를 먹었다." },
   });
 });
 
