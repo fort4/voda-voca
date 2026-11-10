@@ -154,7 +154,7 @@
 **#6 GET `/api/vocabularies/{vocabulary_id}/words?page=&size=`**
 - 응답 200: `{"vocabulary_id", "items": [{"word_id", "term", "meaning", "example": string|null, "example_meaning": string|null, "phonetic": string|null, "pos": string|null, "bookmarked": boolean}], "total", "page", "size"}`
 - `phonetic` (`VocabularyWordOut`, v2.2): 슬래시 없는 미국식 IPA (예: `"ˈæpəl"`), 없으면 null. 화면이 `/…/` 를 입힙니다. 추가 필드이므로 하위 호환입니다.
-- **`pos`(품사, `VocabularyWordOut`, v2.2, REQ-146)**: 영문 소문자 문자열(`noun`, `verb`, `adjective`, `adverb`, `preposition`, `conjunction`) 또는 null. 기존 600단어는 null, 신규 2개 단어장은 모두 값이 있습니다. 화면이 한글 라벨을 입힙니다. 추가 필드이므로 하위 호환입니다.
+- **`pos`(품사, `VocabularyWordOut`, v2.2, REQ-146)**: 영문 소문자 문자열(`noun`, `verb`, `adjective`, `adverb`, `preposition`, `conjunction`, `pronoun`, `interjection`) 또는 null. 시드 1,000단어는 모두 값이 있습니다. 화면이 한글 라벨을 입힙니다. 추가 필드이므로 하위 호환입니다.
 - 정렬: `order_index`, `id`. `bookmarked` 는 요청한 사용자의 북마크 여부입니다.
 - 실패: 404 (없는 단어장), 422 (`page`/`size` 범위)
 
@@ -435,6 +435,7 @@ POST /api/study/sessions  ─►  items[0..N-1]
 | :--- | :--- | :--- | :--- |
 | v2.1 개정 | 2026-11-06 | 발음기호 `phonetic` 필드 추가 (REQ-144, v2.2). `VocabularyWordOut`(#6 단어 목록), `SessionItemOut`(#11 출제), `SessionAnswerOut`(#12 채점)에 `string\|null` 추가. **퀴즈 출제 응답은 항상 null**, 플래시카드 출제·채점 응답은 값 (§6.2 표 갱신). 옛 세션은 null. 추가 필드라 하위 호환 | Claude |
 | v2.1 개정 | 2026-11-10 | 품사 `pos` 필드 추가 (REQ-146, v2.2): `VocabularyWordOut`, `SessionItemOut`(**퀴즈 출제 포함**), `SessionAnswerOut` 에 `string\|null`. 이전 "pos 비노출" 문구 폐기. 플래시카드 `phonetic` 은 앞면용으로 용도 표기 정정. 추가 필드라 하위 호환 | Claude |
+| v2.1 개정 | 2026-11-10 | `pos` 값 정정: 기존 600단어도 값이 채워져 전체 1,000단어가 값을 가짐. 값 집합에 `pronoun`·`interjection` 추가. 필드·타입 변경 없음 | Claude |
 | v2.1 개정 | 2026-11-10 | 카탈로그 확충 반영 (REQ-145, v2.2). 카테고리 값 `EXAM`·`BUSINESS` 와 단어장 2개(총 5개·1,000단어), 통계 예시 `total_words` 1000. **API 스키마 변경 없음** — `pos` 는 응답에 노출하지 않음을 명시. 하위 호환 | Claude |
 | v2.1 | 2026-11-05 | 중앙 제공형 단어장 전환 반영. `/api/wordbooks/*`, `/api/words/*`, `/api/study/flashcards`, `/api/study/quiz/*` 제거. `GET /api/vocabularies`, `GET /api/vocabularies/{id}/words`, `POST /api/users/me/active-vocabulary`, `POST /api/study/sessions`(source: all/bookmarks/wrong), `POST /api/study/sessions/{id}/answer`, `GET /api/study/wrong-words`, `GET /api/study/stats` 추가. 출제 응답 정답 비노출·채점 응답 공개 규격, 멱등 재전송, 숙련도 전이, `X-Error-Code` 표 명시. 요구사항 명세 v2.1, 데이터 설계 v2.1 과 정합 | Claude |
 | v2.0 | 2026-11-02 | `example_meaning`, 학습 로그 `wordbook_id` 등 (`docs/old/voda-voca_API_Integration_Spec_v2.0_261102.md`) | Claude |
