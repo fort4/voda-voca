@@ -1,17 +1,20 @@
 /*
- * 2026-11-10 - voda-voca - 학습 개수 설정 UI 배선 테스트: 설정 API 연동, 낙관적 갱신·롤백, 옵션 하드코딩 금지, 터치 크기, 옛 상수 제거 (REQ-147)
+ * 2026-11-10 - voda-voca - 학습 설정 UI 배선 테스트: 계정 메뉴 → 모달, 공유 저장소, 옵션 하드코딩 금지, 터치 크기, 계정 전환 시 초기화, 옛 상수 제거 (REQ-147)
  * 파일 위치: src/frontend/tests/settings-ui.test.js
  */
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = new URL("..", import.meta.url).pathname;
 const read = (path) => readFileSync(join(ROOT, path), "utf8");
-const card = read("js/views/components/settings-card.js");
+const stripComments = (text) => text.replace(/\/\*[\s\S]*?\*\//g, "");
+const form = read("js/views/components/settings-form.js");
+const modal = read("js/views/settings-modal.js");
 const home = read("js/views/home-view.js");
+const app = read("js/app.js");
 
 /** @param {string} dir @returns {string[]} */
 function jsFiles(dir) {
@@ -21,35 +24,56 @@ function jsFiles(dir) {
   });
 }
 
-test("설정 카드: 칩은 서버가 준 옵션으로 만들고 10/20/30 을 직접 적지 않는다", () => {
-  assert.match(card, /settings\.options\.map/);
-  const code = card.replace(/\/\*[\s\S]*?\*\//g, ""); // 주석은 제외하고 코드만 본다
-  assert.doesNotMatch(code, /\b(10|20|30)\b/);
+test("설정 폼: 칩은 서버가 준 옵션으로 만들고 10/20/30 을 직접 적지 않는다", () => {
+  assert.match(form, /settings\.options\.map/);
+  assert.doesNotMatch(stripComments(form), /\b(10|20|30)\b/);
 });
 
-test("설정 카드: 칩은 기존 .chip 컴포넌트에 aria-pressed 로 선택을 나타내고 터치 높이 44px 이상", () => {
-  assert.match(card, /class: "chip [^"]*min-h-\[44px\]/);
-  assert.match(card, /"aria-pressed"/);
+test("설정 폼: 칩은 기존 .chip 컴포넌트에 aria-pressed 로 선택을 나타내고 터치 높이 44px 이상", () => {
+  assert.match(form, /class: "chip [^"]*min-h-\[44px\]/);
+  assert.match(form, /"aria-pressed"/);
+  assert.match(form, /SETTING_ROWS\.map/, "퀴즈·플래시카드·오늘의 목표 행은 모델 정의를 그대로 쓴다");
 });
 
-test("설정 카드: 세 행은 퀴즈·플래시카드·오늘의 목표 모델 정의를 그대로 쓴다", () => {
-  assert.match(card, /SETTING_ROWS\.map/);
+test("옛 홈 설정 카드는 없다 (헤더 모달로 옮겼다)", () => {
+  assert.equal(existsSync(join(ROOT, "js/views/components/settings-card.js")), false);
+  assert.doesNotMatch(home, /renderSettingsCard|settings-card/);
 });
 
-test("홈: 설정을 GET 으로 받고, 실패해도 홈이 뜨도록 catch 후 정규화한다", () => {
-  assert.match(home, /api\("\/users\/me\/settings"\)\.catch\(\(\) => null\)/);
-  assert.match(home, /normalizeSettings\(settings\)/);
+test("계정 메뉴: '학습 설정' 항목이 로그아웃보다 위에 있고 모달을 연다", () => {
+  assert.match(app, /menuItem\("settings", "학습 설정", openSettingsFromMenu\)/);
+  assert.ok(app.indexOf('"학습 설정"') < app.indexOf('"로그아웃"'), "로그아웃 위에 둔다");
+  assert.match(app, /function openSettingsFromMenu\(\)[\s\S]*?closeAccountMenu\(\);[\s\S]*?openSettingsModal\(\)/);
 });
 
-test("홈: 선택 즉시 반영하고 PATCH 로 저장하며, 실패하면 이전 값으로 되돌리고 토스트를 띄운다", () => {
-  assert.match(home, /method: "PATCH", body: \{ \[key\]: value \}/);
-  assert.match(home, /applySetting\(settings, key, previous\)/);
-  assert.match(home, /toast\("설정을 저장하지 못했어요", "error"\)/);
+test("모달: SweetAlert2 로 열고, 닫기 버튼만 두며, 저장소의 값을 보고 바꾼다", () => {
+  assert.match(modal, /Swal\.fire\(/);
+  assert.match(modal, /title: "학습 설정"/);
+  assert.match(modal, /confirmButtonText: "닫기"/);
+  assert.match(modal, /settingsStore\.load\(/);
+  assert.match(modal, /settingsStore\.change\(/);
+  assert.match(modal, /settingsStore\.subscribe\(/);
 });
 
-test("홈: 시작 버튼 문구와 목표는 설정에서 오고, 모드를 바꾸면 다시 그린다", () => {
-  assert.match(home, /startLabel\(data\.settings, mode\)/);
-  assert.match(home, /function setMode\(next\)[\s\S]*?repaint\(\)/);
+test("모달: 닫힐 때 구독을 해제하고, 오류는 토스트가 아니라 모달 안에 보인다", () => {
+  assert.match(modal, /willClose[\s\S]*?unsubscribe\(\)/);
+  assert.doesNotMatch(modal, /toast\(/, "토스트를 띄우면 열린 모달이 닫힌다");
+  assert.match(modal, /role: "alert"/);
+});
+
+test("홈: 설정은 공유 저장소에서 받고(실패해도 홈이 뜬다), 바뀌면 다시 그린다", () => {
+  assert.match(home, /settingsStore\.load\(.*\)\.catch\(\(\) => null\)/);
+  assert.match(home, /settingsStore\.subscribe\(/);
+  assert.match(home, /startLabel\(settingsStore\.get\(\), mode\)/);
+});
+
+test("홈: 화면을 떠나면 구독을 해제한다", () => {
+  assert.match(home, /unsubscribe\(\)/);
+});
+
+test("계정이 바뀔 때(로그아웃·탈퇴·세션 만료) 저장소를 비운다", () => {
+  const resets = app.match(/settingsStore\.reset\(\)/g) ?? [];
+  assert.ok(resets.length >= 3, `reset 호출이 ${resets.length}곳뿐이다`);
 });
 
 test("옛 상수(DAILY_GOAL, SESSION_SIZE, DEFAULT_COUNT)가 어디에도 남아 있지 않다", () => {

@@ -1,6 +1,6 @@
 /*
- * 2026-11-10 - voda-voca - 학습 설정 카드: 퀴즈·플래시카드 문항 수와 오늘의 목표를 10/20/30 칩으로 고른다 (REQ-147)
- * 파일 위치: src/frontend/js/views/components/settings-card.js
+ * 2026-11-10 - voda-voca - 학습 설정 폼: 퀴즈·플래시카드 문항 수와 오늘의 목표를 칩으로 고른다. 계정 메뉴의 설정 모달 안에서 쓴다 (REQ-147)
+ * 파일 위치: src/frontend/js/views/components/settings-form.js
  */
 
 import { h } from "../../core/dom.js";
@@ -11,11 +11,10 @@ import { SETTING_ROWS } from "../../core/settings-model.js";
  *          onChange: (key: string, value: number) => void}} opts
  * @returns {HTMLElement}
  */
-export function renderSettingsCard({ settings, onChange }) {
+export function renderSettingsForm({ settings, onChange }) {
   return h(
-    "section",
-    { class: "card rise-in space-y-3", "aria-label": "학습 설정" },
-    h("p", { class: "text-sm font-medium text-zinc-500" }, "학습 설정 (문항 수)"),
+    "div",
+    { class: "space-y-3" },
     ...SETTING_ROWS.map((row) =>
       h(
         "div",

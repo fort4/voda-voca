@@ -1,14 +1,14 @@
 /*
- * 2026-11-05 - voda-voca - 홈 화면: 활성 단어장, 오늘 목표·남은 문항, 학습 시작(퀴즈/플래시카드), 학습 개수 설정(REQ-147)
+ * 2026-11-05 - voda-voca - 홈 화면: 활성 단어장, 오늘 목표·남은 문항, 학습 시작(퀴즈/플래시카드) (목표·시작 문구는 학습 설정을 따름, REQ-147)
  * 파일 위치: src/frontend/js/views/home-view.js
  */
 
 import { api } from "../core/api.js";
 import { button, clear, h, icon, refreshIcons } from "../core/dom.js";
 import { homeModel, loadMode, saveMode } from "../core/home-model.js";
-import { applySetting, normalizeSettings, startLabel } from "../core/settings-model.js";
-import { toast } from "../core/toast.js";
-import { renderSettingsCard } from "./components/settings-card.js";
+import { startLabel } from "../core/settings-model.js";
+import { settingsStore } from "../core/settings-store.js";
+import { getUser } from "../core/state.js";
 import { progressBar } from "./components/progress-bar.js";
 import { mountLoader } from "./components/loader.js";
 import { renderModeToggle } from "./components/mode-toggle.js";
@@ -16,12 +16,12 @@ import { openSession } from "./components/study-nav.js";
 
 /** 통계·설정은 없어도 홈이 동작해야 하므로 실패하면 null 로 둔다 (설정은 기본값 10 으로 폴백). */
 async function loadHome() {
-  const [catalog, stats, settings] = await Promise.all([
+  const [catalog, stats] = await Promise.all([
     api("/vocabularies"),
     api("/study/stats").catch(() => null),
-    api("/users/me/settings").catch(() => null),
+    settingsStore.load(getUser()?.id ?? 0).catch(() => null),
   ]);
-  return { active: catalog.find((v) => v.user_progress.is_active) ?? null, stats, settings: normalizeSettings(settings) };
+  return { active: catalog.find((v) => v.user_progress.is_active) ?? null, stats };
 }
 
 /**
@@ -32,16 +32,13 @@ async function loadHome() {
 export function homeView(root, ctx) {
   const storage = globalThis.localStorage;
   let mode = loadMode(storage);
-  return mountLoader(root, loadHome, (data) => {
-    let settings = data.settings;
-
-    /** 다시 그린다. 키보드로 칩을 고르던 중이면 같은 칩에 포커스를 되돌린다. */
+  let unsubscribe = () => {};
+  const stop = mountLoader(root, loadHome, (data) => {
+    /** 설정이나 모드가 바뀌면 다시 그린다 (헤더의 설정 모달에서 바뀐 값도 여기로 온다). */
     function repaint() {
-      const focused = root.querySelector("[data-setting]:focus")?.getAttribute("data-setting");
       clear(root);
-      root.append(renderHome({ ...data, settings }, ctx, { mode, setMode, changeSetting }));
+      root.append(renderHome({ ...data, settings: settingsStore.get() }, ctx, { mode, setMode }));
       refreshIcons();
-      if (focused) root.querySelector(`[data-setting="${focused}"]`)?.focus();
     }
 
     function setMode(next) {
@@ -50,27 +47,17 @@ export function homeView(root, ctx) {
       repaint();
     }
 
-    /** 낙관적으로 먼저 반영하고, 저장에 실패하면 이전 값으로 되돌린다. */
-    async function changeSetting(key, value) {
-      const previous = settings[key];
-      const next = applySetting(settings, key, value);
-      if (next === settings) return;
-      settings = next;
-      repaint();
-      try {
-        await api("/users/me/settings", { method: "PATCH", body: { [key]: value } });
-      } catch {
-        if (settings[key] === value) settings = applySetting(settings, key, previous);
-        toast("설정을 저장하지 못했어요", "error");
-        repaint();
-      }
-    }
-
+    unsubscribe();
+    unsubscribe = settingsStore.subscribe(repaint);
     repaint();
   });
+  return () => {
+    stop();
+    unsubscribe();
+  };
 }
 
-function renderHome(data, ctx, { mode, setMode, changeSetting }) {
+function renderHome(data, ctx, { mode, setMode }) {
   const m = homeModel(data);
   return h(
     "div",
@@ -93,9 +80,8 @@ function renderHome(data, ctx, { mode, setMode, changeSetting }) {
       "section",
       { class: "space-y-3" },
       renderModeToggle({ value: mode, onChange: setMode }),
-      button({ variant: "primary", full: true, disabled: !m.canStart, size: "lg", onClick: () => openSession(ctx.navigate, mode) }, icon("play", "h-5 w-5"), startLabel(data.settings, mode)),
+      button({ variant: "primary", full: true, disabled: !m.canStart, size: "lg", onClick: () => openSession(ctx.navigate, mode) }, icon("play", "h-5 w-5"), startLabel(settingsStore.get(), mode)),
     ),
-    renderSettingsCard({ settings: data.settings, onChange: changeSetting }),
   );
 }
 

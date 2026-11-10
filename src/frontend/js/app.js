@@ -21,6 +21,8 @@ import { reviewView } from "./views/review-view.js";
 import { statsView } from "./views/stats-view.js";
 import { studySessionView } from "./views/study-session-view.js";
 import { renderBottomNav } from "./views/components/bottom-nav.js";
+import { openSettingsModal } from "./views/settings-modal.js";
+import { settingsStore } from "./core/settings-store.js";
 
 const root = /** @type {HTMLElement} */ (document.getElementById("app"));
 const userbar = /** @type {HTMLElement} */ (document.getElementById("userbar"));
@@ -94,6 +96,8 @@ function openAccountMenu(anchor) {
       ),
     ),
     h("div", { class: "dropdown-divider" }),
+    menuItem("settings", "학습 설정", openSettingsFromMenu),
+    h("div", { class: "dropdown-divider" }),
     menuItem("log-out", "로그아웃", logoutFromMenu),
     h("div", { class: "dropdown-divider" }),
     h(
@@ -147,6 +151,11 @@ function menuItem(iconName, label, onSelect, tone = "default") {
   );
 }
 
+function openSettingsFromMenu() {
+  closeAccountMenu();
+  return openSettingsModal();
+}
+
 function logoutFromMenu() {
   closeAccountMenu();
   return logout();
@@ -164,6 +173,7 @@ async function logout() {
     // 세션이 이미 없어도 로컬 상태는 지운다
   }
   setUser(null);
+  settingsStore.reset(); // 다음 사용자가 이전 사용자의 설정을 보지 않게 한다
   renderUserbar();
   renderTabbar();
   toast("로그아웃되었습니다.", "info");
@@ -213,6 +223,7 @@ async function withdraw() {
     // 저장소를 쓸 수 없어도 탈퇴는 끝난 상태다
   }
   setUser(null);
+  settingsStore.reset(); // 다음 사용자가 이전 사용자의 설정을 보지 않게 한다
   renderUserbar();
   renderTabbar();
   toast("회원 탈퇴가 완료되었습니다. 그동안 이용해 주셔서 감사합니다.");
@@ -223,6 +234,7 @@ async function withdraw() {
 function onSessionExpired() {
   if (!getUser()) return;
   setUser(null);
+  settingsStore.reset(); // 다음 사용자가 이전 사용자의 설정을 보지 않게 한다
   renderUserbar();
   toast("세션이 만료되었습니다. 다시 로그인해 주세요.", "info");
   const { path, query } = parseHash(location.hash);
