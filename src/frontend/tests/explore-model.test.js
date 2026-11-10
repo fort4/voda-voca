@@ -6,7 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { categoryOptions, filterVocabularies, levelOptions, vocabularyCard } from "../js/core/explore-model.js";
+import { categoryLabel, categoryOptions, filterVocabularies, levelOptions, vocabularyCard } from "../js/core/explore-model.js";
 
 const vocab = (id, category, level, extra = {}) => ({
   id,
@@ -85,4 +85,19 @@ test("카드: 설명이 없으면 빈 문자열이 아니라 null (줄을 그리
 test("카드: 진행률은 0~100 으로 자른다", () => {
   const over = vocabularyCard(vocab(1, "CSAT", 1, { user_progress: { studied_words: 0, memorized_words: 0, progress_rate: 140, is_active: false } }));
   assert.equal(over.progressPercent, 100);
+});
+
+// ---------- v2.2 카탈로그 확충: 시험·비즈니스 카테고리 (이슈 #24) ----------
+
+test("EXAM·BUSINESS 카테고리는 한글 라벨을 쓴다 (영문 코드가 칩에 노출되지 않게)", () => {
+  assert.equal(categoryLabel("EXAM"), "시험");
+  assert.equal(categoryLabel("BUSINESS"), "비즈니스");
+  assert.equal(categoryLabel("NEW_CAT"), "NEW_CAT", "모르는 코드는 그대로");
+});
+
+test("5개 카탈로그: 칩 순서는 전체·초등·중고등·수능·시험·비즈니스, 시험 필터는 1건", () => {
+  const five = [vocab(1, "ELEMENTARY", 1), vocab(2, "SECONDARY", 2), vocab(3, "CSAT", 3), vocab(4, "EXAM", 3), vocab(5, "BUSINESS", 3)];
+  assert.deepEqual(categoryOptions(five).map((o) => o.label), ["전체", "초등", "중고등", "수능", "시험", "비즈니스"]);
+  assert.deepEqual(filterVocabularies(five, { category: "EXAM" }).map((v) => v.id), [4]);
+  assert.deepEqual(filterVocabularies(five, { category: "BUSINESS", level: 3 }).map((v) => v.id), [5]);
 });

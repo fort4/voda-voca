@@ -4,7 +4,7 @@
  */
 
 /** 서버 카테고리 코드의 표시 이름. 목록에 없는 새 카테고리는 코드를 그대로 보인다 (서버가 자유 문자열을 허용). */
-export const CATEGORY_LABELS = Object.freeze({ ELEMENTARY: "초등", SECONDARY: "중고등", CSAT: "수능" });
+export const CATEGORY_LABELS = Object.freeze({ ELEMENTARY: "초등", SECONDARY: "중고등", CSAT: "수능", EXAM: "시험", BUSINESS: "비즈니스" });
 
 const ALL = "all";
 const KO = "ko-KR";
