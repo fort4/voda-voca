@@ -32,6 +32,7 @@
 
   /* IPA 특수 문자(ˈ ː ə ɪ ʊ ʃ θ ð ŋ 등) 글리프 폴백: Pretendard 에 없는 문자는 Lucida Sans Unicode 로 대체된다 */
   --font-ipa: var(--font-sans), 'Lucida Sans Unicode', sans-serif;
+  --font-display: "Paperlogy", var(--font-sans); /* 제목·큰 글씨 전용. 본문·발음기호는 --font-sans 유지 */
 
   /* 타입 스케일: 용도 기반 7단계 */
   --fs-micro: 0.75rem;     /* 12px 배지·보조 라벨 */
@@ -90,6 +91,22 @@ body {
   word-break: keep-all; /* 한글은 어절 단위로 줄바꿈 */
   -webkit-font-smoothing: antialiased;
   letter-spacing: -0.01em;
+}
+
+/* 제목·큰 글씨 전용 폰트: Paperlogy Bold 한 벌(woff2 약 160KB)을 600~800 구간에 연결해 합성 굵기 없이 쓴다. 로딩 전에는 본문 폰트로 보인다 */
+@font-face {
+  font-family: "Paperlogy";
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-7Bold.woff2") format("woff2");
+  font-weight: 600 800;
+  font-style: normal;
+  font-display: swap;
+}
+.text-heading,
+.text-title,
+.text-display,
+.session-term,
+.brand-name {
+  font-family: var(--font-display);
 }
 
 /* 300ms 탭 지연 제거 (REQ-021). 탭 하이라이트는 끈다. */
