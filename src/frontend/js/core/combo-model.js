@@ -51,7 +51,8 @@ export function badgeView(prevCount, count) {
 /**
  * 이벤트에 어떤 효과음을 낼지 정한다 (정책의 단일 위치).
  * - 정답: 마일스톤이면 milestone 하나만(정답음과 겹치지 않음), 아니면 correct
- * - 오답: 4지선다 퀴즈에서만 wrong. 플래시카드 "헷갈려요"는 완전 무음
+ * - 오답: 4지선다 퀴즈에서만 wrong
+ * - 플래시카드: "알아요"·"헷갈려요" 모두 무음 (완료 팡파레만 낸다)
  * - 완료: 정상 완주이고 정답이 1개 이상일 때만 complete
  * @param {{type: "answer", mode: string, isCorrect: boolean, count: number} | {type: "complete", aborted: boolean, answered: number, correct: number} | undefined} event
  * @returns {"correct" | "milestone" | "wrong" | "complete" | null}
@@ -59,8 +60,9 @@ export function badgeView(prevCount, count) {
 export function soundCueFor(event) {
   if (!event) return null;
   if (event.type === "answer") {
+    if (event.mode !== "quiz") return null; // 플래시카드는 답 효과음이 없다: 퀴즈 정답음과 같아 중복이고 '헷갈려요' 와도 일관된다
     if (event.isCorrect) return isMilestone(event.count) ? "milestone" : "correct";
-    return event.mode === "quiz" ? "wrong" : null;
+    return "wrong";
   }
   if (event.type === "complete") {
     return !event.aborted && event.answered > 0 && event.correct >= 1 ? "complete" : null;

@@ -137,10 +137,10 @@ test("36px 아이콘 버튼(h-9 w-9)이 화면에 남아 있지 않다 (REQ-114)
   assert.deepEqual(offenders, []);
 });
 
-test("발음 버튼 배치: 세션 헤더(단어), 해설 시트(단어+예문), 플래시카드 뒷면(예문), 단어 시트(단어만)", () => {
+test("발음 버튼 배치: 세션 헤더(단어), 해설 시트(예문만), 플래시카드 뒷면(예문), 단어 시트(단어만)", () => {
   assert.match(read("js/views/components/progress-header.js"), /speakButton\(/);
   const sheet = read("js/views/components/feedback-sheet.js");
-  assert.match(sheet, /speakButton\([^)]*kind:\s*"word"/s);
+  assert.doesNotMatch(sheet, /kind:\s*"word"/, "단어 듣기는 세션 헤더에 이미 있으므로 해설 시트에는 두지 않는다 (2026-11-10)");
   assert.match(sheet, /speakButton\([^)]*kind:\s*"sentence"/s);
   assert.match(read("js/views/study-session-view.js"), /speakButton\([^)]*kind:\s*"sentence"/s);
   const words = read("js/views/components/word-sheet.js");

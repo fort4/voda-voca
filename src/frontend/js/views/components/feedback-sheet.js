@@ -1,5 +1,5 @@
 /*
- * 2026-11-05 - voda-voca - 즉시 피드백 하단 시트: 정오답, 뜻, 예문과 해석, 발음 듣기, 다음 버튼 (아래에서 올라온다)
+ * 2026-11-05 - voda-voca - 즉시 피드백 하단 시트: 정오답, 뜻, 예문과 해석, 예문 듣기, 다음 버튼 (아래에서 올라온다)
  * 파일 위치: src/frontend/js/views/components/feedback-sheet.js
  */
 
@@ -38,7 +38,6 @@ export function renderFeedbackSheet({ state, onNext }) {
         h("span", { class: "break-words" }, feedback.term),
         posTag(feedback.pos),
         phoneticLine(feedback.phonetic),
-        speakButton({ text: feedback.term, kind: "word", key: `word:${feedback.term}` }),
       ),
       h("p", { class: "break-words text-base font-semibold" }, feedback.meaning),
       // 예문과 해석은 한 열에 묶고 발음 버튼(44px)은 그 옆에 둔다. 버튼 줄 아래에 해석을 따로 두면 줄 높이만큼 틈이 벌어진다.

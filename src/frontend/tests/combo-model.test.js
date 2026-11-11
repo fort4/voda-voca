@@ -105,9 +105,9 @@ test("soundCueFor: 마일스톤(5·10·15)에 닿는 정답은 milestone 하나�
   for (const count of [5, 10, 15]) assert.equal(soundCueFor(answer("quiz", true, count)), "milestone", String(count));
 });
 
-test("soundCueFor: 플래시카드 '알아요' 는 정답처럼, '헷갈려요' 는 완전 무음", () => {
-  assert.equal(soundCueFor(answer("flashcard", true, 2)), "correct");
-  assert.equal(soundCueFor(answer("flashcard", true, 5)), "milestone");
+test("soundCueFor: 플래시카드 '알아요'·'헷갈려요' 는 모두 무음 (퀴즈 정답음과 같아 중복 — 2026-11-10)", () => {
+  assert.equal(soundCueFor(answer("flashcard", true, 2)), null);
+  assert.equal(soundCueFor(answer("flashcard", true, 5)), null);
   assert.equal(soundCueFor(answer("flashcard", false, 0)), null);
 });
 
