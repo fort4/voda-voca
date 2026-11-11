@@ -11,8 +11,10 @@ import { VIEW_ACTION, choiceStates, errorCopy, flashcardFaces, sessionKeyAction 
 import { isButtonTarget, modalIsOpen, shortcutsBlocked } from "../core/shortcuts.js";
 import { badgeView, soundCueFor } from "../core/combo-model.js";
 import { playCue } from "../core/sound.js";
-import { confirmDialog } from "../core/toast.js";
+import { createBookmarkStore } from "../core/bookmark-store.js";
+import { confirmDialog, toast } from "../core/toast.js";
 import { resetSpeechNotice, stopSpeaking } from "../core/tts.js";
+import { bookmarkButton } from "./components/bookmark-button.js";
 import { renderComboRow } from "./components/combo-badge.js";
 import { renderFeedbackSheet } from "./components/feedback-sheet.js";
 import { renderProgressHeader } from "./components/progress-header.js";
@@ -43,6 +45,14 @@ export function studySessionView(root, ctx) {
   let shownCombo = 0;
   // 완료 팡파레는 세션당 한 번만
   let completedSessionId = null;
+  // 북마크: 사용자가 바꾼 값은 화면이 다시 그려져도 남도록 세션 화면 단위로 보관한다
+  const bookmarks = createBookmarkStore({ api });
+  const bookmarkFor = (item) =>
+    h(
+      "div",
+      { class: "bookmark-slot" },
+      bookmarkButton({ wordId: item.word_id, term: item.term, store: bookmarks, onError: () => toast("북마크를 바꾸지 못했어요. 잠시 후 다시 시도해 주세요.", "error") }),
+    );
 
   const driver = createSessionDriver({
     api,
@@ -191,6 +201,7 @@ export function studySessionView(root, ctx) {
 
   function renderQuestion(state) {
     const item = currentItem(state);
+    bookmarks.seed(state.items);
     const sheetOpen = state.phase === PHASE.FEEDBACK_SHOWING && state.mode === "quiz";
     const comboView = badgeView(shownCombo, state.streak);
     shownCombo = state.streak;
@@ -215,6 +226,7 @@ export function studySessionView(root, ctx) {
     return h(
       "section",
       { class: "session-card" },
+      bookmarkFor(item),
       h("p", { class: "session-hint" }, "알맞은 뜻을 고르세요"),
       h("p", { class: "session-term" }, item.term),
       // 품사는 문제 화면에도 보인다. 발음기호는 채점 후 해설 시트에서만 보인다 (서버가 출제 응답에서 null 로 막는다)
@@ -286,7 +298,9 @@ export function studySessionView(root, ctx) {
       enteredKey = shownKey;
       motion = " card-enter";
     }
-    return h("div", { class: `flip-scene${motion}`, role: "button", tabindex: "0", "aria-label": "카드 뒤집기", onclick: () => act({ type: VIEW_ACTION.FLIP }) }, card);
+    const scene = h("div", { class: `flip-scene${motion}`, role: "button", tabindex: "0", "aria-label": "카드 뒤집기", onclick: () => act({ type: VIEW_ACTION.FLIP }) }, card);
+    // 북마크 버튼은 뒤집히는 카드 밖(형제)에 둬서 앞·뒷면 모두 오른쪽 위에 보이고, 카드 전환 애니메이션에도 딸려 가지 않는다
+    return h("div", { class: "flip-stage" }, scene, bookmarkFor(item));
   }
 
   function renderFlashcardButtons(state) {

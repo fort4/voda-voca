@@ -417,6 +417,10 @@ a:focus-visible,
   min-height: 280px;
 }
 
+/* ---------- 세션 카드의 북마크 버튼: 카드 오른쪽 위 ---------- */
+.flip-stage { position: relative; }
+.bookmark-slot { position: absolute; top: 4px; right: 4px; z-index: 2; }
+
 /* ---------- 북마크 별 상태 (2단계) ---------- */
 .star-toggle svg {
   transition: fill 160ms ease, transform 160ms var(--ease-out);
@@ -787,6 +791,7 @@ html.dark {
 .progress-count { min-width: 3.25rem; text-align: right; font-size: var(--fs-caption); font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
 
 .session-card {
+  position: relative; /* 북마크 버튼(.bookmark-slot)의 기준 */
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 20px;
