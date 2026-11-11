@@ -228,9 +228,9 @@ export function studySessionView(root, ctx) {
       { class: "session-card" },
       bookmarkFor(item),
       h("p", { class: "session-hint" }, "알맞은 뜻을 고르세요"),
-      h("p", { class: "session-term" }, item.term),
-      // 품사는 문제 화면에도 보인다. 발음기호는 채점 후 해설 시트에서만 보인다 (서버가 출제 응답에서 null 로 막는다)
+      // 품사는 문제 화면에도 보이며 표제어 위에 둔다. 발음기호는 채점 후 해설 시트에서만 보인다 (서버가 출제 응답에서 null 로 막는다)
       pos ? h("p", { class: "session-meta" }, pos) : null,
+      h("p", { class: "session-term" }, item.term),
       item.context ? h("p", { class: "session-context" }, item.context) : null,
     );
   }
