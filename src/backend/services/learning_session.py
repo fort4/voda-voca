@@ -84,7 +84,7 @@ def _flashcard_question(word: SystemWord) -> dict:
     }
 
 
-def _item(question: dict, mode: str) -> SessionItemOut:
+def _item(question: dict, mode: str, bookmarked: bool = False) -> SessionItemOut:
     if mode == STUDY_MODE_FLASHCARD:
         return SessionItemOut(
             question_id=question["question_id"],
@@ -95,6 +95,7 @@ def _item(question: dict, mode: str) -> SessionItemOut:
             example_meaning=question.get("example_meaning"),
             phonetic=question.get("phonetic"),  # 옛 세션 스냅샷에는 키가 없을 수 있다
             pos=question.get("pos"),
+            bookmarked=bookmarked,
         )
     return SessionItemOut(
         question_id=question["question_id"],
@@ -103,7 +104,17 @@ def _item(question: dict, mode: str) -> SessionItemOut:
         context=question.get("example"),
         options=question["choices"],
         pos=question.get("pos"),  # 품사는 퀴즈 문제 화면에도 보인다 (옛 세션 스냅샷은 키가 없을 수 있다)
+        bookmarked=bookmarked,
     )
+
+
+async def _bookmarked_ids(db: AsyncSession, user: User, questions: list[dict]) -> set[int]:
+    """출제한 문항 중 사용자가 북마크한 단어 id. 문항 수(최대 수십 개)만큼만 한 번에 조회한다."""
+    word_ids = [q["word_id"] for q in questions]
+    if not word_ids:
+        return set()
+    rows = await db.execute(select(Bookmark.word_id).where(Bookmark.user_id == user.id, Bookmark.word_id.in_(word_ids)))
+    return set(rows.scalars())
 
 
 async def _create_review_session(
@@ -156,6 +167,7 @@ async def _create_review_session(
     await db.commit()
     await db.refresh(session)
     n = len(questions)
+    bookmarked = await _bookmarked_ids(db, user, questions)
     return SessionOut(
         session_id=session.id,
         mode=mode,
@@ -164,7 +176,7 @@ async def _create_review_session(
         total_questions=n,
         expires_at=session.expires_at,
         composition=CompositionOut(wrong=n if source == QUIZ_SOURCE_WRONG else 0, review=n if source == QUIZ_SOURCE_BOOKMARKS else 0, unseen=0),
-        items=[_item(question, mode) for question in questions],
+        items=[_item(question, mode, question["word_id"] in bookmarked) for question in questions],
     )
 
 
@@ -239,6 +251,7 @@ async def create_session(
     db.add(session)
     await db.commit()
     await db.refresh(session)
+    bookmarked = await _bookmarked_ids(db, user, questions)
     return SessionOut(
         session_id=session.id,
         mode=mode,
@@ -247,7 +260,7 @@ async def create_session(
         total_questions=len(questions),
         expires_at=session.expires_at,
         composition=CompositionOut(wrong=picked.wrong_count, review=picked.review_count, unseen=picked.unseen_count),
-        items=[_item(question, mode) for question in questions],
+        items=[_item(question, mode, question["word_id"] in bookmarked) for question in questions],
     )
 
 

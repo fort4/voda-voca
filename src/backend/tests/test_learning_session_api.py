@@ -133,6 +133,35 @@ async def test_create_defaults_to_a_10_question_quiz_without_leaking_answers(cli
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("mode", ["quiz", "flashcard"])
+async def test_items_carry_the_users_bookmark_state(client, make_vocabulary, mode) -> None:
+    """세션 문항은 요청한 사용자의 북마크 여부(bookmarked)를 싣는다. 북마크한 단어만 true, 해제하면 다시 false."""
+    token, _, _, response = await start(client, make_vocabulary, mode=mode, count=20)
+    assert response.status_code == 201, response.text
+    assert all(item["bookmarked"] is False for item in response.json()["items"])
+    target = response.json()["items"][0]["word_id"]
+    assert (await client.put(f"/api/bookmarks/{target}", headers=auth_headers(token))).status_code == 204
+
+    items = (await create(client, token, mode=mode, count=20)).json()["items"]
+    assert {i["word_id"] for i in items if i["bookmarked"]} == {target}
+
+    assert (await client.delete(f"/api/bookmarks/{target}", headers=auth_headers(token))).status_code == 204
+    items = (await create(client, token, mode=mode, count=20)).json()["items"]
+    assert not any(i["bookmarked"] for i in items)
+
+
+@pytest.mark.asyncio
+async def test_bookmark_state_is_per_user(client, make_vocabulary) -> None:
+    token, _, vocab, response = await start(client, make_vocabulary, count=20)
+    target = response.json()["items"][0]["word_id"]
+    await client.put(f"/api/bookmarks/{target}", headers=auth_headers(token))
+    _, other = await signup_and_login(client)
+    await activate(client, other, vocab.id)
+    items = (await create(client, other, count=20)).json()["items"]
+    assert not any(i["bookmarked"] for i in items), "남의 북마크가 보이면 안 된다"
+
+
+@pytest.mark.asyncio
 async def test_create_respects_count_and_validates_input(client, make_vocabulary) -> None:
     token, _, _, response = await start(client, make_vocabulary, count=5)
     assert len(response.json()["items"]) == 5

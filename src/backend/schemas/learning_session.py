@@ -47,6 +47,7 @@ class SessionItemOut(BaseModel):
     example_meaning: str | None = Field(default=None, description="플래시카드 뒷면의 예문 뜻. 퀴즈는 null")
     phonetic: str | None = Field(default=None, description="플래시카드 앞면의 발음기호(IPA). 퀴즈는 항상 null (채점 응답에서 공개)")
     pos: str | None = Field(default=None, description="품사(영문 소문자, 예: noun). 퀴즈·플래시카드 모두 싣는다. 없는 단어나 옛 세션은 null")
+    bookmarked: bool = Field(default=False, description="요청한 사용자가 이 단어를 북마크했는지 (출제 시점 기준). 세션 화면의 북마크 버튼 초기 상태")
 
 
 class CompositionOut(BaseModel):
