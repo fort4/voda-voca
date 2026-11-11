@@ -41,7 +41,7 @@ test("옛 홈 설정 카드는 없다 (헤더 모달로 옮겼다)", () => {
 });
 
 test("계정 메뉴: '학습 설정' 항목이 로그아웃보다 위에 있고 모달을 연다", () => {
-  assert.match(app, /menuItem\("settings", "학습 설정", openSettingsFromMenu\)/);
+  assert.match(app, /menuItem\("book-open", "학습 설정", openSettingsFromMenu\)/);
   assert.ok(app.indexOf('"학습 설정"') < app.indexOf('"로그아웃"'), "로그아웃 위에 둔다");
   assert.match(app, /function openSettingsFromMenu\(\)[\s\S]*?closeAccountMenu\(\);[\s\S]*?openSettingsModal\(\)/);
 });

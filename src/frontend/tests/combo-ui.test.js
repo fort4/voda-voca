@@ -92,22 +92,18 @@ test("세션 화면: 콤보 뱃지 줄을 진행 헤더 아래에 항상 그리�
 
 // ---------- 효과음 토글 ----------
 
-test("효과음 토글은 bell-ring / bell-off 를 쓰고 '효과음' 라벨이며, volume-* 는 발음(TTS) 전용으로 남긴다", () => {
-  const app = read("js/app.js");
-  const html = read("index.html");
-  assert.match(app, /bell-off/);
-  assert.match(app, /bell-ring/);
-  assert.match(app, /효과음 켜기/);
-  assert.match(app, /효과음 끄기/);
-  assert.doesNotMatch(app, /정답 소리/);
-  assert.match(app, /subscribeMute\(/, "다른 곳에서 바뀌어도 아이콘이 따라온다");
-  assert.match(html, /id="sound-toggle"[\s\S]*?data-lucide="bell-ring"/);
-  assert.doesNotMatch(html, /id="sound-toggle"[^>]*정답 소리/);
-  const toggleBlock = app.slice(app.indexOf("function initSound"), app.indexOf("function initSound") + 900);
-  assert.doesNotMatch(toggleBlock, /volume-/);
+test("효과음 스위치는 bell-ring / bell-off 를 쓰고 '효과음' 라벨이며, volume-* 는 발음(TTS) 전용으로 남긴다", () => {
+  const model = read("js/core/preferences-model.js");
+  const modal = read("js/views/preferences-modal.js");
+  assert.match(model, /bell-off/);
+  assert.match(model, /bell-ring/);
+  assert.match(model, /효과음/);
+  assert.doesNotMatch(model + modal, /정답 소리/);
+  assert.doesNotMatch(model + modal, /volume-/);
+  assert.match(modal, /subscribeMute\(/, "다른 곳에서 바뀌어도 스위치가 따라온다");
 });
 
-test("세션 진행 헤더에는 음소거 버튼을 따로 두지 않는다 (앱 헤더 #sound-toggle 하나만)", () => {
+test("세션 진행 헤더에는 음소거 버튼을 따로 두지 않는다 (환경 설정 모달 하나만)", () => {
   assert.doesNotMatch(read("js/views/components/progress-header.js"), /toggleMute|sound-toggle|bell-/);
 });
 

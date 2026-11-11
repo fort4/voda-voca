@@ -13,7 +13,6 @@ import { getUser, setUser } from "./core/state.js";
 import { confirmDialog, toast } from "./core/toast.js";
 import { loginView } from "./views/login.js";
 import { createThemeManager } from "./core/theme.js";
-import { isMuted, subscribeMute, toggleMute } from "./core/sound.js";
 import { signupView } from "./views/signup.js";
 import { exploreView } from "./views/explore-view.js";
 import { homeView } from "./views/home-view.js";
@@ -21,6 +20,7 @@ import { reviewView } from "./views/review-view.js";
 import { statsView } from "./views/stats-view.js";
 import { studySessionView } from "./views/study-session-view.js";
 import { renderBottomNav } from "./views/components/bottom-nav.js";
+import { openPreferencesModal } from "./views/preferences-modal.js";
 import { openSettingsModal } from "./views/settings-modal.js";
 import { settingsStore } from "./core/settings-store.js";
 
@@ -96,7 +96,8 @@ function openAccountMenu(anchor) {
       ),
     ),
     h("div", { class: "dropdown-divider" }),
-    menuItem("settings", "학습 설정", openSettingsFromMenu),
+    menuItem("book-open", "학습 설정", openSettingsFromMenu),
+    menuItem("settings", "환경 설정", openPreferencesFromMenu),
     h("div", { class: "dropdown-divider" }),
     menuItem("log-out", "로그아웃", logoutFromMenu),
     h("div", { class: "dropdown-divider" }),
@@ -154,6 +155,11 @@ function menuItem(iconName, label, onSelect, tone = "default") {
 function openSettingsFromMenu() {
   closeAccountMenu();
   return openSettingsModal();
+}
+
+function openPreferencesFromMenu() {
+  closeAccountMenu();
+  return openPreferencesModal({ themeManager });
 }
 
 function logoutFromMenu() {
@@ -285,53 +291,21 @@ function watchIcons() {
   observer.observe(document.body, { childList: true, subtree: true });
 }
 
-/**
- * 효과음 버튼: 저장된 음소거 상태에 맞춰 아이콘(bell-ring/bell-off)과 라벨을 그리고, 누르면 켜고 끈다.
- * 정답·콤보·오답·완료 효과음 전체를 제어한다. 발음(TTS)은 사용자가 직접 누르는 소리라 별개이며 volume-2 아이콘을 쓴다.
- */
-function initSound() {
-  const btn = document.getElementById("sound-toggle");
-  if (!btn) return;
-  const paint = () => {
-    const muted = isMuted();
-    btn.setAttribute("aria-pressed", String(!muted));
-    btn.setAttribute("aria-label", muted ? "효과음 켜기" : "효과음 끄기");
-    btn.replaceChildren(h("i", { "data-lucide": muted ? "bell-off" : "bell-ring", class: "h-5 w-5", "aria-hidden": "true" }));
-    refreshIcons();
-  };
-  btn.addEventListener("click", () => toggleMute());
-  subscribeMute(paint); // 어디서 바뀌어도 아이콘이 따라온다
-  paint();
-}
+/** 테마 관리자. 환경 설정 모달이 같은 인스턴스로 테마를 바꾼다. */
+let themeManager = null;
 
 /**
- * 테마 초기화: 관리자 생성(저장값 > 시스템 설정), 전환 버튼 아이콘과 클릭 연결.
- * 첫 페이지 깜빡임은 index.html 의 인라인 스크립트가 막고, 여기서는 버튼 상태를 맞춘다.
+ * 테마 초기화: 저장값 > 시스템 설정 순으로 판정해 적용한다.
+ * 첫 페이지 깜빡임은 index.html 의 인라인 스크립트가 막는다. 전환 버튼은 환경 설정 모달에 있다.
  */
 function initTheme() {
-  const manager = createThemeManager();
-  const toggleBtn = document.getElementById("theme-toggle");
-  const paint = () => {
-    const dark = manager.current() === "dark";
-    if (toggleBtn) {
-      toggleBtn.setAttribute("aria-pressed", String(dark));
-      toggleBtn.setAttribute("aria-label", dark ? "라이트 모드로 전환" : "다크 모드로 전환");
-      toggleBtn.replaceChildren(h("i", { "data-lucide": dark ? "sun" : "moon", class: "h-5 w-5", "aria-hidden": "true" }));
-      refreshIcons();
-    }
-  };
-  toggleBtn?.addEventListener("click", () => {
-    manager.toggle();
-    paint();
-  });
-  paint();
-  return manager;
+  themeManager = createThemeManager();
+  return themeManager;
 }
 
 async function boot() {
   setUnauthorizedHandler(onSessionExpired);
   initTheme();
-  initSound();
   watchIcons();
   try {
     setUser(await api("/auth/me", { skipAuthRedirect: true }));
