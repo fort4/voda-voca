@@ -600,7 +600,7 @@ DB 에는 슬래시 없는 미국식 IPA 가 저장되고(예: `ˈæpəl`), 화�
 | 크기·모양 | `.btn.btn-ghost.btn-icon` **44×44px**, `bookmark` 아이콘(`h-5 w-5`) |
 | 위치 | `.bookmark-slot`: `position: absolute; top: 4px; right: 4px`. 기준은 퀴즈 `.session-card`, 플래시카드 `.flip-stage` (둘 다 `position: relative`) |
 | 플래시카드 | 버튼은 뒤집히는 `.flip-scene` 의 **형제**라 앞·뒷면 모두 같은 자리에 보이고, 카드 전환 애니메이션에 딸려 가지 않음. 클릭은 `stopPropagation` 으로 카드 뒤집힘을 막음 |
-| 상태 | 꺼짐: 아이콘 윤곽만. 켜짐(`aria-pressed="true"`): 호박색(`#f59e0b`)으로 채움 (`.star-toggle`). 요청 중에는 `aria-busy` 로 흐리게 |
+| 상태 | 꺼짐: 아이콘 윤곽만. 켜짐(`aria-pressed="true"`): 호박색(`#f59e0b`)으로 채움 (`.star-toggle`). 요청 중에는 `aria-busy` 로 흐리게. 켜진 상태는 hover 에서도 호박색을 유지하고(`.btn-ghost:hover` 의 색 덮어쓰기 방지), 터치 기기(`hover: none`)에서는 hover 배경을 없앤다 (탭 뒤 hover 고착 방지, 2026-11-11) |
 | 접근성 | `aria-pressed`, 라벨 "{단어} 북마크에 추가 / 해제" |
 | 동작 | 낙관적 갱신 → 실패 시 롤백 + 토스트. 같은 단어의 요청이 진행 중이면 추가 입력 무시 |
 | 다크 모드 | 호박색은 두 테마에서 대비가 충분한 고정색으로 둠 (수동 점검 대상) |
