@@ -20,6 +20,8 @@ def progress_state_of(row: UserWordProgress) -> ProgressState:
         is_memorized=row.is_memorized,
         last_result=row.last_result,
         last_studied_at=row.last_studied_at,
+        interval_step=row.interval_step,
+        next_review_at=row.next_review_at,
     )
 
 
@@ -59,4 +61,6 @@ async def record_result(
     row.is_memorized = state.is_memorized
     row.last_result = state.last_result
     row.last_studied_at = state.last_studied_at
+    row.interval_step = state.interval_step
+    row.next_review_at = state.next_review_at
     return state

@@ -117,3 +117,19 @@ async def test_concurrent_first_answers_create_one_row_and_count_every_answer(cl
     assert rows == 1
     row = await progress_row(user_id, words[0])
     assert (row.correct_count, row.consecutive_correct_count, row.is_memorized) == (5, 5, True)
+
+
+@pytest.mark.asyncio
+async def test_record_result_persists_srs_step_and_due_date(client) -> None:
+    """SRS(이슈 #25): 정답은 단계를 올리고 다음 복습 시각을 저장, 오답은 2단계 감쇠한다."""
+    _, user_id, _, words = await setup(client)
+    await record(user_id, words[0], True, 0)
+    await record(user_id, words[0], True, 1)
+    row = await progress_row(user_id, words[0])
+    assert row.interval_step == 2
+    assert row.next_review_at == T0 + timedelta(minutes=1, days=3)
+
+    state = await record(user_id, words[0], False, 2)
+    row = await progress_row(user_id, words[0])
+    assert (state.interval_step, row.interval_step) == (0, 0)
+    assert row.next_review_at == T0 + timedelta(minutes=2)
