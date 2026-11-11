@@ -206,7 +206,7 @@
       "question_id": 0, "word_id": 105, "term": "postpone",
       "context": "The meeting was postponed until next Monday.",
       "options": ["연기하다", "가속하다", "조사하다", "설립하다"],
-      "meaning": null, "example_meaning": null, "phonetic": null, "pos": "noun"
+      "meaning": null, "example_meaning": null, "phonetic": null, "pos": "noun", "bookmarked": false
     }]
   }
   ```
@@ -214,6 +214,7 @@
 - **플래시카드**: 정답 개념이 없으므로 `options` = null 이고, 뒷면 정보 `meaning`, `example_meaning` 과 앞면에 보일 `phonetic` 을 문항에 함께 싣습니다 (`context` = 예문).
 - **`phonetic` (`SessionItemOut`, v2.2, REQ-144)**: 문자열 또는 null. **퀴즈 세션의 출제 응답에서는 단어에 발음기호가 있어도 항상 null** 입니다 (채점 전 정보 최소화. 서버가 값을 내려보내지 않아 클라이언트 실수로 새지 않게 합니다). 플래시카드는 뒷면용으로 값을 싣습니다. 진행 중인 옛 세션(스냅샷에 키 없음)은 null 입니다. 추가 필드이므로 하위 호환입니다.
 - **`pos` (`SessionItemOut`, v2.2, REQ-146)**: 문자열 또는 null. 발음기호와 달리 **퀴즈 출제 응답에도 값을 싣습니다** (문제 화면에 표제어와 함께 보이는 정보이며 정답을 알려 주지 않습니다). 채점 응답(`SessionAnswerOut.pos`)에도 같은 값이 있고 멱등 재전송에서도 동일합니다. 진행 중인 옛 세션(스냅샷에 키 없음)은 null 입니다.
+- **`bookmarked` (`SessionItemOut`, v2.2, REQ-148)**: 불리언, 기본 `false`. 요청한 사용자가 그 단어를 북마크했는지를 **출제 시점** 기준으로 싣습니다 (퀴즈·플래시카드·복습 세션 공통). 세션 화면의 북마크 버튼 초기 상태이며, 이후 변경은 `PUT`·`DELETE /api/bookmarks/{word_id}`(#8, #9)로 하고 이 값은 다시 내려오지 않습니다. 세션 스냅샷에는 저장하지 않으므로 진행 중인 세션과 무관하게 항상 출제 때의 북마크를 반영합니다. 추가 필드이므로 하위 호환입니다.
 - `expires_at`: 이 시각 이후에는 새 답을 기록할 수 없습니다. **답을 기록할 때마다 30분씩 뒤로 밀립니다.** 밀리초 정밀도로 맞춰 재전송 응답과 항상 같습니다.
 - 실패:
   - 400: 퀴즈인데 단어가 4개 미만 (`"퀴즈는 단어가 4개 이상 있어야 시작할 수 있습니다."` 등), 오답 보기를 만들 수 없음
@@ -455,6 +456,7 @@ POST /api/study/sessions  ─►  items[0..N-1]
 | v2.1 개정 | 2026-11-10 | `pos` 값 정정: 기존 600단어도 값이 채워져 전체 1,000단어가 값을 가짐. 값 집합에 `pronoun`·`interjection` 추가. 필드·타입 변경 없음 | Claude |
 | v2.1 개정 | 2026-11-10 | 학습 개수 설정 API 추가 (REQ-147, v2.2): `GET`·`PATCH /api/users/me/settings` (#16, #17). 세션 생성 `count` 가 선택값으로 바뀌어 생략 시 사용자 설정을 쓴다 (기본 15 → 10). 명시한 `count` 는 기존과 같다(하위 호환) | Claude |
 | v2.1 개정 | 2026-11-10 | 카탈로그 확충 반영 (REQ-145, v2.2). 카테고리 값 `EXAM`·`BUSINESS` 와 단어장 2개(총 5개·1,000단어), 통계 예시 `total_words` 1000. **API 스키마 변경 없음** — `pos` 는 응답에 노출하지 않음을 명시. 하위 호환 | Claude |
+| v2.1 개정 | 2026-11-11 | 세션 북마크 상태 `bookmarked` 필드 추가 (REQ-148, v2.2): `SessionItemOut`(#11 출제)에 `boolean`(기본 false). 하위 호환 | Claude |
 | v2.1 | 2026-11-05 | 중앙 제공형 단어장 전환 반영. `/api/wordbooks/*`, `/api/words/*`, `/api/study/flashcards`, `/api/study/quiz/*` 제거. `GET /api/vocabularies`, `GET /api/vocabularies/{id}/words`, `POST /api/users/me/active-vocabulary`, `POST /api/study/sessions`(source: all/bookmarks/wrong), `POST /api/study/sessions/{id}/answer`, `GET /api/study/wrong-words`, `GET /api/study/stats` 추가. 출제 응답 정답 비노출·채점 응답 공개 규격, 멱등 재전송, 숙련도 전이, `X-Error-Code` 표 명시. 요구사항 명세 v2.1, 데이터 설계 v2.1 과 정합 | Claude |
 | v2.0 | 2026-11-02 | `example_meaning`, 학습 로그 `wordbook_id` 등 (`docs/old/voda-voca_API_Integration_Spec_v2.0_261102.md`) | Claude |
 | v1.2 이하 | 2026-11-02 | `docs/old/` 보관본 참조 | Claude |
