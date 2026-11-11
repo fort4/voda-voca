@@ -1,5 +1,5 @@
 /*
- * 2026-11-05 - voda-voca - 복습함 뷰모델: 북마크·오답 출처별 시작 가능 여부와 안내 문구, 북마크 행 표시 값 (DOM 없는 순수 로직)
+ * 2026-11-05 - voda-voca - 복습함 뷰모델: 북마크·오답 출처별 시작 가능 여부와 안내 문구, 목록 행 표시 값(품사·발음기호) (DOM 없는 순수 로직)
  * 파일 위치: src/frontend/js/core/review-model.js
  */
 
@@ -35,16 +35,16 @@ function sourceState(id, count, readyLabel, lackLabel) {
 }
 
 /**
- * 북마크·오답 목록 한 줄. 예문이 없으면 그 줄을 그리지 않도록 null 로 둔다.
- * @param {{word_id: number, vocabulary_title: string, term: string, meaning: string, example?: string|null, example_meaning?: string|null}} item
+ * 북마크·오답 목록 한 줄. 예문은 싣지 않고, 품사·발음기호는 없으면 null 로 둔다.
+ * @param {{word_id: number, vocabulary_title: string, term: string, meaning: string, pos?: string|null, phonetic?: string|null}} item
  */
 export function bookmarkRow(item) {
   return {
     wordId: item.word_id,
     term: item.term,
     meaning: item.meaning,
-    example: item.example || null,
-    exampleMeaning: item.example_meaning || null,
+    pos: item.pos || null,
+    phonetic: item.phonetic || null,
     source: item.vocabulary_title,
   };
 }

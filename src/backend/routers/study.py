@@ -56,6 +56,8 @@ async def list_wrong_words(
             meaning=word.meaning,
             example=word.example,
             example_meaning=word.example_meaning,
+            pos=word.pos,
+            phonetic=word.phonetic,
             bookmarked=bool(bookmarked),
             wrong_at=wrong_at,
         )

@@ -8,6 +8,8 @@ import { appendNodes, button, clear, h, icon, refreshIcons } from "../core/dom.j
 import { loadMode } from "../core/home-model.js";
 import { bookmarkRow, reviewSources } from "../core/review-model.js";
 import { mountLoader } from "./components/loader.js";
+import { phoneticLine } from "./components/phonetic-line.js";
+import { posTag } from "./components/pos-tag.js";
 import { openSession } from "./components/study-nav.js";
 
 const PAGE_SIZE = 20;
@@ -64,7 +66,7 @@ class ReviewPanel {
   }
 
   row(r) {
-    return h("div", { class: "surface px-4 py-3" }, h("div", { class: "flex items-baseline justify-between gap-2" }, h("p", { class: "text-base font-semibold text-zinc-900" }, r.term), h("p", { class: "shrink-0 text-xs text-zinc-500" }, r.source)), h("p", { class: "text-sm text-zinc-700" }, r.meaning), r.example ? h("p", { class: "mt-1 text-xs text-zinc-500" }, r.example) : null);
+    return h("div", { class: "surface px-4 py-3" }, h("div", { class: "flex items-baseline justify-between gap-2" }, h("p", { class: "flex min-w-0 flex-wrap items-baseline gap-x-2" }, h("span", { class: "text-base font-semibold text-zinc-900 break-words" }, r.term), posTag(r.pos), phoneticLine(r.phonetic)), h("p", { class: "shrink-0 text-xs text-zinc-500" }, r.source)), h("p", { class: "text-sm text-zinc-700" }, r.meaning));
   }
 
   async more() {

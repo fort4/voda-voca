@@ -301,3 +301,17 @@ async def test_wrong_words_validates_paging_and_isolates_users(client, make_voca
     for bad in ("page=0", "size=0", "size=101"):
         assert (await client.get(f"/api/study/wrong-words?{bad}", headers=auth_headers(token))).status_code == 422, bad
     assert (await client.get("/api/study/wrong-words", headers=auth_headers(other))).json()["total"] == 0
+
+
+@pytest.mark.asyncio
+async def test_wrong_words_carries_pos_and_phonetic(client, make_vocabulary) -> None:
+    vocab = await make_vocabulary(["r00", "r01"], phonetics={"r00": "ˈɑr"}, parts_of_speech={"r00": "verb"})
+    _, token = await signup_and_login(client)
+    user_id = await user_id_for_token(client, token)
+    await log(user_id, vocab.word_ids["r00"], False, 1)
+    await log(user_id, vocab.word_ids["r01"], False, 2)
+
+    items = {i["term"]: i for i in (await client.get("/api/study/wrong-words", headers=auth_headers(token))).json()["items"]}
+
+    assert (items["r00"]["pos"], items["r00"]["phonetic"]) == ("verb", "ˈɑr")
+    assert (items["r01"]["pos"], items["r01"]["phonetic"]) == (None, None)

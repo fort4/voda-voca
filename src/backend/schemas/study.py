@@ -67,6 +67,8 @@ class WrongWordOut(BaseModel):
     meaning: str
     example: str | None
     example_meaning: str | None
+    pos: str | None = None
+    phonetic: str | None = None
     bookmarked: bool
     wrong_at: datetime = Field(description="가장 최근에 틀린 시각 (UTC)")
 

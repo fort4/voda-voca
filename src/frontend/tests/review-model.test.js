@@ -40,18 +40,20 @@ test("개수를 모르면(null) 시작을 막되 숫자를 지어내지 않는�
   assert.ok(!bookmarks.message.includes("null"));
 });
 
-test("북마크 행: 예문이 없으면 example 줄을 그리지 않는다", () => {
-  const row = bookmarkRow({ word_id: 7, vocabulary_title: "초급", term: "postpone", meaning: "연기하다", example: null, example_meaning: null });
+test("북마크 행: 예문은 싣지 않고 품사·발음기호를 싣는다", () => {
+  const row = bookmarkRow({ word_id: 7, vocabulary_title: "초급", term: "postpone", meaning: "연기하다", pos: "verb", phonetic: "poʊstˈpoʊn", example: "I postpone it.", example_meaning: "미룬다." });
   assert.equal(row.wordId, 7);
   assert.equal(row.term, "postpone");
   assert.equal(row.meaning, "연기하다");
-  assert.equal(row.example, null);
-  assert.equal(row.exampleMeaning, null);
+  assert.equal(row.pos, "verb");
+  assert.equal(row.phonetic, "poʊstˈpoʊn");
   assert.equal(row.source, "초급");
+  assert.equal("example" in row, false);
+  assert.equal("exampleMeaning" in row, false);
 });
 
-test("북마크 행: 예문과 해석이 있으면 그대로 싣는다", () => {
-  const row = bookmarkRow({ word_id: 8, vocabulary_title: "초급", term: "a", meaning: "b", example: "I a.", example_meaning: "나는 a." });
-  assert.equal(row.example, "I a.");
-  assert.equal(row.exampleMeaning, "나는 a.");
+test("북마크 행: 품사·발음기호가 없으면 null 로 둔다", () => {
+  const row = bookmarkRow({ word_id: 8, vocabulary_title: "초급", term: "a", meaning: "b" });
+  assert.equal(row.pos, null);
+  assert.equal(row.phonetic, null);
 });

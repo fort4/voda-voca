@@ -224,3 +224,16 @@ async def test_bookmark_requires_login(client: httpx.AsyncClient) -> None:
     assert (await client.put("/api/bookmarks/1")).status_code == 401
     assert (await client.delete("/api/bookmarks/1")).status_code == 401
     assert (await client.get("/api/bookmarks")).status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_list_carries_pos_and_phonetic_and_null_when_missing(client: httpx.AsyncClient, make_vocabulary) -> None:
+    vocab = await make_vocabulary(TERMS, phonetics={"apple": "ˈæpəl"}, parts_of_speech={"apple": "noun"})
+    _, token = await signup_and_login(client)
+    await put(client, token, vocab.word_ids["apple"])
+    await put(client, token, vocab.word_ids["banana"])
+
+    items = {item["term"]: item for item in (await bookmark_list(client, token))["items"]}
+
+    assert (items["apple"]["pos"], items["apple"]["phonetic"]) == ("noun", "ˈæpəl")
+    assert (items["banana"]["pos"], items["banana"]["phonetic"]) == (None, None)

@@ -18,6 +18,8 @@ class BookmarkOut(BaseModel):
     meaning: str
     example: str | None
     example_meaning: str | None = None
+    pos: str | None = None
+    phonetic: str | None = None
     bookmarked_at: datetime = Field(description="북마크 등록 시각 (UTC)")
 
     @field_serializer("bookmarked_at")
