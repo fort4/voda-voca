@@ -428,6 +428,14 @@ a:focus-visible,
 .star-toggle[aria-pressed="true"] {
   color: #f59e0b; /* amber-500 */
 }
+/* .btn-ghost:hover(명시도 0,3,0)가 색을 덮어쓰지 않게 hover 상태도 같은 색으로 맞춘다.
+   터치 기기는 탭한 뒤에도 hover 가 남아 빈 곳을 눌러야 색이 돌아오던 문제가 있었다 */
+.star-toggle[aria-pressed="true"]:hover:not(:disabled) {
+  color: #f59e0b;
+}
+@media (hover: none) {
+  .star-toggle:hover:not(:disabled) { background: var(--btn-bg); }
+}
 .star-toggle[aria-pressed="true"] svg {
   fill: currentColor;
 }

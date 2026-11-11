@@ -34,3 +34,11 @@ test("북마크 버튼 위치: 카드 오른쪽 위(.bookmark-slot), 카드가 �
   assert.match(css, /\.session-card\s*\{[^}]*position:\s*relative/s);
   assert.match(css, /\.flip-stage\s*\{[^}]*position:\s*relative/s);
 });
+
+test("켜진 북마크는 hover 가 남아도 호박색을 유지한다 (터치 후 hover 고착 + .btn-ghost:hover 색 덮어쓰기 방지)", () => {
+  const css = read("css/app.css");
+  // .btn-ghost:hover:not(:disabled) 는 명시도 0,3,0 이라 같은 이상으로 맞서야 한다
+  assert.match(css, /\.star-toggle\[aria-pressed="true"\]:hover:not\(:disabled\)\s*\{[^}]*color:\s*#f59e0b/s);
+  // 터치 기기에서는 탭한 뒤 hover 배경이 남지 않게 한다
+  assert.match(css, /@media \(hover:\s*none\)\s*\{[^}]*\.star-toggle:hover:not\(:disabled\)\s*\{[^}]*background:\s*var\(--btn-bg\)/s);
+});
