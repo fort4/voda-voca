@@ -58,3 +58,14 @@ test("단어 미리보기 시트에는 예문 발음 버튼이 없고 표제어 
   assert.doesNotMatch(src, /kind:\s*"sentence"/);
   assert.match(src, /kind:\s*"word"/);
 });
+
+// ---------- 3. 플래시카드 뒷면: 예문과 예문 해석을 한 열로 (해설 시트와 같은 구조) ----------
+
+test("플래시카드 뒷면: 예문 해석은 예문과 같은 열에 있고, 발음 버튼 줄 밖에 따로 놓이지 않는다", () => {
+  const src = read("js/views/study-session-view.js");
+  const start = src.indexOf("card-example-text");
+  assert.ok(start >= 0, "예문과 해석을 담는 .card-example-text 열이 필요하다");
+  const column = src.slice(start, src.indexOf('kind: "sentence"', start));
+  assert.match(column, /faces\.back\.example\b/);
+  assert.match(column, /faces\.back\.exampleMeaning/, "해석이 같은 열 안에 있어야 44px 버튼 줄 높이만큼 틈이 벌어지지 않는다");
+});

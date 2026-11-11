@@ -281,15 +281,22 @@ export function studySessionView(root, ctx) {
         { class: "flip-face flip-back" },
         bookmarkFor(item),
         h("p", { class: "session-term" }, faces.back.meaning),
+        // 예문과 해석은 한 열에 묶고 발음 버튼(44px)은 그 옆에 둔다. 버튼 줄 아래에 해석을 따로 두면 줄 높이만큼 틈이 벌어진다(해설 시트와 같은 구조).
         faces.back.example
           ? h(
               "div",
-              { class: "flex items-center gap-1" },
-              h("p", { class: "session-context" }, faces.back.example),
+              { class: "flex items-start gap-1" },
+              h(
+                "div",
+                { class: "card-example-text min-w-0 flex-1 space-y-0.5 pt-2.5" },
+                h("p", { class: "session-context" }, faces.back.example),
+                faces.back.exampleMeaning ? h("p", { class: "session-context" }, faces.back.exampleMeaning) : null,
+              ),
               speakButton({ text: faces.back.example, kind: "sentence", key: `sentence:${faces.front.term}` }),
             )
-          : null,
-        faces.back.exampleMeaning ? h("p", { class: "session-context" }, faces.back.exampleMeaning) : null,
+          : faces.back.exampleMeaning
+            ? h("p", { class: "session-context" }, faces.back.exampleMeaning)
+            : null,
       ),
     );
     refs.card = card;
