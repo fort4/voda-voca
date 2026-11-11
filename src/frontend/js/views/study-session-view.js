@@ -269,6 +269,8 @@ export function studySessionView(root, ctx) {
       h(
         "div",
         { class: "flip-face" },
+        // 북마크 버튼은 각 면 안에 둬서 카드와 함께 뒤집힌다. 두 버튼은 저장소 구독으로 같은 상태를 유지한다
+        bookmarkFor(item),
         h("p", { class: "session-hint" }, "탭해서 뒤집기"),
         h("p", { class: "session-term" }, faces.front.term),
         // 앞면: 표제어 아래에 품사와 /발음기호/ 한 줄. 둘 다 없으면 줄 자체를 그리지 않는다
@@ -277,6 +279,7 @@ export function studySessionView(root, ctx) {
       h(
         "div",
         { class: "flip-face flip-back" },
+        bookmarkFor(item),
         h("p", { class: "session-term" }, faces.back.meaning),
         faces.back.example
           ? h(
@@ -290,7 +293,8 @@ export function studySessionView(root, ctx) {
       ),
     );
     refs.card = card;
-    card.querySelector(".flip-back").inert = !(flipped && !preview); // 앞면일 땐 뒷면의 발음 버튼이 탭 순서에 끼지 않게
+    card.querySelector(".flip-back").inert = !(flipped && !preview); // 앞면일 땐 뒷면의 발음·북마크 버튼이 탭 순서에 끼지 않게
+    card.querySelector(".flip-face:not(.flip-back)").inert = flipped && !preview; // 뒤집힌 뒤엔 앞면의 북마크 버튼도 뺀다
     let motion = "";
     const shownKey = preview ? `${state.sessionId}:${state.index + 1}` : flipKey;
     if (leaving && !preview) motion = " card-gone"; // 마지막 카드: 다음 카드가 없으니 결과 화면을 기다린다
@@ -299,8 +303,7 @@ export function studySessionView(root, ctx) {
       motion = " card-enter";
     }
     const scene = h("div", { class: `flip-scene${motion}`, role: "button", tabindex: "0", "aria-label": "카드 뒤집기", onclick: () => act({ type: VIEW_ACTION.FLIP }) }, card);
-    // 북마크 버튼은 뒤집히는 카드 밖(형제)에 둬서 앞·뒷면 모두 오른쪽 위에 보이고, 카드 전환 애니메이션에도 딸려 가지 않는다
-    return h("div", { class: "flip-stage" }, scene, bookmarkFor(item));
+    return scene;
   }
 
   function renderFlashcardButtons(state) {
@@ -316,6 +319,8 @@ export function studySessionView(root, ctx) {
     refs.card?.classList.toggle("is-flipped", flipped);
     const back = refs.card?.querySelector(".flip-back");
     if (back) back.inert = !flipped;
+    const front = refs.card?.querySelector(".flip-face:not(.flip-back)");
+    if (front) front.inert = flipped;
     for (const control of [refs.known, refs.unsure]) if (control) control.disabled = refs.busy || !flipped;
   }
 

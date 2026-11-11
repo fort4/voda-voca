@@ -23,7 +23,7 @@ test("세션 화면: 퀴즈 카드와 플래시카드 모두에 북마크 버튼
   const session = read("js/views/study-session-view.js");
   assert.match(session, /createBookmarkStore\(/);
   assert.match(session, /bookmarkButton\(/);
-  assert.equal((session.match(/bookmarkFor\(item\)/g) ?? []).length, 2, "퀴즈 카드와 플래시카드, 두 곳에서 같은 헬퍼를 쓴다");
+  assert.equal((session.match(/bookmarkFor\(item\)/g) ?? []).length, 3, "퀴즈 카드 1곳과 플래시카드 앞·뒷면 2곳에서 같은 헬퍼를 쓴다");
   assert.match(session, /bookmarks\.seed\(/);
   assert.match(session, /toast\([^)]*"error"/, "북마크 실패는 토스트로 알린다");
 });
@@ -32,7 +32,26 @@ test("북마크 버튼 위치: 카드 오른쪽 위(.bookmark-slot), 카드가 �
   const css = read("css/app.css");
   assert.match(css, /\.bookmark-slot\s*\{[^}]*position:\s*absolute[^}]*top:[^}]*right:/s);
   assert.match(css, /\.session-card\s*\{[^}]*position:\s*relative/s);
-  assert.match(css, /\.flip-stage\s*\{[^}]*position:\s*relative/s);
+  assert.match(css, /\.flip-face\s*\{[^}]*position:\s*absolute/s, "플래시카드는 각 면이 버튼의 기준 위치");
+});
+
+test("플래시카드: 북마크 버튼은 앞·뒷면 안에 각각 있어 카드와 함께 뒤집히고, 카드 밖에 따로 떠 있지 않다", () => {
+  const session = read("js/views/study-session-view.js");
+  const css = read("css/app.css");
+  const fn = session.slice(session.indexOf("function renderFlashcard"), session.indexOf("function renderFlashcardButtons"));
+  const front = fn.slice(fn.indexOf('{ class: "flip-face" }'), fn.indexOf('{ class: "flip-face flip-back" }'));
+  const back = fn.slice(fn.indexOf('{ class: "flip-face flip-back" }'));
+  assert.match(front, /bookmarkFor\(item\)/, "앞면 안");
+  assert.match(back, /bookmarkFor\(item\)/, "뒷면 안");
+  assert.doesNotMatch(fn, /flip-stage/, "카드 밖 형제 버튼(flip-stage)은 없앴다");
+  assert.doesNotMatch(css, /\.flip-stage/);
+});
+
+test("플래시카드: 보이지 않는 면의 버튼은 탭 순서와 보조기기에서 뺀다 (앞면도 뒤집히면 inert)", () => {
+  const session = read("js/views/study-session-view.js");
+  assert.match(session, /querySelector\("\.flip-face:not\(\.flip-back\)"\)\.inert\s*=\s*flipped/, "뒤집기 동기화에서 앞면 inert");
+  assert.match(session, /\.flip-back"\)\.inert\s*=\s*!\(flipped && !preview\)/, "뒷면 inert 는 기존대로");
+  assert.match(session, /\.flip-face:not\(\.flip-back\)"\)\.inert\s*=\s*flipped && !preview/, "처음 그릴 때도 앞면 inert 를 맞춘다");
 });
 
 test("켜진 북마크는 hover 가 남아도 호박색을 유지한다 (터치 후 hover 고착 + .btn-ghost:hover 색 덮어쓰기 방지)", () => {

@@ -417,8 +417,7 @@ a:focus-visible,
   min-height: 280px;
 }
 
-/* ---------- 세션 카드의 북마크 버튼: 카드 오른쪽 위 ---------- */
-.flip-stage { position: relative; }
+/* ---------- 세션 카드의 북마크 버튼: 카드 오른쪽 위 (플래시카드는 앞·뒷면 각각의 오른쪽 위) ---------- */
 .bookmark-slot { position: absolute; top: 4px; right: 4px; z-index: 2; }
 
 /* ---------- 북마크 별 상태 (2단계) ---------- */
