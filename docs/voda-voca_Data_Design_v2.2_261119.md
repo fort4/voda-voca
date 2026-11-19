@@ -247,7 +247,7 @@ erDiagram
 | `last_result` | ENUM('CORRECT','WRONG') | Y | NULL | 마지막 결과 |
 | `last_studied_at` | DATETIME(3) | Y | NULL | 마지막 학습 시각 (UTC) |
 | `interval_step` | TINYINT UNSIGNED | N | `0` | 복습 단계 0~5 (v2.2). 정답 +1(최대 5), 오답 −2(최소 0) |
-| `next_review_at` | DATETIME(3) | Y | NULL | 다음 복습 시각 (UTC, v2.2). 학습 이력이 없으면 NULL. 단계별 간격 0·1·3·7·14·30일 |
+| `next_review_at` | DATETIME(3) | Y | NULL | 다음 복습 시각 (UTC, v2.2). 학습 이력이 없으면 NULL. 단계별 간격 0·1·3·7·14·30일이며, 답한 시각이 아니라 **간격일 뒤 한국 날짜 0시**(UTC 로 저장)다 |
 
 **인덱스**: `PRIMARY KEY (id)`, `UNIQUE uk_uwp_user_word (user_id, word_id)`, `KEY idx_uwp_user_result (user_id, last_result)`, `KEY idx_uwp_user_memorized (user_id, is_memorized)`, `KEY idx_uwp_word (word_id)`, `KEY idx_uwp_user_next_review (user_id, next_review_at)`
 
@@ -264,7 +264,7 @@ erDiagram
 | :--- | :-: | :-: | :-: | :-: | :-: | :-: |
 | 다음 복습까지(일) | 0 | 1 | 3 | 7 | 14 | 30 |
 
-정답이면 단계 +1(최대 5), 오답이면 −2(최소 0, `WRONG_STEP_PENALTY`)이며 `next_review_at = 답 시각 + 새 단계의 간격` 이다. `is_memorized` 는 이 단계와 별개로 기존 연속 정답 3회 규칙을 유지한다. 마이그레이션 `f4c8b2d6a1e7` 은 학습 이력이 있는 기존 행의 `interval_step` 을 `LEAST(consecutive_correct_count, 5)`, `next_review_at` 을 `last_studied_at + 해당 단계 간격` 으로 채웠다.
+정답이면 단계 +1(최대 5), 오답이면 −2(최소 0, `WRONG_STEP_PENALTY`)이며 `next_review_at = (답한 시각이 속한 한국 날짜의 0시) + 새 단계의 간격(일)` 이다(`kst_day_start`). 단 **복습 기한(`next_review_at`)이 되기 전에 맞힌 정답은 단계와 `next_review_at` 을 바꾸지 않는다**(정답 수·연속 정답·숙련은 평소대로 갱신). 오답은 기한과 무관하게 단계를 내린다. `next_review_at` 이 NULL 이면(처음 푸는 단어·옛 데이터) 기한 전이 아니다. 2026-11-19 이전에 저장된 `next_review_at` 은 옛 규칙(답한 시각 기준)이지만 스키마 변경 없이 다음 답부터 새 규칙으로 바뀐다. `is_memorized` 는 이 단계와 별개로 기존 연속 정답 3회 규칙을 유지한다. 마이그레이션 `f4c8b2d6a1e7` 은 학습 이력이 있는 기존 행의 `interval_step` 을 `LEAST(consecutive_correct_count, 5)`, `next_review_at` 을 `last_studied_at + 해당 단계 간격` 으로 채웠다.
 
 **설계 메모**
 - 갱신은 `services/study_log.py` 의 `record_result` 가 **`study_logs` INSERT 와 같은 트랜잭션**에서 한다. 행이 없으면 `INSERT ... ON DUPLICATE KEY UPDATE` 로 먼저 만들고, `SELECT ... FOR UPDATE` 로 잠근 채 갱신하므로 동시 기록도 정확히 센다.
@@ -631,6 +631,7 @@ CREATE TABLE quiz_sessions (
 
 | 버전 | 날짜 | 내용 | 작성 |
 | :--- | :--- | :--- | :--- |
+| v2.2 개정 | 2026-11-19 | **SRS 복습 시각 규칙 개정(REQ-150)**: `next_review_at` 을 한국 날짜 0시로 맞추고 기한 전 정답은 단계·시각 유지. §3.4 규칙·컬럼 설명 갱신. **스키마·마이그레이션 변경 없음** | Claude |
 | v2.2 | 2026-11-19 | v2.1 개정분(2026-11-06~11-11)을 v2.2 로 확정, 파일명 `v2.2_261119` (구버전 `docs/old/` 보관). **간격 반복 반영(REQ-150)**: `user_word_progress.interval_step`·`next_review_at`·인덱스(`f4c8b2d6a1e7`), `quiz_sessions.source` 에 `due`(`a7d3f1c9e5b2`), D19, F2 완료, §3.4 복습 단계 규칙, DDL·마이그레이션 이력 갱신 | Claude |
 | v2.1 개정 | 2026-11-10 | `system_words.pos` 를 API·화면에 노출 (REQ-146). `quiz_sessions.questions` 스냅샷 키 `pos` 추가(퀴즈 출제에도 싣는 점이 `phonetic` 과 다름, 옛 세션은 키 없음→null). 스키마·마이그레이션 변경 없음 | Claude |
 | v2.1 개정 | 2026-11-10 | 기존 600단어에 `pos` 를 채움. 기존 3개 단어장의 `content_hash` 가 바뀌어 시작 시 `system_words` 가 UPDATE 된다 (`word_id` 불변, 진행 기록 유지). 허용 품사 `pronoun`·`interjection` 추가. 스키마·마이그레이션 변경 없음 | Claude |

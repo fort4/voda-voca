@@ -17,7 +17,7 @@
 
 | 계층 | 도구 | 대상 | 위치 |
 | :--- | :--- | :--- | :--- |
-| 백엔드 단위 | pytest | 순수 함수: 출제(`session_picker`), SRS(`srs`), 진행도(`progress`), 비밀번호·토큰, 레이트 리미터, 스키마 검증. **`no_db` 표시**가 붙어 MySQL 없이 돈다 (164건, 약 0.5초) | `src/backend/tests/*_units.py`, `test_auth_schemas.py`, `test_config.py`, `test_db_session.py`, `test_static_mount.py`, `test_legacy_study_removed.py` |
+| 백엔드 단위 | pytest | 순수 함수: 출제(`session_picker`), SRS(`srs`), 진행도(`progress`), 비밀번호·토큰, 레이트 리미터, 스키마 검증. **`no_db` 표시**가 붙어 MySQL 없이 돈다 (175건, 약 0.5초) | `src/backend/tests/*_units.py`, `test_auth_schemas.py`, `test_config.py`, `test_db_session.py`, `test_static_mount.py`, `test_legacy_study_removed.py` |
 | 백엔드 통합 | pytest + httpx, **실제 MySQL** | API 계약, 트랜잭션, 제약(FK·UNIQUE), 마이그레이션 스키마, 시드 | `src/backend/tests/test_*_api.py`, `test_system_*.py`, `test_transition_schema.py` |
 | 프론트엔드 단위 | `node --test` (외부 패키지 없음) | `js/core/` 의 DOM 없는 순수 로직: API 클라이언트, 라우터, 세션 러너, 뷰모델, 저장소, 사운드, TTS | `src/frontend/tests/*.test.js` |
 | 프론트엔드 소스 검사 | `node --test` | 화면 배선, 디자인 토큰, 다크 모드 색 누락, 터치 영역 등을 **소스 텍스트 수준**으로 검사 (브라우저 없음) | `dark-theme`, `design-tokens`, `*-ui.test.js`, `ui-polish.test.js` |
@@ -54,9 +54,9 @@
 
 | 대상 | 파일 수 | 케이스 수 | 측정 결과 |
 | :--- | :-: | :-: | :--- |
-| 백엔드 `pytest -q` (전체) | 33 | **546** | **546 통과, 실패 0** (약 30초). 이 중 `no_db` 164건은 DB 없이 0.5초 |
+| 백엔드 `pytest -q` (전체) | 33 | **557** | **557 통과, 실패 0** (약 30~45초). 이 중 `no_db` 175건은 DB 없이 0.5초 |
 | 프론트엔드 `node --test tests/` (전체) | 38 | **463** | **463 통과, 실패 0** |
-| 합계 | 71 | 1,009 | 전체 통과 |
+| 합계 | 71 | 1,020 | 전체 통과 |
 
 **측정 조건**
 - MySQL 컨테이너 기동, `.env` 의 `MYSQL_PORT=3307`, DB 마이그레이션 head `a7d3f1c9e5b2` 적용 상태에서 실행했다.
@@ -104,7 +104,7 @@
 | TC-014 | REQ-014 객관식 퀴즈 | 자동 | `test_learning_session_api.py`, `test_study_units.py`(오답 선지 구성) | 4개 미만 거부 포함 |
 | TC-015 | REQ-015 세션 결과 | 자동 | `session-view-model.test.js` | |
 | TC-016 | REQ-016 학습 이력·숙련 | 자동 | `test_progress_units.py`(연속 3회 숙련, 오답 해제), `test_study_log_progress.py`(답 기록 단일 진입점), `test_study_logs_api.py`, `format-kst.test.js` | |
-| TC-150 | REQ-150 SRS 단계·다음 복습 시각·오늘 복습 (ADR-006) | 자동 | `test_srs_units.py`(단계 증감, 부분 감쇠), `test_srs_picker_units.py`(기한 지난 단어 우선), `test_progress_units.py`, `test_review_session_api.py`(`source=due`), `test_stats_api.py`(`due_review_count`), `review-model.test.js`(오늘 복습 카드) | |
+| TC-150 | REQ-150 SRS 단계·다음 복습 시각·오늘 복습 (ADR-006) | 자동 | `test_srs_units.py`(단계 증감, 부분 감쇠, 한국 날짜 0시 경계, 기한 전 정답 유지), `test_srs_picker_units.py`(기한 지난 단어 우선), `test_progress_units.py`, `test_study_log_progress.py`(저장되는 단계·복습 시각), `test_review_session_api.py`(`source=due`), `test_stats_api.py`(`due_review_count`), `review-model.test.js`(오늘 복습 카드) | |
 | TC-017 | REQ-017 북마크 토글 | 자동 | `test_bookmark_api.py`(멱등 등록·해제), `test_bookmark_units.py`(중복·FK 충돌 분기) | |
 | TC-018 | REQ-018 북마크 목록 | 자동 | `test_bookmark_api.py`, `review-model.test.js` | |
 | TC-019 | REQ-019 북마크 기반 학습 | 자동 | `test_review_session_api.py` | |
@@ -190,7 +190,17 @@
 **S5. 오답은 SRS 단계를 두 단계 낮춘다** (TC-150, ADR-006)
 - Given W 의 단계가 4 (14일)다
 - When W 를 틀린다
-- Then 단계가 2 가 되고 다음 복습은 3일 뒤다 (정답이면 단계 5, 30일 뒤)
+- Then 단계가 2 가 되고 다음 복습은 3일 뒤 한국 날짜 0시다 (정답이면 단계 5, 30일 뒤)
+
+**S8. 기한 전에 다시 맞혀도 단계는 오르지 않는다** (TC-150, ADR-006 결정 8)
+- Given 단어 W 를 방금 맞혀 단계 1(다음 복습 내일 0시)이 되었다
+- When 같은 날 W 를 한 번 더 맞힌다
+- Then 단계와 다음 복습 시각은 그대로이고 정답 수·연속 정답만 늘어난다
+
+**S9. 밤에 맞힌 단어는 다음 날 오전에 오늘 복습에 뜬다** (TC-150, ADR-006 결정 7)
+- Given 한국 시각 23:00 에 W 를 맞혀 단계 1 이 되었다
+- When 다음 날 오전 9시에 복습함을 연다
+- Then W 가 "오늘 복습"에 보인다 (복습 시각이 다음 날 0시이므로)
 
 **S6. 로그인을 5번 틀리면 잠시 막힌다** (TC-121)
 - Given 같은 IP 에서 1분 안에 로그인에 5번 실패했다
@@ -234,5 +244,6 @@
 
 | 버전 | 날짜 | 내용 | 작성 |
 | :--- | :--- | :--- | :--- |
+| v1.1 개정 | 2026-11-19 | SRS 규칙 개정(REQ-150) 반영: TC-150 검증 위치, 시나리오 S8·S9, 기준선 557건(전체 pytest)·no_db 175건 | Claude |
 | v1.1 | 2026-11-19 | **G2 해결**: `no_db` 마커와 가드 테스트(`test_no_db_guard.py`)로 순수 단위 테스트를 DB 없이 실행, `conftest.py` 정리 fixture 조건부화. **G6 해결(절차)**: 푸시 전 절차에 `alembic check` 추가(§2). 기준선 546건 | Claude |
 | v1.0 | 2026-11-19 | 최초 작성(`.coveragerc` 추가 반영, REQ-150 은 TC-150). TC ID 정의와 테스트 파일 매핑, 현황 기준선(백엔드 545건·프론트엔드 463건 전체 통과, 백엔드 커버리지 98%), 갭 G1~G8 | Claude |
