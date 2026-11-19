@@ -6,7 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { preferenceRows } from "../js/core/preferences-model.js";
+import { preferenceRows, themeToggleView } from "../js/core/preferences-model.js";
 
 test("행은 효과음, 다크 모드 순서로 둘이다", () => {
   const rows = preferenceRows({ muted: false, theme: "light" });
@@ -38,4 +38,14 @@ test("각 행은 한 줄 설명을 갖고 상태 값을 지어내지 않는다",
     assert.ok(row.description.length > 0);
     assert.equal(typeof row.checked, "boolean");
   }
+});
+
+test("헤더 다크 모드 버튼: 아이콘과 라벨은 누르면 바뀔 모드를 알려 준다 (라이트면 moon, 다크면 sun)", () => {
+  assert.deepEqual(themeToggleView("light"), { icon: "moon", label: "다크 모드로 전환" });
+  assert.deepEqual(themeToggleView("dark"), { icon: "sun", label: "라이트 모드로 전환" });
+});
+
+test("헤더 다크 모드 버튼: 알 수 없는 값은 라이트로 본다", () => {
+  assert.equal(themeToggleView(undefined).icon, "moon");
+  assert.equal(themeToggleView("system").label, "다크 모드로 전환");
 });

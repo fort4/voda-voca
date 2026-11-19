@@ -26,3 +26,15 @@ export function preferenceRows({ muted, theme }) {
     },
   ];
 }
+
+/**
+ * 로그인 전 헤더의 다크 모드 버튼 표시. 아이콘과 라벨은 지금 상태가 아니라 **누르면 바뀔 모드**를 알려 준다
+ * (라이트면 moon + "다크 모드로 전환", 다크면 sun + "라이트 모드로 전환"). 글자 없는 아이콘 버튼이라 라벨이 행동을 말해야 한다.
+ * @param {string|undefined} theme 현재 테마 ("dark" 가 아니면 라이트로 본다)
+ * @returns {{icon: "moon"|"sun", label: string}}
+ */
+export function themeToggleView(theme) {
+  return theme === "dark"
+    ? { icon: "sun", label: "라이트 모드로 전환" }
+    : { icon: "moon", label: "다크 모드로 전환" };
+}

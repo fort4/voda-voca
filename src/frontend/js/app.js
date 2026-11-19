@@ -13,6 +13,7 @@ import { getUser, setUser } from "./core/state.js";
 import { confirmDialog, toast } from "./core/toast.js";
 import { loginView } from "./views/login.js";
 import { createThemeManager } from "./core/theme.js";
+import { themeToggleView } from "./core/preferences-model.js";
 import { signupView } from "./views/signup.js";
 import { exploreView } from "./views/explore-view.js";
 import { homeView } from "./views/home-view.js";
@@ -33,7 +34,7 @@ function renderTabbar() {
   renderBottomNav(tabbar, { path: parseHash(location.hash).path, user: getUser() });
 }
 
-/** 상단바: 로그인 상태에 따라 계정 메뉴(닉네임 칩), 또는 로그인 링크를 보인다. */
+/** 상단바: 로그인 상태에 따라 계정 메뉴(닉네임 칩), 또는 다크 모드 버튼과 로그인 링크를 보인다. */
 function renderUserbar() {
   clear(userbar);
   const user = getUser();
@@ -53,9 +54,35 @@ function renderUserbar() {
     userbar.append(trigger);
   } else {
     userbar.append(
+      themeToggleButton(),
       h("a", { href: "#/login", class: "focus-ring inline-flex min-h-[44px] items-center rounded-xl px-3 text-sm font-semibold text-indigo-600 hover:bg-indigo-50" }, "로그인"),
     );
   }
+}
+
+/**
+ * 로그인 전 헤더의 다크 모드 버튼 (로그인 링크 왼쪽). 로그인 후에는 계정 메뉴의 환경 설정에서 바꾼다.
+ * 누르면 테마를 바꾸고 저장한 뒤 헤더를 다시 그려 아이콘·라벨을 새 상태로 맞춘다.
+ * @returns {HTMLButtonElement}
+ */
+function themeToggleButton() {
+  const view = themeToggleView(themeManager.current());
+  return /** @type {HTMLButtonElement} */ (
+    h(
+      "button",
+      {
+        type: "button",
+        class: "btn btn-ghost btn-icon focus-ring",
+        onclick: () => {
+          themeManager.toggle();
+          renderUserbar();
+        },
+        "aria-label": view.label,
+        title: view.label,
+      },
+      icon(view.icon, "h-5 w-5 text-zinc-600"),
+    )
+  );
 }
 
 /** @param {string} nickname @returns {string} 아바타에 쓸 첫 글자 (코드 포인트 기준) */

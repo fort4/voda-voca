@@ -53,3 +53,33 @@ test("모달 등장: 토스트 모션은 건드리지 않고, 동작 줄이기�
   assert.doesNotMatch(css, /\.swal2-popup\.swal2-show\s*\{[^}]*voda-modal-in/, "토스트까지 덮지 않는다");
   assert.match(css, /prefers-reduced-motion: reduce\)[\s\S]*?swal2-popup[\s\S]*?animation:\s*none/);
 });
+
+/** renderUserbar 의 로그인 상태(if)와 로그아웃 상태(else) 본문을 나눈다. */
+function userbarBranches() {
+  const body = app.slice(app.indexOf("function renderUserbar()"), app.indexOf("function initialOf"));
+  const at = body.indexOf("} else {");
+  return { loggedIn: body.slice(0, at), loggedOut: body.slice(at) };
+}
+
+test("로그인 전 헤더: 다크 모드 버튼이 로그인 링크의 왼쪽(앞)에 있다", () => {
+  const { loggedOut } = userbarBranches();
+  const toggle = loggedOut.indexOf("themeToggleButton()");
+  const login = loggedOut.indexOf('href: "#/login"');
+  assert.ok(toggle >= 0, "로그인 전 헤더에 다크 모드 버튼이 있다");
+  assert.ok(login > toggle, "버튼이 로그인 링크보다 앞(왼쪽)이다");
+});
+
+test("로그인 후 헤더에는 다크 모드 버튼을 따로 두지 않는다 (계정 메뉴의 환경 설정을 쓴다)", () => {
+  assert.doesNotMatch(userbarBranches().loggedIn, /themeToggleButton/);
+});
+
+test("다크 모드 버튼: 44px 아이콘 버튼이고 라벨·툴팁을 갖고, 누르면 테마를 바꾼 뒤 헤더를 다시 그린다", () => {
+  const fn = app.slice(app.indexOf("function themeToggleButton()"), app.indexOf("/** @param {string} nickname"));
+  assert.ok(fn.length > 0, "themeToggleButton 이 정의되어 있다");
+  assert.match(fn, /themeToggleView\(themeManager\.current\(\)\)/);
+  assert.match(fn, /btn-icon/);
+  assert.match(fn, /"aria-label": view\.label/);
+  assert.match(fn, /title: view\.label/);
+  assert.match(fn, /themeManager\.toggle\(\)[\s\S]*?renderUserbar\(\)/);
+  assert.match(fn, /icon\(view\.icon/);
+});
