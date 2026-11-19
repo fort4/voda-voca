@@ -10,7 +10,7 @@ import pytest_asyncio
 
 from backend.db.session import get_session_factory
 from backend.main import app
-from backend.models import StudyLog, SystemWord
+from backend.models import StudyLog, SystemWord, UserWordProgress
 from backend.routers import study as study_router
 from backend.tests.helpers import auth_headers, make_vocab, make_words, signup_and_login, user_id_for_token
 
@@ -311,3 +311,28 @@ async def test_stats_are_isolated_per_user(client: httpx.AsyncClient) -> None:
     assert all(day["count"] == 0 for day in stats["weekly"])
     # 표준 단어장은 공용이라 목록에는 보이지만, 남의 학습은 내 진행률에 반영되지 않는다.
     assert progress_of(stats, wb)["learned_words"] == 0
+
+
+@pytest.mark.asyncio
+async def test_due_review_count_counts_only_words_whose_review_time_has_come(client: httpx.AsyncClient) -> None:
+    """SRS(#25): 복습 예정 시각이 지금 이전인 단어만 "오늘 복습할 단어"로 센다. 시각 미정이거나 미래면 뺀다."""
+    _, token = await signup_and_login(client)
+    wb = await make_vocab(client, token)
+    words = list(await make_words(client, token, wb, 5))
+    user_id = await user_id_for_token(client, token)
+    assert (await get_stats(client, token))["due_review_count"] == 0
+
+    plan = [
+        FIXED_NOW - timedelta(days=2),  # 기한 지남
+        FIXED_NOW,  # 정확히 지금 = 기한 도래
+        FIXED_NOW + timedelta(minutes=1),  # 아직
+        None,  # 미정
+    ]
+    async with get_session_factory()() as db:
+        db.add_all(
+            UserWordProgress(user_id=user_id, word_id=w, interval_step=1, next_review_at=due, last_studied_at=FIXED_NOW)
+            for w, due in zip(words, plan)
+        )
+        await db.commit()
+
+    assert (await get_stats(client, token))["due_review_count"] == 2

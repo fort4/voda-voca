@@ -182,7 +182,7 @@ function sendAnswer(state, body) {
   };
 }
 
-const SOURCES = new Set(["all", "bookmarks", "wrong"]);
+const SOURCES = new Set(["all", "bookmarks", "wrong", "due"]);
 const START_FROM = new Set([PHASE.IDLE, PHASE.SESSION_COMPLETE, PHASE.EXPIRED, PHASE.ERROR]);
 
 /**

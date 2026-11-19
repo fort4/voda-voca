@@ -51,11 +51,13 @@ def select_session_words(
     review_ids: Sequence[int],
     n: int,
     rng: random.Random | None = None,
+    due_review_ids: Sequence[int] = (),
 ) -> PickResult:
     """풀 세 개에서 최대 n개를 고른다.
 
     - wrong_ids: 우선순위 순서 (앞이 먼저 뽑힌다). unseen_ids: 출제 순서. review_ids: 순서 무관 (무작위로 뽑는다).
     - 같은 id 가 여러 풀에 있으면 오답 > 미학습 > 복습 순으로 한 곳에만 센다.
+    - due_review_ids: 복습 풀 중 SRS 복습 기한이 지난 단어 (앞이 더 오래 밀린 것). 복습 슬롯에서 먼저 뽑고 나머지만 무작위로 채운다 (#25).
     - 입력 시퀀스는 바꾸지 않는다. rng 를 주면 결과가 결정적이다.
     """
     if n < 1:
@@ -75,7 +77,11 @@ def select_session_words(
 
     picked_wrong = wrong[:wrong_take]
     picked_unseen = unseen[:unseen_take]
-    picked_review = rng.sample(review, review_take) if review_take else []
+    review_set = set(review)
+    due = [i for i in _unique(due_review_ids) if i in review_set]
+    picked_due = due[:review_take]
+    rest = [i for i in review if i not in set(picked_due)]
+    picked_review = picked_due + (rng.sample(rest, review_take - len(picked_due)) if review_take > len(picked_due) else [])
 
     leftover = n - (len(picked_wrong) + len(picked_unseen) + len(picked_review))
     if leftover > 0:
@@ -106,25 +112,40 @@ class Pools:
     wrong: list[int] = field(default_factory=list)
     unseen: list[int] = field(default_factory=list)
     review: list[int] = field(default_factory=list)
+    due: list[int] = field(default_factory=list)  # review 중 SRS 복습 기한이 지난 단어 (now 를 줬을 때만 채워진다)
 
 
-def split_pools(candidates: Iterable[WordCandidate], include_memorized: bool = False) -> Pools:
+def split_pools(
+    candidates: Iterable[WordCandidate], include_memorized: bool = False, now: datetime | None = None
+) -> Pools:
     """후보를 오답/미학습/복습 풀로 나눈다. 기본은 숙련 단어를 모두 제외한다 (#15).
 
     오답은 최근에 틀린 것이 먼저, 미학습은 order_index 순이다.
+    now 를 주면 SRS(#25)를 적용한다: 복습 기한이 지난(또는 기한 미정인 미숙련) 단어는 숙련 여부와 무관하게 복습 풀에 들어가
+    가장 오래 밀린 순으로 앞에 서고(Pools.due), 기한 전 단어는 그 뒤에 기한이 가까운 순으로 이어진다.
+    now 가 없으면 이전 동작 그대로다.
     """
     wrong: list[tuple[WordCandidate, ProgressState]] = []
     unseen: list[WordCandidate] = []
     review: list[WordCandidate] = []
+    due_review: list[WordCandidate] = []
     for candidate in candidates:
         progress = candidate.progress
         if progress is None:
             unseen.append(candidate)
             continue
-        if progress.is_memorized and not include_memorized:
+        if now is None:
+            is_due = False
+        elif progress.next_review_at is None:
+            is_due = not progress.is_memorized  # 기한 미정인 숙련 단어는 되살리지 않는다 (옛 데이터 보호)
+        else:
+            is_due = progress.next_review_at <= now
+        if progress.is_memorized and not include_memorized and not is_due:
             continue
         if progress.last_result == WRONG:
             wrong.append((candidate, progress))
+        elif is_due:
+            due_review.append(candidate)
         else:
             review.append(candidate)
 
@@ -136,8 +157,17 @@ def split_pools(candidates: Iterable[WordCandidate], include_memorized: bool = F
 
     wrong.sort(key=_recency_key)
     unseen.sort(key=lambda c: (c.order_index, c.word_id))
+    if now is not None:
+        oldest = datetime.min
+
+        def due_key(c: WordCandidate) -> tuple[datetime, int]:
+            return (c.progress.next_review_at or oldest, c.word_id)  # type: ignore[union-attr]
+
+        due_review.sort(key=due_key)
+        review.sort(key=due_key)
     return Pools(
         wrong=[c.word_id for c, _ in wrong],
         unseen=[c.word_id for c in unseen],
-        review=[c.word_id for c in review],
+        review=[c.word_id for c in due_review + review],
+        due=[c.word_id for c in due_review],
     )

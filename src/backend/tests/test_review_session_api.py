@@ -10,7 +10,7 @@ import pytest_asyncio
 
 from backend.db.session import get_session_factory
 from backend.main import app
-from backend.models import StudyLog
+from backend.models import StudyLog, UserWordProgress
 from backend.routers import study_session as session_router
 from backend.tests.helpers import auth_headers, signup_and_login, user_id_for_token
 from backend.tests.test_learning_session_api import activate, answer, create, stored_session
@@ -315,3 +315,39 @@ async def test_wrong_words_carries_pos_and_phonetic(client, make_vocabulary) -> 
 
     assert (items["r00"]["pos"], items["r00"]["phonetic"]) == ("verb", "ˈɑr")
     assert (items["r01"]["pos"], items["r01"]["phonetic"]) == (None, None)
+
+
+# --- 오늘 복습 (SRS, 이슈 #25) ---
+
+
+async def schedule(user_id: int, word_id: int, due: datetime | None) -> None:
+    async with get_session_factory()() as db:
+        db.add(UserWordProgress(user_id=user_id, word_id=word_id, interval_step=1, next_review_at=due, last_studied_at=T0))
+        await db.commit()
+
+
+@pytest.mark.asyncio
+async def test_due_session_uses_only_words_whose_review_time_has_come(client, make_vocabulary) -> None:
+    token, user_id, vocab = await setup(client, make_vocabulary, n=8)
+    due_terms = ["r00", "r01", "r02", "r03"]
+    for term in due_terms:
+        await schedule(user_id, vocab.word_ids[term], NOW - timedelta(days=1))
+    await schedule(user_id, vocab.word_ids["r04"], NOW + timedelta(days=2))  # 아직
+    await schedule(user_id, vocab.word_ids["r05"], None)  # 미정
+
+    response = await create(client, token, source="due", count=10)
+
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert {item["term"] for item in body["items"]} == set(due_terms)
+    assert body["vocabulary_title"] == "오늘 복습"
+    assert body["composition"]["review"] == 4
+    assert (await stored_session(body["session_id"])).source == "due"
+
+
+@pytest.mark.asyncio
+async def test_due_session_without_due_words_is_409(client, make_vocabulary) -> None:
+    token, user_id, vocab = await setup(client, make_vocabulary)
+    await schedule(user_id, vocab.word_ids["r00"], NOW + timedelta(days=1))
+    response = await create(client, token, source="due")
+    assert response.status_code == 409

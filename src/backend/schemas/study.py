@@ -40,6 +40,7 @@ class StudyStatsOut(BaseModel):
     total_words: int = Field(description="모든 표준 단어장의 단어 수 합계")
     vocabulary_progress: list[VocabularyProgressOut]
     wrong_word_count: int = Field(description="오답 복습 대상 단어 수 (단어별 마지막 결과가 오답)")
+    due_review_count: int = Field(default=0, description="오늘 복습할 단어 수 (SRS 복습 예정 시각이 지금 이전인 단어)")
 
 
 # --- 학습 이력 (REQ-016) ---

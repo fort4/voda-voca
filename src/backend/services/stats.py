@@ -11,7 +11,7 @@ from datetime import date, datetime, time, timedelta
 from sqlalchemy import Integer, case, func, literal_column, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import Bookmark, StudyLog, SystemVocabulary, SystemWord
+from backend.models import Bookmark, StudyLog, SystemVocabulary, SystemWord, UserWordProgress
 from backend.schemas.study import DayActivityOut, StudyStatsOut, VocabularyProgressOut
 
 KST_OFFSET = timedelta(hours=9)  # 학습일 경계는 한국 시각 자정이다 (DB 에는 UTC 로 저장)
@@ -51,6 +51,32 @@ async def wrong_word_ids(db: AsyncSession, user_id: int) -> set[int]:
         .subquery()
     )
     rows = await db.execute(select(latest.c.word_id).where(latest.c.rn == 1, latest.c.is_correct.is_(False)))
+    return set(rows.scalars())
+
+
+async def due_review_count(db: AsyncSession, user_id: int, now: datetime) -> int:
+    """오늘 복습할 단어 수 (SRS, 이슈 #25): 복습 예정 시각이 지금 이전인 단어. 시각이 비어 있으면 세지 않는다."""
+    return int(
+        await db.scalar(
+            select(func.count()).where(
+                UserWordProgress.user_id == user_id,
+                UserWordProgress.next_review_at.is_not(None),
+                UserWordProgress.next_review_at <= now,
+            )
+        )
+        or 0
+    )
+
+
+async def due_word_ids(db: AsyncSession, user_id: int, now: datetime) -> set[int]:
+    """오늘 복습할 단어 ID. due_review_count 와 같은 조건이라 화면의 개수와 출제 대상이 항상 같다."""
+    rows = await db.execute(
+        select(UserWordProgress.word_id).where(
+            UserWordProgress.user_id == user_id,
+            UserWordProgress.next_review_at.is_not(None),
+            UserWordProgress.next_review_at <= now,
+        )
+    )
     return set(rows.scalars())
 
 
@@ -146,6 +172,7 @@ async def get_study_stats(db: AsyncSession, user_id: int, now: datetime) -> Stud
         total_words=sum(p.word_count for p in progress),
         vocabulary_progress=progress,
         wrong_word_count=len(await wrong_word_ids(db, user_id)),
+        due_review_count=await due_review_count(db, user_id, now),
     )
 
 

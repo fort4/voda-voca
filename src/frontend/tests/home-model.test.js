@@ -111,3 +111,7 @@ test("모드 기억: 저장소가 없거나 예외를 던져도 화면이 죽지
   assert.doesNotThrow(() => saveMode(broken, "flashcard"));
   assert.doesNotThrow(() => saveMode(undefined, "flashcard"));
 });
+
+test("오늘 복습(due) 출처는 경로에 source=due 를 싣는다 (SRS)", () => {
+  assert.equal(startPath("quiz", "due"), "/study/session?mode=quiz&source=due");
+});

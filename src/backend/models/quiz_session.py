@@ -12,6 +12,7 @@ from backend.models.base import TABLE_OPTIONS, UTC_NOW_DEFAULT, Base
 QUIZ_SOURCE_VOCABULARY = "vocabulary"
 QUIZ_SOURCE_BOOKMARKS = "bookmarks"
 QUIZ_SOURCE_WRONG = "wrong"
+QUIZ_SOURCE_DUE = "due"  # 오늘 복습 (SRS, 이슈 #25)
 
 
 class QuizSession(Base):
@@ -30,7 +31,7 @@ class QuizSession(Base):
     __tablename__ = "quiz_sessions"
     __table_args__ = (
         CheckConstraint(
-            "source IN ('vocabulary', 'bookmarks', 'wrong')",
+            "source IN ('vocabulary', 'bookmarks', 'wrong', 'due')",
             name="ck_quiz_sessions_source",
         ),
         CheckConstraint("mode IN ('quiz', 'flashcard')", name="ck_quiz_sessions_mode"),

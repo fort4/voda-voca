@@ -19,3 +19,10 @@ test("복습함 행은 예문을 그리지 않고 품사 태그와 발음기호�
   assert.match(source, /posTag\(r\.pos\)/);
   assert.match(source, /phoneticLine\(r\.phonetic\)/);
 });
+
+test("복습함은 통계의 오늘 복습 개수로 SRS 카드를 그리고 due 세션을 시작한다 (#25)", () => {
+  assert.match(source, /dueSource\(/);
+  assert.match(source, /api\("\/study\/stats"\)/);
+  assert.match(source, /openSession\(.*"due"\)/);
+  assert.match(source, /due_review_count/);
+});

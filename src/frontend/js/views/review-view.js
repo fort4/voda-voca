@@ -6,7 +6,7 @@
 import { api } from "../core/api.js";
 import { appendNodes, button, clear, h, icon, refreshIcons } from "../core/dom.js";
 import { loadMode } from "../core/home-model.js";
-import { bookmarkRow, reviewSources } from "../core/review-model.js";
+import { bookmarkRow, dueSource, reviewSources } from "../core/review-model.js";
 import { mountLoader } from "./components/loader.js";
 import { phoneticLine } from "./components/phonetic-line.js";
 import { posTag } from "./components/pos-tag.js";
@@ -18,10 +18,11 @@ const TABS = [
   { id: "wrong", label: "틀린 단어", path: "/study/wrong-words" },
 ];
 
-/** 두 목록의 첫 페이지를 함께 읽는다. 총 개수가 곧 시작 가능 여부의 기준이다. */
+/** 두 목록의 첫 페이지와 오늘 복습 개수를 함께 읽는다. 총 개수가 곧 시작 가능 여부의 기준이다. 통계 실패는 카드만 "불러오는 중"으로 둔다. */
 async function loadFirstPages() {
   const [bookmarks, wrong] = await Promise.all(TABS.map((tab) => api(tab.path, { query: { page: 1, size: PAGE_SIZE } })));
-  return { bookmarks, wrong };
+  const stats = await api("/study/stats").catch(() => null);
+  return { bookmarks, wrong, dueCount: stats ? stats.due_review_count : null };
 }
 
 /**
@@ -38,6 +39,7 @@ class ReviewPanel {
     this.ctx = ctx;
     this.active = "bookmarks";
     this.data = { bookmarks: { items: pages.bookmarks.items, total: pages.bookmarks.total, page: 1 }, wrong: { items: pages.wrong.items, total: pages.wrong.total, page: 1 } };
+    this.dueCount = pages.dueCount;
     this.body = h("div", { class: "space-y-4" });
     this.element = h("div", { class: "stack pb-4" }, h("h1", { class: "text-title tracking-tight text-zinc-900" }, "복습함"), this.body);
     this.paint();
@@ -51,12 +53,19 @@ class ReviewPanel {
     // 목록이 끝났으면 "더 보기" 자리는 null 이다. 네이티브 append 는 null 을 "null" 글자로 그리므로 appendNodes 로 거른다.
     appendNodes(
       this.body,
+      this.dueCard(),
       h("div", { class: "grid grid-cols-2 gap-1 rounded-xl bg-zinc-100 p-1", role: "tablist" }, TABS.map((tab) => this.tab(tab, sources))),
       h("section", { class: "card space-y-3" }, h("p", { class: "text-sm text-zinc-700" }, source.message), button({ variant: "primary", full: true, disabled: !source.ready, onClick: () => openSession(this.ctx.navigate, loadMode(globalThis.localStorage), this.active) }, icon("play", "h-5 w-5"), "복습 시작")),
       current.items.length === 0 ? h("p", { class: "surface p-6 text-center text-sm text-zinc-600" }, this.active === "bookmarks" ? "북마크한 단어가 없어요. 학습 중 ★ 를 눌러 모아 보세요." : "틀린 단어가 없어요. 잘하고 있어요!") : h("div", { class: "space-y-2" }, current.items.map((item) => this.row(bookmarkRow(item)))),
       current.items.length < current.total ? button({ variant: "secondary", full: true, onClick: () => this.more() }, `더 보기 (${current.items.length}/${current.total})`) : null,
     );
     refreshIcons();
+  }
+
+  /** 오늘 복습(SRS) 카드: 복습 예정 시각이 도래한 단어로 바로 세션을 시작한다. */
+  dueCard() {
+    const due = dueSource(this.dueCount);
+    return h("section", { class: "card space-y-3" }, h("p", { class: "text-sm font-semibold text-zinc-900" }, "오늘 복습"), h("p", { class: "text-sm text-zinc-700" }, due.message), button({ variant: "primary", full: true, disabled: !due.ready, onClick: () => openSession(this.ctx.navigate, loadMode(globalThis.localStorage), "due") }, icon("play", "h-5 w-5"), "오늘 복습 시작"));
   }
 
   tab(tab, sources) {

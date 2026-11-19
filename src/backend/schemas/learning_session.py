@@ -21,9 +21,9 @@ class SessionCreate(BaseModel):
         description="요청 문항 수. 생략하면 내 설정(mode 별 quiz_count/flashcard_count)을 쓴다. 단어가 적으면 줄어든다",
     )
     include_memorized: bool = Field(default=False, description="true 면 숙련한 단어도 출제 대상에 넣는다 (source 가 all 일 때만 적용)")
-    source: Literal["all", "bookmarks", "wrong"] = Field(
+    source: Literal["all", "bookmarks", "wrong", "due"] = Field(
         default="all",
-        description="all: 활성 단어장 워터폴 출제, bookmarks: 내 북마크 복습, wrong: 단어별 마지막 결과가 오답인 단어 복습",
+        description="all: 활성 단어장 워터폴 출제, bookmarks: 내 북마크 복습, wrong: 단어별 마지막 결과가 오답인 단어 복습, due: SRS 복습 시각이 도래한 단어(오늘 복습)",
     )
 
     @model_validator(mode="before")

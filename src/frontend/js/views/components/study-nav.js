@@ -8,7 +8,7 @@ import { startPath } from "../../core/home-model.js";
 /**
  * @param {(path: string, query?: Record<string, string>) => void} navigate 라우터의 navigate (경로와 쿼리를 따로 받는다)
  * @param {string} mode
- * @param {"all"|"bookmarks"|"wrong"} [source]
+ * @param {"all"|"bookmarks"|"wrong"|"due"} [source]
  */
 export function openSession(navigate, mode, source = "all") {
   const [path, query] = startPath(mode, source).split("?");

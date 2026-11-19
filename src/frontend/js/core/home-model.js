@@ -42,10 +42,10 @@ export function homeModel({ active, stats, settings = FALLBACK_SETTINGS }) {
 /**
  * 세션 화면 경로. 활성 단어장 학습(all)은 source 를 생략한다.
  * @param {string} mode
- * @param {"all"|"bookmarks"|"wrong"} [source]
+ * @param {"all"|"bookmarks"|"wrong"|"due"} [source]
  */
 export function startPath(mode, source = "all") {
-  const suffix = source === "bookmarks" || source === "wrong" ? `&source=${source}` : "";
+  const suffix = source === "bookmarks" || source === "wrong" || source === "due" ? `&source=${source}` : "";
   return `/study/session?mode=${normalizeMode(mode)}${suffix}`;
 }
 

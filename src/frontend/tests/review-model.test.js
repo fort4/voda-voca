@@ -57,3 +57,22 @@ test("북마크 행: 품사·발음기호가 없으면 null 로 둔다", () => {
   assert.equal(row.pos, null);
   assert.equal(row.phonetic, null);
 });
+
+import { dueSource } from "../js/core/review-model.js";
+
+test("오늘 복습: 1개 이상이면 시작할 수 있고 개수 문구를 준다 (SRS)", () => {
+  const due = dueSource(7);
+  assert.deepEqual({ id: due.id, count: due.count, ready: due.ready }, { id: "due", count: 7, ready: true });
+  assert.equal(due.message, "오늘 복습할 단어 7개예요.");
+});
+
+test("오늘 복습: 0개면 시작할 수 없고 칭찬 문구를 준다", () => {
+  const due = dueSource(0);
+  assert.equal(due.ready, false);
+  assert.equal(due.message, "오늘 복습할 단어를 모두 마쳤어요.");
+});
+
+test("오늘 복습: 개수를 모르면(null) 막고 숫자를 지어내지 않는다", () => {
+  const due = dueSource(null);
+  assert.deepEqual({ count: due.count, ready: due.ready, message: due.message }, { count: null, ready: false, message: "불러오는 중이에요." });
+});

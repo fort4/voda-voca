@@ -18,6 +18,22 @@ export function reviewSources({ bookmarkCount, wrongCount }) {
   ];
 }
 
+/**
+ * 오늘 복습(SRS) 카드의 상태. 복습 예정 시각이 도래한 단어 수 기준이며 1개 이상이면 시작할 수 있다.
+ * (퀴즈의 4개 최소 기준은 서버가 안내한다. 플래시카드는 1개로도 가능하다.)
+ * @param {number|null|undefined} count
+ * @returns {{id: "due", count: number|null, ready: boolean, message: string}}
+ */
+export function dueSource(count) {
+  if (count === null || count === undefined) return { id: "due", count: null, ready: false, message: "불러오는 중이에요." };
+  return {
+    id: "due",
+    count,
+    ready: count >= 1,
+    message: count >= 1 ? `오늘 복습할 단어 ${count}개예요.` : "오늘 복습할 단어를 모두 마쳤어요.",
+  };
+}
+
 /** @param {"bookmarks"|"wrong"} id @param {number|null} count @param {string} readyLabel @param {string} lackLabel */
 function sourceState(id, count, readyLabel, lackLabel) {
   if (count === null || count === undefined) {

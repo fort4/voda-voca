@@ -129,8 +129,8 @@ test("START: 모드, 문항 수, 숙련 단어 포함 옵션을 요청 본문에
   assert.deepEqual(effects[0].body, { mode: "flashcard", count: 5, include_memorized: true, source: "all" });
 });
 
-test("START: 북마크·오답 복습은 source 를 서버로 보내고 상태에 기억한다", () => {
-  for (const source of ["bookmarks", "wrong"]) {
+test("START: 북마크·오답·오늘 복습은 source 를 서버로 보내고 상태에 기억한다", () => {
+  for (const source of ["bookmarks", "wrong", "due"]) {
     const { state, effects } = reduce(initialState(), { type: ACTION.START, source });
     assert.equal(effects[0].body.source, source);
     assert.equal(state.source, source);

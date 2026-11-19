@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import Bookmark, QuizSession, SystemVocabulary, SystemWord, User, UserWordProgress
-from backend.models.quiz_session import QUIZ_SOURCE_BOOKMARKS, QUIZ_SOURCE_VOCABULARY, QUIZ_SOURCE_WRONG
+from backend.models.quiz_session import QUIZ_SOURCE_BOOKMARKS, QUIZ_SOURCE_DUE, QUIZ_SOURCE_VOCABULARY, QUIZ_SOURCE_WRONG
 from backend.models.study_log import STUDY_MODE_FLASHCARD, STUDY_MODE_QUIZ
 from backend.schemas.learning_session import (
     CompositionOut,
@@ -36,13 +36,13 @@ from backend.services.study import (
     record_one,
     recorded_answers,
 )
-from backend.services.stats import wrong_word_ids
+from backend.services.stats import due_word_ids, wrong_word_ids
 from backend.services.study_log import progress_state_of
 
 FLASHCARD_KNOWN = 1  # 플래시카드 answers 의 값: 1=알아요, 0=헷갈려요
 FLASHCARD_UNSURE = 0
 
-REVIEW_TITLES = {QUIZ_SOURCE_BOOKMARKS: "북마크 복습", QUIZ_SOURCE_WRONG: "오답 복습"}
+REVIEW_TITLES = {QUIZ_SOURCE_BOOKMARKS: "북마크 복습", QUIZ_SOURCE_WRONG: "오답 복습", QUIZ_SOURCE_DUE: "오늘 복습"}
 
 
 class NoWordsToStudyError(StudyError):
@@ -120,13 +120,15 @@ async def _bookmarked_ids(db: AsyncSession, user: User, questions: list[dict]) -
 async def _create_review_session(
     db: AsyncSession, user: User, mode: str, count: int, source: str, now: datetime, rng: random.Random
 ) -> SessionOut:
-    """북마크 또는 오답 단어만으로 세션을 만든다. 활성 단어장은 바꾸지 않는다.
+    """북마크, 오답, 오늘 복습(SRS) 단어만으로 세션을 만든다. 활성 단어장은 바꾸지 않는다.
 
     풀은 사용자가 고른 것(북마크)이거나 복습 대상(오답)이므로 워터폴 비율과 숙련 제외를 적용하지 않고 무작위로 count 개를 뽑는다.
     오답 보기는 각 단어가 속한 단어장에서만 뽑는다. 풀이 비면 NoWordsToStudyError, 퀴즈는 4개 미만이면 QuizSourceTooSmallError.
     """
     if source == QUIZ_SOURCE_BOOKMARKS:
         pool_ids = set((await db.execute(select(Bookmark.word_id).where(Bookmark.user_id == user.id))).scalars())
+    elif source == QUIZ_SOURCE_DUE:
+        pool_ids = await due_word_ids(db, user.id, now)
     else:
         pool_ids = await wrong_word_ids(db, user.id)
     pool = list((await db.execute(select(SystemWord).where(SystemWord.id.in_(pool_ids)))).scalars()) if pool_ids else []
@@ -175,7 +177,7 @@ async def _create_review_session(
         vocabulary_title=REVIEW_TITLES[source],
         total_questions=n,
         expires_at=session.expires_at,
-        composition=CompositionOut(wrong=n if source == QUIZ_SOURCE_WRONG else 0, review=n if source == QUIZ_SOURCE_BOOKMARKS else 0, unseen=0),
+        composition=CompositionOut(wrong=n if source == QUIZ_SOURCE_WRONG else 0, review=n if source in (QUIZ_SOURCE_BOOKMARKS, QUIZ_SOURCE_DUE) else 0, unseen=0),
         items=[_item(question, mode, question["word_id"] in bookmarked) for question in questions],
     )
 
@@ -217,8 +219,8 @@ async def create_session(
         WordCandidate(word.id, word.order_index, None if progress is None else progress_state_of(progress))
         for word, progress in rows
     ]
-    pools = split_pools(candidates, include_memorized)
-    picked = select_session_words(pools.wrong, pools.unseen, pools.review, count, rng)
+    pools = split_pools(candidates, include_memorized, now)
+    picked = select_session_words(pools.wrong, pools.unseen, pools.review, count, rng, pools.due)
     if not picked.ids:
         raise NoWordsToStudyError
 
