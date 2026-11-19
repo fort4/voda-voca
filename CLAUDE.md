@@ -96,9 +96,13 @@ Claude Code는 단순 코더가 아닌 **분석자, 설계자, 구현자, 문서
    | 시점 | 실행 범위 | 명령 예시 |
    | :--- | :--- | :--- |
    | Red/Green 반복 중 | 지금 쓰는 테스트 하나 | `.venv/bin/python -m pytest -q src/backend/tests/test_x.py::test_y`, `cd src/frontend && node --test tests/x.test.js` |
+   | DB 없이 빠른 확인 | 순수 단위 테스트(`no_db` 표시)만. Docker 불필요 | `.venv/bin/python -m pytest -q -m no_db` |
    | 기능 단위를 마칠 때 | 영향받는 모듈의 테스트 파일 | `.venv/bin/python -m pytest -q src/backend/tests/test_x.py` |
    | 커밋 전 | 위 범위 + 직전 실패 테스트 우선 | `.venv/bin/python -m pytest -q --lf` |
-   | 푸시 전 / PR | 백엔드와 프론트엔드 전체 | `.venv/bin/python -m pytest -q`, `cd src/frontend && node --test tests/` |
+   | 푸시 전 / PR | 백엔드와 프론트엔드 전체 + 마이그레이션 일치 검사 | `.venv/bin/python -m pytest -q`, `cd src/frontend && node --test tests/`, `.venv/bin/alembic -c src/backend/alembic.ini check` |
+
+   - `alembic check` 는 모델과 DB 구조가 같은지 보는 읽기 전용 명령이다. 모델을 바꾸고 마이그레이션을 빼먹었는지를 푸시 전에 잡는다. `No new upgrade operations detected.` 가 나와야 한다.
+   - 새 순수 단위 테스트(DB를 쓰지 않는 테스트)는 `pytestmark = pytest.mark.no_db` 를 붙인다. 표시가 거짓이면 `test_no_db_guard.py` 가 실패한다.
 
 3. **간헐 실패 대응**: 전체 실행에서 실패한 테스트는 단독으로 반복 실행해 이번 변경 때문인지 가린다. 변경과 무관한 간헐 실패는 숨기거나 건너뛰지 않고, 보고에 밝히고 별도 이슈로 등록한다.
 4. **보고에 실행 범위 명시**: 테스트 결과는 범위와 함께 적는다 (예: "`test_study_api.py` 37건 통과", "전체 pytest 298건 + node 207건 통과"). 전체를 돌리지 않았다면 그렇게 적는다.

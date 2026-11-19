@@ -3,7 +3,7 @@
 모바일에 맞춘 웹 기반 영어 단어 학습 서비스입니다. 서비스가 준비한 **표준 단어장**(5종, 1,000단어)을 골라 학습 세션 하나에서 4지선다 퀴즈와 플래시카드로 외우고, 북마크와 틀린 단어를 복습함에서 다시 봅니다.
 
 - **버전**: v2.2 개발 중 (최근 릴리즈 태그 `v2.1.0`)
-- **설계 문서**: [`docs/`](docs/) (요구사항 명세 v2.2, 데이터 설계서 v2.2, API 연동 규격서 v2.2, UI/UX 설계서 v2.2, 아키텍처 설계서 v1.0, 결정 기록 v1.0, 테스트 정의서 v1.0)
+- **설계 문서**: [`docs/`](docs/) (요구사항 명세 v2.2, 데이터 설계서 v2.2, API 연동 규격서 v2.2, UI/UX 설계서 v2.2, 아키텍처 설계서 v1.0, 결정 기록 v1.0, 테스트 정의서 v1.1)
 - **작업 환경**: Windows 11 + WSL2 (Ubuntu 24.04), Docker
 
 ---
@@ -143,13 +143,15 @@ PYTHONPATH=src .venv/bin/uvicorn backend.main:app --reload --port 8000
 
 ## 4. 테스트 실행
 
-### 4.1 백엔드 (pytest, 545건)
+### 4.1 백엔드 (pytest, 546건)
 DB 컨테이너와 마이그레이션이 준비되어 있어야 합니다.
 ```bash
 .venv/bin/python -m pytest -q
 ```
 - 통합 테스트는 실제 MySQL 에 연결합니다. 테스트 계정은 `tvoda-` 접두사를 쓰고 표준 단어장 테스트 데이터도 테스트 뒤에 지웁니다.
-- 최근 검증 결과: 545 passed (2026-11-19). 커버리지는 98% 입니다 (`--cov=backend`, 설정은 `.coveragerc`).
+- 최근 검증 결과: 546 passed (2026-11-19). 커버리지는 98% 입니다 (`--cov=backend`, 설정은 `.coveragerc`).
+- **DB 없이 빠르게**: 순수 단위 테스트에는 `no_db` 표시가 붙어 있어 Docker 없이 `.venv/bin/python -m pytest -q -m no_db` (164건, 약 0.5초)로 돌립니다. 새 순수 단위 테스트에는 `pytestmark = pytest.mark.no_db` 를 붙이세요 (표시가 거짓이면 `test_no_db_guard.py` 가 실패합니다).
+- **푸시 전 마이그레이션 검사**: `.venv/bin/alembic -c src/backend/alembic.ini check` 가 `No new upgrade operations detected.` 를 내야 합니다 (모델은 바꿨는데 마이그레이션을 빼먹은 경우를 잡습니다).
 - 개발 중에는 지금 작업하는 테스트만 돌립니다 (예: `.venv/bin/python -m pytest -q src/backend/tests/test_bookmark_api.py`).
 
 ### 4.2 프론트엔드 (node --test, 463건)
@@ -159,7 +161,7 @@ npm test            # 또는: node --test tests/
 ```
 - 외부 패키지를 설치하지 않습니다. 순수 로직(API 클라이언트, 라우터, 세션 러너, 콤보, 사운드, 저장소, 뷰모델)과, 화면 배선·디자인 토큰·다크 모드 누락을 소스 수준에서 검사하는 테스트를 돌립니다.
 - 최근 검증 결과: 463 passed (2026-11-19).
-- 누적 검증: 백엔드 545건과 프론트엔드 463건, 합계 1,008건이 모두 통과합니다.
+- 누적 검증: 백엔드 546건과 프론트엔드 463건, 합계 1,009건이 모두 통과합니다.
 
 ### 4.3 문법 검사 (프론트엔드)
 ```bash
