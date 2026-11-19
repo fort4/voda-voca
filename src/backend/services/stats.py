@@ -13,8 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import Bookmark, StudyLog, SystemVocabulary, SystemWord, UserWordProgress
 from backend.schemas.study import DayActivityOut, StudyStatsOut, VocabularyProgressOut
+from backend.services.srs import KST_OFFSET  # 학습일 경계(한국 시각 자정) 상수는 srs 와 공유한다
 
-KST_OFFSET = timedelta(hours=9)  # 학습일 경계는 한국 시각 자정이다 (DB 에는 UTC 로 저장)
 WEEK_DAYS = 7
 STREAK_LOOKBACK_DAYS = 3700  # 연속 학습일을 거슬러 볼 최대 일수 (약 10년). 날짜 하나가 한 행이라 가볍다
 WEEKDAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"]  # date.weekday() 순서

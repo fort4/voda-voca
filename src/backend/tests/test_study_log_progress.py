@@ -13,6 +13,7 @@ from backend.db.session import get_session_factory
 from backend.main import app
 from backend.models import StudyLog, UserWordProgress
 from backend.services.progress import ProgressState
+from backend.services.srs import kst_day_start
 from backend.services.study_log import record_result
 from backend.tests.helpers import make_vocab, make_words, signup_and_login, user_id_for_token
 
@@ -121,15 +122,26 @@ async def test_concurrent_first_answers_create_one_row_and_count_every_answer(cl
 
 @pytest.mark.asyncio
 async def test_record_result_persists_srs_step_and_due_date(client) -> None:
-    """SRS(이슈 #25): 정답은 단계를 올리고 다음 복습 시각을 저장, 오답은 2단계 감쇠한다."""
+    """SRS(이슈 #25): 정답은 단계를 올리고 한국 날짜 0시의 복습 시각을 저장, 기한 전 정답은 유지, 오답은 2단계 감쇠한다."""
     _, user_id, _, words = await setup(client)
     await record(user_id, words[0], True, 0)
-    await record(user_id, words[0], True, 1)
+    row = await progress_row(user_id, words[0])
+    first_due = row.next_review_at
+    assert row.interval_step == 1
+    assert first_due == kst_day_start(T0) + timedelta(days=1)
+
+    await record(user_id, words[0], True, 1)  # 1분 뒤: 기한 전이라 단계·시각 유지
+    row = await progress_row(user_id, words[0])
+    assert (row.interval_step, row.next_review_at) == (1, first_due)
+    assert (row.correct_count, row.consecutive_correct_count) == (2, 2)
+
+    two_days = 2 * 24 * 60
+    await record(user_id, words[0], True, two_days)  # 기한 이후: 단계 상승
     row = await progress_row(user_id, words[0])
     assert row.interval_step == 2
-    assert row.next_review_at == T0 + timedelta(minutes=1, days=3)
+    assert row.next_review_at == kst_day_start(T0 + timedelta(minutes=two_days)) + timedelta(days=3)
 
-    state = await record(user_id, words[0], False, 2)
+    state = await record(user_id, words[0], False, two_days + 1)
     row = await progress_row(user_id, words[0])
     assert (state.interval_step, row.interval_step) == (0, 0)
-    assert row.next_review_at == T0 + timedelta(minutes=2)
+    assert row.next_review_at == kst_day_start(T0 + timedelta(minutes=two_days + 1))

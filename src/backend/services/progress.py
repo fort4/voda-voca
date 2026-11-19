@@ -42,7 +42,7 @@ def apply_result(
     memorize_streak: int = MEMORIZE_STREAK,
 ) -> ProgressState:
     """답 하나를 반영한 새 상태를 돌려준다. 입력 상태는 바꾸지 않는다."""
-    step, due = schedule_next(state.interval_step, is_correct, now)
+    step, due = schedule_next(state.interval_step, is_correct, now, state.next_review_at)
     if is_correct:
         streak = state.consecutive_correct_count + 1
         return replace(
