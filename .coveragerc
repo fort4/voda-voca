@@ -1,0 +1,7 @@
+# 2026-11-19 - voda-voca - 커버리지 측정 설정: 비동기(greenlet) 코드 추적, 테스트 코드 제외
+# 파일 위치: .coveragerc
+# 이유: SQLAlchemy 비동기 코드는 greenlet 에서 실행되어 기본 설정으로는 추적되지 않는다 (서비스 일부가 44~68% 로 낮게 나옴).
+[run]
+source = backend
+concurrency = greenlet,thread
+omit = */tests/*
