@@ -55,8 +55,8 @@
 | 대상 | 파일 수 | 케이스 수 | 측정 결과 |
 | :--- | :-: | :-: | :--- |
 | 백엔드 `pytest -q` (전체) | 33 | **557** | **557 통과, 실패 0** (약 30~45초). 이 중 `no_db` 175건은 DB 없이 0.5초 |
-| 프론트엔드 `node --test tests/` (전체) | 38 | **463** | **463 통과, 실패 0** |
-| 합계 | 71 | 1,020 | 전체 통과 |
+| 프론트엔드 `node --test tests/` (전체) | 38 | **468** | **468 통과, 실패 0** |
+| 합계 | 71 | 1,025 | 전체 통과 |
 
 **측정 조건**
 - MySQL 컨테이너 기동, `.env` 의 `MYSQL_PORT=3307`, DB 마이그레이션 head `a7d3f1c9e5b2` 적용 상태에서 실행했다.
@@ -146,7 +146,7 @@
 | TC-114 | REQ-114 터치 44px | 소스검사 + 수동 | `speak-ui.test.js`, `bookmark-ui.test.js` | 전 화면 전수 검사는 아니다 |
 | TC-115 | REQ-115 본문 16px | 수동 | §6 | `design-tokens.test.js` 는 `--fs-body` 토큰의 존재만 검사하고 값(16px 이상)은 검사하지 않는다. 값 검사 추가는 후속 제안 |
 | TC-125 | REQ-125 발음 청취(TTS) | 자동 | `tts.test.js`, `tts-state.test.js`, `speak-ui.test.js` | 실제 음성 출력은 수동 |
-| TC-126 | REQ-126 다크 모드 | 자동 | `theme.test.js`, `dark-theme.test.js`(색 클래스마다 다크 규칙 존재), `ui-polish.test.js` | 색 구분은 수동 |
+| TC-126 | REQ-126 다크 모드 | 자동 + 소스검사 | `theme.test.js`, `dark-theme.test.js`(색 클래스마다 다크 규칙 존재), `ui-polish.test.js`, `preferences-model.test.js`(`themeToggleView`), `preferences-ui.test.js`(로그인 전 헤더 버튼이 로그인 링크 왼쪽, 로그인 후에는 없음) | 색 구분과 360px 헤더 겹침은 수동 |
 | TC-127 | REQ-127 키보드 단축키 | 자동 | `shortcuts.test.js`, `session-view-model.test.js` | |
 | TC-134 | REQ-134 계정 메뉴 | 소스검사 | `preferences-ui.test.js`, `settings-ui.test.js` | |
 | TC-137 | REQ-137 세션 효과음 | 자동 | `sound.test.js`(큐 4종 파라미터), `combo-model.test.js`, `combo-ui.test.js` | 실제 소리는 수동 |
@@ -244,6 +244,7 @@
 
 | 버전 | 날짜 | 내용 | 작성 |
 | :--- | :--- | :--- | :--- |
+| v1.1 개정 | 2026-11-19 | 로그인 전 다크 모드 버튼(REQ-126) 반영: TC-126 검증 위치, 기준선 node 468건·합계 1,025건 | Claude |
 | v1.1 개정 | 2026-11-19 | SRS 규칙 개정(REQ-150) 반영: TC-150 검증 위치, 시나리오 S8·S9, 기준선 557건(전체 pytest)·no_db 175건 | Claude |
 | v1.1 | 2026-11-19 | **G2 해결**: `no_db` 마커와 가드 테스트(`test_no_db_guard.py`)로 순수 단위 테스트를 DB 없이 실행, `conftest.py` 정리 fixture 조건부화. **G6 해결(절차)**: 푸시 전 절차에 `alembic check` 추가(§2). 기준선 546건 | Claude |
 | v1.0 | 2026-11-19 | 최초 작성(`.coveragerc` 추가 반영, REQ-150 은 TC-150). TC ID 정의와 테스트 파일 매핑, 현황 기준선(백엔드 545건·프론트엔드 463건 전체 통과, 백엔드 커버리지 98%), 갭 G1~G8 | Claude |
