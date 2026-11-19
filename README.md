@@ -3,7 +3,7 @@
 모바일에 맞춘 웹 기반 영어 단어 학습 서비스입니다. 서비스가 준비한 **표준 단어장**(5종, 1,000단어)을 골라 학습 세션 하나에서 4지선다 퀴즈와 플래시카드로 외우고, 북마크와 틀린 단어를 복습함에서 다시 봅니다.
 
 - **버전**: v2.2 개발 중 (최근 릴리즈 태그 `v2.1.0`)
-- **설계 문서**: [`docs/`](docs/) (요구사항 명세 v2.1, 데이터 설계서 v2.1, API 연동 규격서 v2.1, UI/UX 설계서 v2.2)
+- **설계 문서**: [`docs/`](docs/) (요구사항 명세 v2.2, 데이터 설계서 v2.2, API 연동 규격서 v2.2, UI/UX 설계서 v2.2, 아키텍처 설계서 v1.0, 결정 기록 v1.0, 테스트 정의서 v1.0)
 - **작업 환경**: Windows 11 + WSL2 (Ubuntu 24.04), Docker
 
 ---
@@ -125,7 +125,7 @@ python3 -m venv .venv
 ```bash
 .venv/bin/alembic -c src/backend/alembic.ini upgrade head
 ```
-현재 head 는 `e2b6d4a9f1c3`입니다.
+현재 head 는 `a7d3f1c9e5b2`입니다.
 
 ### 3.6 서버 실행
 ```bash
@@ -143,23 +143,23 @@ PYTHONPATH=src .venv/bin/uvicorn backend.main:app --reload --port 8000
 
 ## 4. 테스트 실행
 
-### 4.1 백엔드 (pytest, 510건)
+### 4.1 백엔드 (pytest, 545건)
 DB 컨테이너와 마이그레이션이 준비되어 있어야 합니다.
 ```bash
 .venv/bin/python -m pytest -q
 ```
 - 통합 테스트는 실제 MySQL 에 연결합니다. 테스트 계정은 `tvoda-` 접두사를 쓰고 표준 단어장 테스트 데이터도 테스트 뒤에 지웁니다.
-- 최근 검증 결과: 510 passed.
+- 최근 검증 결과: 545 passed (2026-11-19). 커버리지는 98% 입니다 (`--cov=backend`, 설정은 `.coveragerc`).
 - 개발 중에는 지금 작업하는 테스트만 돌립니다 (예: `.venv/bin/python -m pytest -q src/backend/tests/test_bookmark_api.py`).
 
-### 4.2 프론트엔드 (node --test, 456건)
+### 4.2 프론트엔드 (node --test, 463건)
 ```bash
 cd src/frontend
 npm test            # 또는: node --test tests/
 ```
 - 외부 패키지를 설치하지 않습니다. 순수 로직(API 클라이언트, 라우터, 세션 러너, 콤보, 사운드, 저장소, 뷰모델)과, 화면 배선·디자인 토큰·다크 모드 누락을 소스 수준에서 검사하는 테스트를 돌립니다.
-- 최근 검증 결과: 456 passed.
-- 누적 검증: 백엔드 510건과 프론트엔드 456건, 합계 966건이 모두 통과합니다.
+- 최근 검증 결과: 463 passed (2026-11-19).
+- 누적 검증: 백엔드 545건과 프론트엔드 463건, 합계 1,008건이 모두 통과합니다.
 
 ### 4.3 문법 검사 (프론트엔드)
 ```bash
@@ -228,13 +228,13 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 
 ## 6. API 개요
 
-모든 경로는 `/api` 아래입니다. 자세한 요청·응답은 `docs/voda-voca_API_Integration_Spec_v2.1_261105.md`와 `/docs`(자동 생성)를 봅니다.
+모든 경로는 `/api` 아래입니다. 자세한 요청·응답은 `docs/voda-voca_API_Integration_Spec_v2.2_261119.md`와 `/docs`(자동 생성)를 봅니다.
 
 | 영역 | 엔드포인트 |
 | :--- | :--- |
 | 인증 | `POST /auth/signup`, `POST /auth/login`, `POST /auth/logout`, `GET·DELETE /auth/me` |
 | 표준 단어장 | `GET /vocabularies`, `GET /vocabularies/{id}/words`, `POST /users/me/active-vocabulary` |
-| 학습 세션 | `POST /study/sessions`, `POST /study/sessions/{id}/answer` (`mode=quiz\|flashcard`, `source=all\|bookmarks\|wrong`) |
+| 학습 세션 | `POST /study/sessions`, `POST /study/sessions/{id}/answer` (`mode=quiz\|flashcard`, `source=all\|bookmarks\|wrong\|due`) |
 | 북마크 | `PUT·DELETE /bookmarks/{word_id}`, `GET /bookmarks` |
 | 복습·통계 | `GET /study/wrong-words`, `GET /study/stats`, `GET /study/logs` |
 | 사용자 설정 | `GET·PATCH /users/me/settings` |
@@ -248,7 +248,7 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 - 북마크, 학습 기록, 진행도, 설정은 사용자별로 격리됩니다.
 - 로그인 무차별 대입 방어는 프로세스 메모리에서 동작합니다. 워커를 여러 개 띄우면 한도가 워커마다 따로 적용되므로, 그 경우 공유 저장소가 필요합니다.
 - 프론트엔드는 `innerHTML`을 쓰지 않고 `textContent`로만 텍스트를 넣습니다.
-- 퀴즈 출제 응답에는 정답 인덱스가 포함됩니다 (즉각 피드백). 학습 기록의 신뢰도가 중요한 용도로 쓰려면 이 점을 고려해야 합니다. 대신 발음기호는 출제 응답에서 서버가 비웁니다.
+- 퀴즈 출제 응답에는 정답과 해설이 없고, 답을 제출한 뒤 채점 응답에서만 공개됩니다 (데이터 설계서 D16). 플래시카드는 정답 개념이 없어 뒷면 정보(뜻·예문)가 출제 응답에 함께 실립니다. 퀴즈의 발음기호는 출제 응답에서 서버가 비웁니다.
 
 ---
 
@@ -267,9 +267,9 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 
 | 문서 | 현행 버전 | 이전 버전 |
 | :--- | :--- | :--- |
-| 요구사항 명세 | `docs/voda-voca_Requirement_Spec_v2.1_261105.md` | `docs/old/` |
-| 데이터 설계서 | `docs/voda-voca_Data_Design_v2.1_261105.md` | `docs/old/` |
-| API 연동 규격서 | `docs/voda-voca_API_Integration_Spec_v2.1_261105.md` | `docs/old/` |
+| 요구사항 명세 | `docs/voda-voca_Requirement_Spec_v2.2_261119.md` | `docs/old/` |
+| 데이터 설계서 | `docs/voda-voca_Data_Design_v2.2_261119.md` | `docs/old/` |
+| API 연동 규격서 | `docs/voda-voca_API_Integration_Spec_v2.2_261119.md` | `docs/old/` |
 | UI/UX 설계서 | `docs/voda-voca_UIUX_Design_Spec_v2.2_261105.md` | `docs/old/` |
 
 v2.2 진행 중에는 파일명을 바꾸지 않고 각 문서의 변경 이력 표에 개정 행을 추가합니다. 작업 일지와 결정 기록은 `ai-agent/claude/`에 있습니다.
