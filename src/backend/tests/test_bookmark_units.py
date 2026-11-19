@@ -8,6 +8,9 @@ from backend.services import bookmark as bookmark_service
 from backend.services.errors import WordNotFoundError
 
 
+pytestmark = pytest.mark.no_db  # MySQL 없이 통과해야 한다 (test_no_db_guard.py)
+
+
 class _FakeSession:
     def __init__(self, error: Exception | None) -> None:
         self.error = error

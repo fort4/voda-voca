@@ -46,9 +46,17 @@ def _fast_bcrypt(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     get_settings.cache_clear()
 
 
+def _skips_db(request: pytest.FixtureRequest) -> bool:
+    """`no_db` 표시가 붙은 순수 단위 테스트는 DB 정리를 건너뛴다 (MySQL 이 꺼져 있어도 돌아가야 한다)."""
+    return request.node.get_closest_marker("no_db") is not None
+
+
 @pytest_asyncio.fixture(autouse=True)
-async def _cleanup_test_users() -> AsyncIterator[None]:
-    """테스트 계정(과 그 세션, FK CASCADE)을 테스트 전후로 지운다."""
+async def _cleanup_test_users(request: pytest.FixtureRequest) -> AsyncIterator[None]:
+    """테스트 계정(과 그 세션, FK CASCADE)을 테스트 전후로 지운다. `no_db` 테스트는 건너뛴다."""
+    if _skips_db(request):
+        yield
+        return
     await _delete_test_users()
     yield
     await _delete_test_users()
@@ -62,8 +70,11 @@ async def _delete_test_users() -> None:
 
 
 @pytest_asyncio.fixture(autouse=True)
-async def _cleanup_test_vocabularies() -> AsyncIterator[None]:
-    """테스트가 만든 표준 단어장(slug 가 tvoda- 로 시작)을 테스트 전후로 지운다 (단어·북마크·이력은 CASCADE)."""
+async def _cleanup_test_vocabularies(request: pytest.FixtureRequest) -> AsyncIterator[None]:
+    """테스트가 만든 표준 단어장(slug 가 tvoda- 로 시작)을 테스트 전후로 지운다 (단어·북마크·이력은 CASCADE). `no_db` 는 건너뛴다."""
+    if _skips_db(request):
+        yield
+        return
     await _delete_test_vocabularies()
     yield
     await _delete_test_vocabularies()

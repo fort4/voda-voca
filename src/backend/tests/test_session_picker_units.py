@@ -20,6 +20,9 @@ UNSEEN = list(range(2000, 2100))
 REVIEW = list(range(3000, 3050))
 
 
+pytestmark = pytest.mark.no_db  # MySQL 없이 통과해야 한다 (test_no_db_guard.py)
+
+
 def _pick(wrong=WRONG, unseen=UNSEEN, review=REVIEW, n=15, seed=7):
     return select_session_words(wrong, unseen, review, n, rng=random.Random(seed))
 

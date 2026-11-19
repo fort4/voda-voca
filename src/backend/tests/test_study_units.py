@@ -9,6 +9,9 @@ import pytest
 from backend.services import study as study_service
 
 
+pytestmark = pytest.mark.no_db  # MySQL 없이 통과해야 한다 (test_no_db_guard.py)
+
+
 def _word(word_id: int, vocabulary_id: int, meaning: str) -> SimpleNamespace:
     """서비스가 쓰는 속성(id, vocabulary_id, term, meaning, 예문, 발음기호, 품사)만 가진 가짜 단어."""
     return SimpleNamespace(

@@ -7,6 +7,9 @@ from pydantic import ValidationError
 from backend.schemas.auth import LoginRequest, SignupRequest
 
 
+pytestmark = pytest.mark.no_db  # MySQL 없이 통과해야 한다 (test_no_db_guard.py)
+
+
 def _signup(**overrides: object) -> dict[str, object]:
     data: dict[str, object] = {"nickname": "학습자", "password": "longenough1"}
     data.update(overrides)

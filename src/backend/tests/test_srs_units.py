@@ -11,6 +11,9 @@ from backend.services.srs import INTERVAL_DAYS, MAX_STEP, WRONG_STEP_PENALTY, sc
 T0 = datetime(2026, 11, 11, 9, 0, 0)
 
 
+pytestmark = pytest.mark.no_db  # MySQL 없이 통과해야 한다 (test_no_db_guard.py)
+
+
 def test_interval_table_is_forgetting_curve_like() -> None:
     assert INTERVAL_DAYS == (0, 1, 3, 7, 14, 30)
     assert MAX_STEP == 5

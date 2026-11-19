@@ -8,6 +8,9 @@ import pytest
 from backend.db import session as session_module
 
 
+pytestmark = pytest.mark.no_db  # MySQL 없이 통과해야 한다 (test_no_db_guard.py)
+
+
 def _fake_session() -> MagicMock:
     fake = MagicMock()
     fake.rollback = AsyncMock()

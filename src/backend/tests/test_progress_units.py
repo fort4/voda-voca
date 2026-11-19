@@ -10,6 +10,9 @@ from backend.services.progress import MEMORIZE_STREAK, ProgressState, apply_resu
 T0 = datetime(2026, 11, 5, 9, 0, 0)
 
 
+pytestmark = pytest.mark.no_db  # MySQL 없이 통과해야 한다 (test_no_db_guard.py)
+
+
 def _apply_all(results: list[bool], state: ProgressState | None = None) -> ProgressState:
     state = state or new_progress()
     for index, ok in enumerate(results):

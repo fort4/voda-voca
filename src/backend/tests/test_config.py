@@ -1,9 +1,13 @@
 # 2026-11-02 - voda-voca - 설정 모듈 단위 테스트 (접속 URL 조립, 비밀번호 노출 방지)
 # 파일 위치: src/backend/tests/test_config.py
 
+import pytest
 from pydantic import SecretStr
 
 from backend.core.config import Settings
+
+
+pytestmark = pytest.mark.no_db  # MySQL 없이 통과해야 한다 (test_no_db_guard.py)
 
 
 def make_settings(password: str) -> Settings:

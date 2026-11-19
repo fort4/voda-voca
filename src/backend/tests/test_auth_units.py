@@ -9,6 +9,9 @@ from backend.services.password import hash_password, verify_password
 from backend.services.session import new_token, token_digest
 
 
+pytestmark = pytest.mark.no_db  # MySQL 없이 통과해야 한다 (test_no_db_guard.py)
+
+
 @pytest.mark.asyncio
 async def test_hash_is_bcrypt_and_not_plaintext() -> None:
     hashed = await hash_password("correct-horse")

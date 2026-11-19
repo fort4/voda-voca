@@ -1,6 +1,7 @@
 # 2026-11-11 - voda-voca - SRS 출제 풀 테스트: 복습 기한이 지난 단어 우선, 숙련 단어도 기한이 되면 복귀 (이슈 #25)
 # 파일 위치: src/backend/tests/test_srs_picker_units.py
 
+import pytest
 import random
 from datetime import datetime, timedelta
 
@@ -8,6 +9,9 @@ from backend.services.progress import ProgressState
 from backend.services.session_picker import WordCandidate, select_session_words, split_pools
 
 NOW = datetime(2026, 11, 11, 9, 0, 0)
+
+
+pytestmark = pytest.mark.no_db  # MySQL 없이 통과해야 한다 (test_no_db_guard.py)
 
 
 def _learned(due: datetime | None, memorized: bool = False, result: str = "CORRECT") -> ProgressState:

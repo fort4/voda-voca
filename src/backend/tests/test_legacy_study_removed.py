@@ -30,6 +30,9 @@ REMOVED_SERVICE_NAMES = [
 ]
 
 
+pytestmark = pytest.mark.no_db  # MySQL 없이 통과해야 한다 (test_no_db_guard.py)
+
+
 def _routes() -> set[tuple[str, str]]:
     """OpenAPI 스키마에서 (METHOD, 경로) 집합을 얻는다. include_router 방식이 바뀌어도 깨지지 않는다."""
     return {(method.upper(), path) for path, item in app.openapi()["paths"].items() for method in item}

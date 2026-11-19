@@ -1,7 +1,11 @@
 # 2026-11-02 - voda-voca - 로그인 레이트 리미터 단위 테스트: 윈도우 경계, 키 독립성, 리셋 (가짜 시계, DB 없음, REQ-121)
 # 파일 위치: src/backend/tests/test_rate_limit_units.py
 
+import pytest
 from backend.core.rate_limit import LoginRateLimiter
+
+
+pytestmark = pytest.mark.no_db  # MySQL 없이 통과해야 한다 (test_no_db_guard.py)
 
 
 class FakeClock:
