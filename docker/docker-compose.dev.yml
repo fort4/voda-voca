@@ -1,0 +1,35 @@
+# 2026-11-25 - voda-voca - 개발용 compose override: dev 이미지, 소스 마운트(--reload), 컨테이너 안에서 pytest·alembic 실행
+# 파일 위치: docker/docker-compose.dev.yml
+#
+# 기본 compose 파일 뒤에 겹쳐서 쓴다 (프로젝트 루트에서):
+#   alias dc='docker compose --project-directory . -f docker/docker-compose.yml -f docker/docker-compose.dev.yml'
+#   dc up -d --build                                  # 개발 서버 (소스 저장 시 자동 재시작)
+#   dc run --rm app python -m pytest -q               # 컨테이너 안에서 전체 테스트
+#   dc run --rm app alembic -c src/backend/alembic.ini check
+#
+# 마운트 원칙: 테스트가 읽는 파일만 읽기 전용(:ro)으로 연다. 저장소 전체(.)나 .env 는 마운트하지 않는다
+# (루트 비밀번호가 컨테이너에 노출되는 것을 막는다). 소스(./src)만 쓰기 가능으로 둔다.
+
+x-dev-volumes: &dev_volumes
+  - ./src:/app/src
+  - ./pytest.ini:/app/pytest.ini:ro
+  - ./.coveragerc:/app/.coveragerc:ro
+  - ./docker:/app/docker:ro
+  - ./.dockerignore:/app/.dockerignore:ro
+
+services:
+  # 마이그레이션도 마운트한 소스로 실행해, 새로 만든 마이그레이션 파일이 이미지를 다시 빌드하지 않아도 적용된다
+  migrate:
+    build:
+      target: dev
+    image: voda-voca:dev
+    volumes: *dev_volumes
+
+  app:
+    build:
+      target: dev
+    image: voda-voca:dev
+    volumes: *dev_volumes
+    environment:
+      # /app 은 root 소유라 app 사용자가 .pytest_cache 를 만들 수 없다. 경고 대신 캐시를 끈다
+      PYTEST_ADDOPTS: "-p no:cacheprovider"

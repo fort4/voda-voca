@@ -117,3 +117,43 @@ def test_app_uses_prod_image_without_source_mount() -> None:
     assert app["build"]["target"] == "prod"
     assert "volumes" not in app, "배포용 앱은 소스를 마운트하지 않는다 (개발용은 override 파일에서)"
     assert "${APP_PORT:-8000}:8000" in app["ports"]
+
+
+# ---------- docker-compose.dev.yml (3단계: 개발용 override) ----------
+
+COMPOSE_DEV = REPO_ROOT / "docker" / "docker-compose.dev.yml"
+
+
+def _dev() -> dict:
+    import yaml
+
+    return yaml.safe_load(COMPOSE_DEV.read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize("name", ["migrate", "app"])
+def test_dev_override_builds_dev_target_and_mounts_source(name: str) -> None:
+    svc = _dev()["services"][name]
+    assert svc["build"]["target"] == "dev"
+    assert svc["image"] == "voda-voca:dev", "prod 이미지 태그와 섞이지 않게 한다"
+    assert "./src:/app/src" in svc["volumes"], "소스를 마운트해야 --reload 와 새 마이그레이션이 바로 반영된다"
+
+
+def test_dev_override_never_mounts_env_file_or_whole_repo() -> None:
+    """저장소 전체(.)나 .env 를 마운트하면 루트 비밀번호가 컨테이너에 노출된다."""
+    for name in ("migrate", "app"):
+        for mount in _dev()["services"][name]["volumes"]:
+            source = mount.split(":")[0]
+            assert source not in (".", "./", "./.env"), f"{mount} 는 마운트하면 안 된다"
+            assert ".env" not in source.split("/")[-1] or source.endswith(".env.example")
+
+
+def test_dev_override_mounts_what_the_tests_read_as_read_only() -> None:
+    mounts = _dev()["services"]["app"]["volumes"]
+    for needed in ["./pytest.ini:/app/pytest.ini:ro", "./.coveragerc:/app/.coveragerc:ro",
+                   "./docker:/app/docker:ro", "./.dockerignore:/app/.dockerignore:ro"]:
+        assert needed in mounts
+
+
+def test_dev_override_disables_pytest_cache_in_readonly_workdir() -> None:
+    """/app 은 root 소유라 app 사용자가 .pytest_cache 를 쓸 수 없다. 경고 대신 캐시를 끈다."""
+    assert _dev()["services"]["app"]["environment"]["PYTEST_ADDOPTS"] == "-p no:cacheprovider"
