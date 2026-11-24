@@ -195,7 +195,7 @@ curl http://localhost:8000/health                                        # {"sta
   # 복원 (빈 DB 의 새 PC 에서. 기존 데이터를 덮어쓰므로 주의)
   docker exec -i voda-voca-mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"' < backup.sql
   ```
-- **DB 포트**: `mysql` 서비스는 `MYSQL_PORT`(기본 3306) 를 호스트에 엽니다. 사내망에 DB 포트를 열고 싶지 않으면 방화벽에서 이 포트는 막고 `APP_PORT` 만 허용하세요.
+- **DB 포트**: `mysql` 서비스는 `MYSQL_PORT`(기본 3306) 를 호스트의 `127.0.0.1` 에만 엽니다. 같은 망의 다른 기기는 DB 에 접속할 수 없고, 앱 컨테이너는 내부 네트워크(`mysql:3306`)로 접속합니다. 방화벽에서는 `APP_PORT` 만 허용하면 됩니다.
 - 브라우저 캐시: `vendor/`(Tailwind, 폰트 등)는 1년간 캐시되도록 응답합니다(버전이 경로에 있어 안전). `app.js`·`app.css` 는 매번 변경 여부를 확인합니다.
 
 ---
