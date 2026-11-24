@@ -52,3 +52,12 @@ async def test_unknown_api_path_is_404_not_the_html_shell(client: httpx.AsyncCli
     response = await client.get("/api/does-not-exist")
     assert response.status_code == 404
     assert "text/html" not in response.headers.get("content-type", "")
+
+
+@pytest.mark.asyncio
+async def test_vendor_font_is_served_with_font_mime_type(client: httpx.AsyncClient) -> None:
+    """woff2 는 font/woff2 로 나가야 한다. 시스템 mime.types 가 없는 slim 컨테이너에서는 파이썬이 이 확장자를
+    몰라 application/octet-stream 이 되므로, 앱이 직접 등록해 환경과 무관하게 같은 값을 보장한다."""
+    response = await client.get("/vendor/fonts/Paperlogy-7Bold.woff2")
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "font/woff2"

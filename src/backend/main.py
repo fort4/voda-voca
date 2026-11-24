@@ -1,6 +1,7 @@
 # 2026-11-02 - voda-voca - FastAPI 애플리케이션 진입점 및 DB 연결 헬스체크
 # 파일 위치: src/backend/main.py
 
+import mimetypes
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -58,6 +59,10 @@ async def health(
         return {"status": "error", "db": "disconnected"}
     return {"status": "ok", "db": "connected"}
 
+
+# woff2 의 MIME 타입을 직접 등록한다 (2026-11-25). 파이썬은 OS 의 mime.types 를 읽는데 slim 컨테이너에는 그 파일이 없어
+# 호스트에서는 font/woff2, 컨테이너에서는 application/octet-stream 으로 달라진다. 환경과 무관하게 같게 맞춘다.
+mimetypes.add_type("font/woff2", ".woff2")
 
 # 정적 프론트엔드 (같은 출처 배포, 2026-11-02). 모든 API 라우트를 등록한 뒤 마지막에 붙인다.
 # 라우트가 먼저 매칭되므로 /api, /health 는 정적 파일 마운트에 가려지지 않는다.
