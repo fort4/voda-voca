@@ -105,16 +105,25 @@ cp .env.example .env
 | :--- | :--- |
 | `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD` | 애플리케이션 DB 계정 |
 | `MYSQL_ROOT_PASSWORD` | MySQL root 비밀번호 (컨테이너 초기화용) |
-| `MYSQL_HOST`, `MYSQL_PORT` | 앱이 접속할 DB 주소 (기본 `127.0.0.1:3306`) |
+| `MYSQL_HOST`, `MYSQL_PORT` | **호스트에서 직접 실행하는 앱·테스트**가 접속할 DB 주소 (기본 `127.0.0.1:3306`). Docker 의 앱 컨테이너는 이 값을 쓰지 않고 `mysql:3306` 으로 접속합니다. `MYSQL_PORT` 는 호스트에 열리는 DB 포트이기도 합니다 |
+| `APP_PORT` | 앱 컨테이너가 호스트에 여는 포트 (기본 `8000`) |
 | `TZ` | 시간대 (기본 `Asia/Seoul`) |
-| `COOKIE_SECURE` | HTTP 로컬 개발은 `false`, HTTPS 배포는 `true` |
+| `COOKIE_SECURE` | HTTP(로컬·사내망)는 `false`, HTTPS 배포는 `true` |
 
-### 3.3 MySQL 컨테이너 실행
-프로젝트 루트에서 실행합니다.
+`MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD` 가 비어 있으면 Docker 앱 서비스는 "`.env` 파일에 ... 를 설정하세요" 라는 메시지와 함께 시작하지 않습니다.
+
+### 3.3 컨테이너 실행 (DB, 또는 DB + 앱)
+프로젝트 루트에서 실행합니다. 기본 compose 파일은 **세 서비스**를 정의합니다: `mysql`(DB), `migrate`(마이그레이션을 한 번 실행하고 종료), `app`(화면과 API 를 함께 서빙).
+
 ```bash
-docker compose --project-directory . -f docker/docker-compose.yml up -d
+# (A) DB 만 띄우고 앱은 호스트 Python 으로 실행 (3.4~3.6 을 이어서 진행)
+docker compose --project-directory . -f docker/docker-compose.yml up -d mysql
 docker compose --project-directory . -f docker/docker-compose.yml ps   # healthy 가 될 때까지 기다린다
+
+# (B) DB + 앱을 모두 컨테이너로 (호스트에 Python 이 필요 없음, 3.4~3.6 생략) -> http://localhost:8000
+docker compose --project-directory . -f docker/docker-compose.yml up -d --build
 ```
+(B) 는 `mysql`(healthy) → `migrate`(`alembic upgrade head`) → `app` 순서로 시작합니다. `app` 은 시작할 때 표준 단어장 시드를 멱등으로 적재합니다.
 
 ### 3.4 Python 가상환경과 패키지
 ```bash
@@ -140,18 +149,67 @@ PYTHONPATH=src .venv/bin/uvicorn backend.main:app --reload --port 8000
 
 처음 방문하면 로그인 화면이 나옵니다. "회원가입"에서 **닉네임과 비밀번호**만 입력해 가입하고, 탐색에서 단어장을 고르면 학습을 시작할 수 있습니다.
 
+### 3.7 Docker 로 개발하기 (개발용 컨테이너)
+호스트에 Python 을 설치하지 않고, 컨테이너 안에서 서버·테스트·마이그레이션 검사를 실행합니다. 기본 compose 파일 뒤에 개발용 override(`docker/docker-compose.dev.yml`)를 겹칩니다. 이 설정은 `./src` 를 마운트해 파일을 저장하면 서버가 자동으로 다시 시작되고, 새 마이그레이션도 이미지를 다시 만들지 않아도 적용됩니다.
+
+```bash
+alias dc='docker compose --project-directory . -f docker/docker-compose.yml -f docker/docker-compose.dev.yml'
+dc up -d --build                                          # 개발 서버 (--reload), http://localhost:8000
+dc run --rm app python -m pytest -q                       # 컨테이너 안에서 백엔드 전체 테스트
+dc run --rm app alembic -c src/backend/alembic.ini check  # 마이그레이션 일치 검사
+dc logs -f app                                            # 서버 로그
+```
+- 저장소 전체나 `.env` 는 마운트하지 않습니다. 테스트가 읽는 `pytest.ini`, `.coveragerc`, `docker/`, `.dockerignore` 만 읽기 전용으로 엽니다.
+- 개발 이미지에는 헬스체크가 없습니다. 상태는 `curl localhost:8000/health` 로 확인하세요.
+- 프론트엔드 `node --test` 는 이미지에 Node 가 없어 호스트에서 실행합니다.
+- 배포용(prod) 이미지로 되돌리려면 기본 compose 파일만으로 `up -d` 합니다.
+
+### 3.8 다른 PC 에 배포하기 (git clone 방식, HTTP 전용)
+새 PC 에는 **Docker 와 Git 만** 있으면 됩니다. Python, MySQL, 라이브러리는 이미지가 담고 있습니다.
+
+> **보안 전제**: HTTPS 를 쓰지 않으므로 로그인 비밀번호가 암호화되지 않은 채 네트워크를 오갑니다. **신뢰할 수 있는 사내망·LAN 에서만** 쓰고 인터넷에 공개하지 마세요. `COOKIE_SECURE` 는 `false` 로 둡니다.
+
+```bash
+# 1) 소스 받기 (Docker, Git 설치 후)
+git clone <저장소 주소> voda-voca && cd voda-voca
+
+# 2) 환경 변수: 비밀번호를 반드시 바꾼다 (.env 는 이 PC 에서만 만들고 커밋하지 않는다)
+cp .env.example .env
+#   편집: MYSQL_PASSWORD, MYSQL_ROOT_PASSWORD (필요하면 APP_PORT)
+
+# 3) 빌드와 실행: DB -> 마이그레이션 -> 앱 순서로 자동 시작
+docker compose --project-directory . -f docker/docker-compose.yml up -d --build
+
+# 4) 확인
+docker compose --project-directory . -f docker/docker-compose.yml ps    # app, mysql 이 healthy, migrate 는 Exited (0)
+curl http://localhost:8000/health                                        # {"status":"ok","db":"connected"}
+```
+- **다른 기기에서 접속**: `http://<이 PC 의 IP>:8000`. 접속이 안 되면 이 PC 의 방화벽에서 `APP_PORT`(기본 8000)의 들어오는 연결을 허용하세요.
+- **빈 DB 로 시작**: 이미지에는 DB 데이터가 들어 있지 않습니다. 단어 카탈로그(1,000단어)는 시작할 때 시드로 적재되지만, 기존 사용자와 학습 기록은 따로 옮겨야 합니다 (아래 백업·복원).
+- **업데이트**: `git pull` 후 같은 `up -d --build` 를 다시 실행합니다. 데이터 볼륨은 유지되고 마이그레이션이 자동 적용됩니다.
+- **중지·삭제**: 중지는 `docker compose ... stop`, 다시 시작은 `start` 입니다. **`down -v` 는 DB 데이터 볼륨까지 지우므로 쓰지 않습니다.**
+- **백업·복원**:
+  ```bash
+  # 백업 (DB 를 읽기만 한다. 파일에 개인 학습 데이터가 있으니 공유하지 않는다)
+  docker exec voda-voca-mysql sh -c 'mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" --single-transaction --routines --triggers --no-tablespaces "$MYSQL_DATABASE"' > backup.sql
+  # 복원 (빈 DB 의 새 PC 에서. 기존 데이터를 덮어쓰므로 주의)
+  docker exec -i voda-voca-mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"' < backup.sql
+  ```
+- **DB 포트**: `mysql` 서비스는 `MYSQL_PORT`(기본 3306) 를 호스트에 엽니다. 사내망에 DB 포트를 열고 싶지 않으면 방화벽에서 이 포트는 막고 `APP_PORT` 만 허용하세요.
+- 브라우저 캐시: `vendor/`(Tailwind, 폰트 등)는 1년간 캐시되도록 응답합니다(버전이 경로에 있어 안전). `app.js`·`app.css` 는 매번 변경 여부를 확인합니다.
+
 ---
 
 ## 4. 테스트 실행
 
-### 4.1 백엔드 (pytest, 557건)
+### 4.1 백엔드 (pytest, 587건)
 DB 컨테이너와 마이그레이션이 준비되어 있어야 합니다.
 ```bash
 .venv/bin/python -m pytest -q
 ```
 - 통합 테스트는 실제 MySQL 에 연결합니다. 테스트 계정은 `tvoda-` 접두사를 쓰고 표준 단어장 테스트 데이터도 테스트 뒤에 지웁니다.
-- 최근 검증 결과: 557 passed (2026-11-19). 커버리지는 98% 입니다 (`--cov=backend`, 설정은 `.coveragerc`).
-- **DB 없이 빠르게**: 순수 단위 테스트에는 `no_db` 표시가 붙어 있어 Docker 없이 `.venv/bin/python -m pytest -q -m no_db` (175건, 약 0.5초)로 돌립니다. 새 순수 단위 테스트에는 `pytestmark = pytest.mark.no_db` 를 붙이세요 (표시가 거짓이면 `test_no_db_guard.py` 가 실패합니다).
+- 최근 검증 결과: 587 passed (2026-11-25). 커버리지는 98%(2026-11-19 측정)입니다 (`--cov=backend`, 설정은 `.coveragerc`).
+- **DB 없이 빠르게**: 순수 단위 테스트에는 `no_db` 표시가 붙어 있어 Docker 없이 `.venv/bin/python -m pytest -q -m no_db` (206건, 약 3초)로 돌립니다. 새 순수 단위 테스트에는 `pytestmark = pytest.mark.no_db` 를 붙이세요 (표시가 거짓이면 `test_no_db_guard.py` 가 실패합니다).
 - **푸시 전 마이그레이션 검사**: `.venv/bin/alembic -c src/backend/alembic.ini check` 가 `No new upgrade operations detected.` 를 내야 합니다 (모델은 바꿨는데 마이그레이션을 빼먹은 경우를 잡습니다).
 - 개발 중에는 지금 작업하는 테스트만 돌립니다 (예: `.venv/bin/python -m pytest -q src/backend/tests/test_bookmark_api.py`).
 
@@ -162,7 +220,7 @@ npm test            # 또는: node --test tests/
 ```
 - 외부 패키지를 설치하지 않습니다. 순수 로직(API 클라이언트, 라우터, 세션 러너, 콤보, 사운드, 저장소, 뷰모델)과, 화면 배선·디자인 토큰·다크 모드 누락을 소스 수준에서 검사하는 테스트를 돌립니다.
 - 최근 검증 결과: 473 passed (2026-11-24).
-- 누적 검증: 백엔드 557건과 프론트엔드 473건, 합계 1,030건이 모두 통과합니다.
+- 누적 검증: 백엔드 587건과 프론트엔드 473건, 합계 1,060건이 모두 통과합니다.
 
 ### 4.3 문법 검사 (프론트엔드)
 ```bash
@@ -261,7 +319,7 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 - 제목 폰트(Paperlogy)의 상업적 사용 라이선스는 배포 전에 확인해야 합니다.
 - 효과음은 브라우저 정책에 따라 첫 사용자 동작 뒤부터 날 수 있습니다. 발음 듣기는 브라우저에 영어 음성이 없으면 동작하지 않습니다.
 - 모바일 실제 기기에서의 시각 점검(360px 레이아웃, 다크 모드의 북마크 색, 발음기호 글리프)은 자동 테스트로 확인할 수 없어 수동 점검 대상입니다.
-- 설계서가 가정한 HTTPS 배포와 워커 다중화 설정은 아직 문서화된 운영 절차가 없습니다.
+- HTTPS 배포와 워커 다중화 설정은 아직 문서화된 운영 절차가 없습니다. §3.8 의 배포 절차는 **HTTP 로 쓰는 사내망·LAN 전용**입니다.
 
 ---
 
