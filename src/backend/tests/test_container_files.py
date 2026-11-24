@@ -166,3 +166,10 @@ def test_required_db_settings_fail_fast_when_env_is_missing(name: str, var: str)
     value = str(_compose()["services"][name]["environment"][var])
     assert value.startswith("${" + var + ":?"), f"{var} 는 필수 표기(:?)여야 한다"
     assert ".env" in value, "메시지에 .env 를 만들라는 안내가 있어야 한다"
+
+
+def test_mysql_host_port_is_bound_to_loopback_only() -> None:
+    """DB 포트를 모든 인터페이스에 열면 같은 망의 누구든 접속을 시도할 수 있다. 호스트(127.0.0.1)에서만 열고,
+    앱 컨테이너는 내부 네트워크(mysql:3306)로 접속한다."""
+    ports = _compose()["services"]["mysql"]["ports"]
+    assert ports == ["127.0.0.1:${MYSQL_PORT:-3306}:3306"]
