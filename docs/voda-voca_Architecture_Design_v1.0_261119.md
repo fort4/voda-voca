@@ -7,7 +7,7 @@
 | 기준 문서 | `docs/voda-voca_Requirement_Spec_v2.2_261119.md` (REQ-101, 102, 106, 107, 112, 116, 117, 121), `docs/voda-voca_Data_Design_v2.2_261119.md`, `docs/voda-voca_API_Integration_Spec_v2.2_261119.md` |
 | 버전 / 상태 | v1.0 / **승인 (Approved, 2026-11-19)** |
 | 작성일 | 2026-11-19 |
-| 기준 코드 | `main` 브랜치, SRS 1~4단계(`source=due` 오늘 복습 포함) 반영 |
+| 기준 코드 | `main` 브랜치, SRS 1~4단계(`source=due` 오늘 복습 포함), 외부 자원 자체 호스팅, 앱 컨테이너화(2026-11-25) 반영 |
 | 산출물 경로 | `docs/voda-voca_Architecture_Design_v1.0_261119.md` |
 | 관련 결정 | `docs/` 의 Decision Records (ADR-001 세션, ADR-002 bcrypt, ADR-004~) |
 
@@ -25,7 +25,7 @@
 | :-: | :--- | :--- |
 | P1 | **빌드 없는 프론트엔드**: HTML, ES 모듈, `vendor/` 에 둔 라이브러리만 쓴다 (CDN 요청 없음). 번들러·npm 런타임 의존성이 없다 | CLAUDE.md §1 |
 | P2 | **단일 출처(same-origin)**: API 와 정적 프론트를 한 FastAPI 프로세스가 서빙한다 | ADR-001 (쿠키 인증, CORS·CSRF 면적 최소화) |
-| P3 | **DB 는 컨테이너, 앱은 호스트**: 데이터 계층만 Docker 로 격리한다 | REQ-116, CLAUDE.md §4-7 |
+| P3 | **DB 와 앱을 모두 컨테이너로 실행할 수 있다**: DB 는 항상 컨테이너, 앱은 컨테이너(권장) 또는 호스트 `.venv` 로 실행한다. 개발 중 호스트 직접 실행도 허용한다 | REQ-116, 117, 152, ADR-009, CLAUDE.md §4-7 |
 | P4 | **비동기 I/O**: 라우터부터 DB 드라이버까지 async | REQ-101 |
 | P5 | **스키마는 Alembic 으로만 변경** | REQ-107 |
 | P6 | **서버가 판정, 클라이언트는 표시**: 정답 채점·통계·숙련·SRS 일정은 서버에서 계산한다 | Data Design D16, D17, D15 |
@@ -40,12 +40,15 @@
         │  ├─ /api/*                   REST API (JSON)
         │  └─ GET /health              프로세스·DB 헬스체크
         ▼
- [WSL2 Ubuntu 24.04 호스트]
-   └─ uvicorn (FastAPI, 단일 프로세스) :8000
-        │  asyncmy (MySQL 프로토콜, .env 의 MYSQL_HOST:MYSQL_PORT)
-        ▼
- [Docker 컨테이너 voda-voca-mysql (MySQL 8.0)] :3306
-   └─ 볼륨 voda-voca-mysql-data (utf8mb4, utf8mb4_0900_ai_ci, +09:00)
+ [Docker 호스트 (WSL2 Ubuntu 24.04 + Docker Desktop 등)]  호스트 포트 ${APP_PORT:-8000}
+   ├─ [컨테이너 voda-voca-app] uvicorn (FastAPI, 단일 프로세스, 비root) :8000
+   │     │  asyncmy (MySQL 프로토콜, 컨테이너 내부 네트워크: MYSQL_HOST=mysql, 포트 3306)
+   │     ▼
+   ├─ [컨테이너 voda-voca-mysql (MySQL 8.0)] 호스트에는 127.0.0.1:${MYSQL_PORT:-3306} 로만 연다
+   │     └─ 볼륨 voda-voca-mysql-data (utf8mb4, utf8mb4_0900_ai_ci, +09:00)
+   └─ [컨테이너 voda-voca-migrate] alembic upgrade head 를 1회 실행하고 종료 (app 시작 전)
+
+ 호스트에서 앱을 직접 실행하는 개발 방식(.venv, MYSQL_HOST=127.0.0.1)도 지원한다.
 
  ※ 화면 자원(Tailwind, SweetAlert2, Lucide, 서체)도 /vendor/* 로 같은 출처에서 받는다 (외부 CDN 없음, 2026-11-24)
 ```
@@ -58,20 +61,36 @@
 
 | 구성요소 | 실행 위치 | 정의 파일 | 포트 | 비고 |
 | :--- | :--- | :--- | :-: | :--- |
-| MySQL 8.0 | Docker 컨테이너 `voda-voca-mysql` | `docker/docker-compose.yml` | `${MYSQL_PORT:-3306}` | `restart: unless-stopped`, `mysqladmin ping` 헬스체크, 시작 유예 30초 |
-| FastAPI 앱 | WSL2 호스트의 `.venv` (uvicorn) | `src/backend/main.py` | 8000 (개발 기본) | **컨테이너화하지 않았다.** Dockerfile 이 없다 |
+| MySQL 8.0 | Docker 컨테이너 `voda-voca-mysql` | `docker/docker-compose.yml` | `127.0.0.1:${MYSQL_PORT:-3306}` (호스트에서만) | `restart: unless-stopped`, `mysqladmin ping` 헬스체크, 시작 유예 30초 |
+| 마이그레이션 | Docker 컨테이너 `voda-voca-migrate` (일회성) | `docker/docker-compose.yml`, `docker/Dockerfile` | - | `alembic upgrade head` 를 1회 실행하고 종료(`restart: "no"`). `mysql` healthy 뒤 시작, `app` 은 이 완료를 기다린다 |
+| FastAPI 앱 | Docker 컨테이너 `voda-voca-app` (권장) 또는 호스트 `.venv` | `docker/Dockerfile`(prod 타깃), `src/backend/main.py` | `${APP_PORT:-8000}` | 비root(`app`, uid 1000), 이미지 `HEALTHCHECK` 로 `/health` 확인, `restart: unless-stopped`. 호스트 직접 실행은 개발용 |
 | 정적 프론트엔드 | 위 FastAPI 프로세스 | `src/frontend/` | 8000 | `StaticFiles(html=True)` 를 `/` 에 마운트 |
 
-기동 순서: `docker compose up -d`(DB, healthy 대기) → `alembic upgrade head` → `uvicorn`. 앱 시작(lifespan) 시 표준 단어장 시드를 DB 에 반영한다.
+기동 순서(컨테이너): `docker compose up -d --build` 한 번으로 `mysql`(healthy) → `migrate`(정상 종료) → `app` 이 차례로 시작한다. 호스트 직접 실행: `docker compose up -d mysql` → `alembic upgrade head` → `uvicorn`. 앱 시작(lifespan) 시 표준 단어장 시드를 DB 에 반영한다.
 
 **설정 주입**: 모든 값은 루트 `.env` 또는 OS 환경 변수 → `core/config.py` 의 `Settings`(pydantic-settings). 저장소에는 `.env.example` 만 둔다 (REQ-112).
 
 | 변수 | 사용처 |
 | :--- | :--- |
-| `MYSQL_HOST/PORT/DATABASE/USER/PASSWORD` | 앱의 비동기 접속 URL (`URL.create`, 비밀번호 특수문자 안전) |
-| `MYSQL_ROOT_PASSWORD`, `TZ` | 컨테이너 초기화·시간대 (앱은 무시) |
+| `MYSQL_HOST/PORT/DATABASE/USER/PASSWORD` | 앱의 비동기 접속 URL (`URL.create`, 비밀번호 특수문자 안전). **컨테이너의 앱은 `.env` 가 아니라 compose `environment` 로 받으며** `MYSQL_HOST=mysql`, `MYSQL_PORT=3306` 으로 고정한다. `MYSQL_DATABASE/USER/PASSWORD` 가 비어 있으면 compose 가 안내 메시지와 함께 중단한다 |
+| `MYSQL_ROOT_PASSWORD`, `TZ` | 컨테이너 초기화·시간대 (앱은 무시, **`MYSQL_ROOT_PASSWORD` 는 앱 컨테이너에 전달하지 않는다**) |
+| `APP_PORT` | 앱 컨테이너가 호스트에 여는 포트 (기본 8000) |
 | `COOKIE_SECURE` | 세션 쿠키 Secure 속성 (HTTPS 배포 시 true) |
 | `SESSION_TTL_DAYS`(기본 14), `BCRYPT_ROUNDS`(기본 12) | 코드 기본값, 필요 시 환경 변수로 덮어씀 |
+
+### 4.1 이미지와 개발용 override
+
+`docker/` 에는 `Dockerfile`, `docker-compose.yml`(mysql·migrate·app), `docker-compose.dev.yml`(개발용 override) 세 파일이 있다. 빌드 컨텍스트는 프로젝트 루트이고 `.dockerignore` 가 비밀·로컬 자산을 걸러 낸다.
+
+| 단계 | 내용 |
+| :--- | :--- |
+| `base` | `python:3.12-slim`, `requirements.txt` 만 먼저 설치해 소스가 바뀌어도 의존성 레이어를 재사용한다. 비root 사용자 `app`(uid 1000, WSL 기본 사용자와 같아 마운트 권한이 맞는다). 시간대 `Asia/Seoul`, `PYTHONPATH=/app/src` |
+| `dev` | `base` + `requirements-dev.txt`. 소스는 복사하지 않고 마운트해 `uvicorn --reload` 로 실행. 헬스체크 없음 |
+| `prod` | `base` + `src/` 복사. `/health` 헬스체크. 테스트 코드·`.env` 는 이미지에 없다 |
+
+- `.dockerignore`: `.env`, `.env.*`, `.venv`, `.git`, `ai-agent`, `docs`, 테스트 코드 등을 제외한다.
+- **dev override 의 마운트 정책**: `./src` 는 쓰기 가능, `pytest.ini`·`.coveragerc`·`docker/`·`.dockerignore` 는 읽기 전용. 저장소 전체와 `.env` 는 마운트하지 않아 루트 비밀번호가 컨테이너에 노출되지 않는다. 컨테이너 안에서 `pytest`, `alembic check` 를 실행한다.
+- 정적 서빙(`FrontendStaticFiles`): `vendor/` 응답에만 `Cache-Control: public, max-age=31536000, immutable` 을 붙이고(경로에 버전이 있어 안전), woff2 MIME 을 `font/woff2` 로 등록한다 (ADR-007 결정 6).
 
 ## 5. 소프트웨어 구조
 
@@ -191,15 +210,16 @@ POST /api/study/sessions/{id}/answer
 | 백엔드 통합 | pytest, **실제 MySQL 컨테이너**에 연결 | `src/backend/tests/test_*_api.py`. 테스트 계정은 `tvoda-` 접두사, 테스트 뒤 데이터 정리 |
 | 백엔드 단위 | pytest | `*_units.py`: 출제, SRS, 비밀번호, 인증 등 순수 로직 |
 | 프론트엔드 | `node --test` (외부 패키지 없음) | `src/frontend/tests/`: 순수 로직 + 화면 배선·디자인 토큰·다크 모드 누락을 소스 수준에서 검사 |
+| 컨테이너 구성 검사 | pytest (`no_db`, Docker 불필요) | `test_container_files.py`: `.dockerignore`·Dockerfile·compose 규칙을 정적으로 검사 (비밀 제외, 비root, 기동 순서, 최소 환경 주입, DB 포트 loopback, dev 마운트 정책) |
 
-테스트 케이스와 요구사항의 매핑은 Test Specification 에서 정의한다 (별도 산출물).
+개발용 override 로 컨테이너 안에서도 백엔드 전체 테스트와 `alembic check` 를 실행할 수 있다 (프론트엔드 `node --test` 는 이미지에 Node 가 없어 호스트에서 실행). 테스트 케이스와 요구사항의 매핑은 Test Specification 에서 정의한다 (별도 산출물).
 
 ## 9. 제약, 위험, 후속 과제
 
 | # | 항목 | 내용 | 영향 | 대응 |
 | :-: | :--- | :--- | :--- | :--- |
 | A1 | 단일 프로세스 가정 | 로그인 제한이 프로세스 메모리에 있어 워커를 늘리면 한도가 워커별로 갈린다 (REQ-121 도 단일 프로세스 한정으로 명시) | 수평 확장 불가 | 확장 시 공유 저장소(Redis 또는 DB 테이블)로 교체 |
-| A2 | 앱 미컨테이너화 | Dockerfile 과 앱 서비스가 없다. 배포는 호스트에서 uvicorn 직접 실행 | 재현 가능한 배포·운영 환경 부재 | 운영 배포가 필요해지면 Dockerfile 과 compose 서비스 추가 (사용자 승인 필요한 구조 변경) |
+| A2 | ~~앱 미컨테이너화~~ **해소 (2026-11-25)** | `docker/Dockerfile`(base·dev·prod)과 compose 서비스 `migrate`·`app` 을 추가했다 (ADR-009, REQ-152) | 잔여: 이미지 레지스트리·CI 빌드가 없다 (전달은 git clone 후 현지 빌드) | 필요해지면 레지스트리·CI 를 별도 결정 |
 | A3 | 시드 자동 적재 | 서버 시작마다 시드를 DB 에 반영한다 | 잘못된 시드가 즉시 DB 에 들어간다 | 파일 수정 전 백업. 시작 시 검증 실패는 기동을 막는다 |
 | A4 | ~~CDN 의존~~ **해소 (2026-11-24)** | Tailwind, SweetAlert2, Lucide, 서체를 `src/frontend/vendor/` 로 옮겨 같은 출처에서 제공한다 (ADR-007 결정 5, REQ-151) | 잔여: Tailwind Play 스크립트는 브라우저에서 스타일을 계산하므로 운영 비권장 | 성능 문제가 생기면 standalone CLI 로 정적 CSS 를 생성하는 방안을 별도 결정으로 검토 (P1 과 충돌하므로 사용자 결정) |
 | A5 | 세션 정리 | 만료된 `sessions`, `quiz_sessions` 물리 삭제 배치가 없다 (Data Design F4) | 행이 누적된다 | 후속 |
@@ -207,6 +227,8 @@ POST /api/study/sessions/{id}/answer
 | A7 | 관측성 | 구조화 로그, 메트릭, 알림 없음 | p95 300ms(REQ-102) 를 실측할 수단이 없다 | 후속 |
 | A8 | CSRF | `SameSite=Lax` 만 쓰고 별도 토큰이 없다 (ADR-001 의 결과 항목) | 단일 도메인에서만 유효한 판단 | 서브도메인·배포 구조가 바뀌면 재검토 |
 | A9 | 서체 라이선스 | Paperlogy 상업적 사용 라이선스 확인 필요 | 배포 전 법적 위험 | 배포 전 확인 |
+| A10 | HTTP 전용 배포 | HTTPS(리버스 프록시)를 두지 않는다. `COOKIE_SECURE=false` | 로그인 비밀번호가 평문으로 오간다 → 인터넷 공개 불가, 사내망·LAN 한정 | 공개가 필요해지면 리버스 프록시 + `COOKIE_SECURE=true` 를 별도 결정 (A8 CSRF 재검토 포함) |
+| A11 | DB 데이터는 이미지에 없음 | 새 PC 는 빈 DB 로 시작하고 시드 단어장만 적재된다 | 사용자·학습 기록은 수동 이전 | README §3.8 백업·복원 절차. 자동 백업은 후속 |
 
 ## 10. 요구사항 추적
 
@@ -219,12 +241,14 @@ POST /api/study/sessions/{id}/answer
 | bcrypt, Pydantic, `.env`, 바인딩 | REQ-110~113 |
 | 인메모리 레이트 리미터 | REQ-121 |
 | SRS 복습 단계·오늘 복습 (`srs.py`, `source=due`) | REQ-150 |
-| Docker MySQL, 단일 명령 기동 | REQ-116, 117 |
+| Docker MySQL·앱, 단일 명령 기동 | REQ-116, 117 |
+| 앱 이미지, 개발용 override, 다른 PC 배포 재현성 | REQ-152 |
 | pytest + node --test | REQ-118 |
 
 ## 11. 변경 이력
 
 | 버전 | 날짜 | 내용 | 작성 |
 | :--- | :--- | :--- | :--- |
+| v1.0 개정 | 2026-11-25 | 앱 컨테이너화 반영: P3, §3 배치도, §4 토폴로지·설정 주입·4.1 신설, §8 테스트 구조, A2 해소, A10·A11 추가 (ADR-009) | Claude |
 | v1.0 개정 | 2026-11-24 | 외부 CDN 자체 호스팅 반영: P1, §3 배치도·외부 시스템, §5 디렉터리, A4 해소 | Claude |
 | v1.0 | 2026-11-19 | 최초 작성. 현행 구현(`a48958d`) 기준 기록 | Claude |

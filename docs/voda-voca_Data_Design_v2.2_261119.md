@@ -620,7 +620,7 @@ CREATE TABLE quiz_sessions (
 
 | # | 과제 | 내용 | 조치 주체 |
 | :-: | :--- | :--- | :--- |
-| F1 | 서버 기본 collation 정합 | `docker/docker-compose.yml` 은 `utf8mb4_0900_ai_ci` 로 변경됨. 실행 중인 컨테이너 반영은 `docker compose up -d` 재생성이 필요하며 사용자 승인 후 진행 | 사용자 승인 대기 |
+| F1 | 서버 기본 collation 정합 | `docker/docker-compose.yml` 은 `utf8mb4_0900_ai_ci` 로 변경됨. 실행 중인 컨테이너 반영은 `docker compose up -d mysql` 재생성이 필요하며 사용자 승인 후 진행 | 사용자 승인 대기 |
 | F2 | 간격 반복 | **완료 (v2.2, REQ-150)**: `interval_step`, `next_review_at` 추가, `due` 출처 | 완료 |
 | F3 | 확장 필드 | `system_words.level` 만 DDL 에 있고 미사용 (`phonetic` 은 REQ-144, `pos` 는 REQ-145 로 v2.2 부터 사용). `pos` 의 API·화면 노출은 REQ-146 으로 완료 | 후속 |
 | F4 | 만료 세션 정리 | `quiz_sessions` 물리 삭제 배치 | 후속 |

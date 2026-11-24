@@ -17,7 +17,7 @@
 
 | 계층 | 도구 | 대상 | 위치 |
 | :--- | :--- | :--- | :--- |
-| 백엔드 단위 | pytest | 순수 함수: 출제(`session_picker`), SRS(`srs`), 진행도(`progress`), 비밀번호·토큰, 레이트 리미터, 스키마 검증. **`no_db` 표시**가 붙어 MySQL 없이 돈다 (175건, 약 0.5초) | `src/backend/tests/*_units.py`, `test_auth_schemas.py`, `test_config.py`, `test_db_session.py`, `test_static_mount.py`, `test_legacy_study_removed.py` |
+| 백엔드 단위 | pytest | 순수 함수: 출제(`session_picker`), SRS(`srs`), 진행도(`progress`), 비밀번호·토큰, 레이트 리미터, 스키마 검증. **`no_db` 표시**가 붙어 MySQL 없이 돈다 (206건, 약 3초) | `src/backend/tests/*_units.py`, `test_auth_schemas.py`, `test_config.py`, `test_db_session.py`, `test_static_mount.py`, `test_legacy_study_removed.py`, `test_container_files.py` |
 | 백엔드 통합 | pytest + httpx, **실제 MySQL** | API 계약, 트랜잭션, 제약(FK·UNIQUE), 마이그레이션 스키마, 시드 | `src/backend/tests/test_*_api.py`, `test_system_*.py`, `test_transition_schema.py` |
 | 프론트엔드 단위 | `node --test` (외부 패키지 없음) | `js/core/` 의 DOM 없는 순수 로직: API 클라이언트, 라우터, 세션 러너, 뷰모델, 저장소, 사운드, TTS | `src/frontend/tests/*.test.js` |
 | 프론트엔드 소스 검사 | `node --test` | 화면 배선, 디자인 토큰, 다크 모드 색 누락, 터치 영역 등을 **소스 텍스트 수준**으로 검사 (브라우저 없음) | `dark-theme`, `design-tokens`, `*-ui.test.js`, `ui-polish.test.js` |
@@ -38,7 +38,7 @@
 | 푸시 전 / PR | 백엔드와 프론트엔드 전체 + **마이그레이션 일치 검사** | `.venv/bin/python -m pytest -q` / `cd src/frontend && node --test tests/` / `.venv/bin/alembic -c src/backend/alembic.ini check` |
 
 **실행 전제 (백엔드)**
-1. MySQL 컨테이너가 기동되어 healthy 여야 한다 (`docker compose --project-directory . -f docker/docker-compose.yml up -d`).
+1. MySQL 컨테이너가 기동되어 healthy 여야 한다 (`docker compose --project-directory . -f docker/docker-compose.yml up -d mysql`). 컨테이너 안에서 실행하려면 개발용 override 를 겹쳐 `run --rm app python -m pytest -q` 를 쓴다 (README §3.7).
 2. `alembic upgrade head` 로 스키마가 최신이어야 한다.
 3. 루트 `.env` 가 있어야 한다.
 
@@ -50,13 +50,13 @@
 
 **보고 규칙**: 테스트 결과는 범위와 함께 적는다 (예: "`test_study_api.py` 37건 통과"). 전체를 돌리지 않았으면 그렇게 적는다. 변경과 무관한 간헐 실패는 숨기지 않고 별도 이슈로 등록한다 (CLAUDE.md §4).
 
-## 3. 현황 기준선 (2026-11-19 측정)
+## 3. 현황 기준선 (2026-11-25 측정)
 
 | 대상 | 파일 수 | 케이스 수 | 측정 결과 |
 | :--- | :-: | :-: | :--- |
-| 백엔드 `pytest -q` (전체) | 33 | **557** | **557 통과, 실패 0** (약 30~45초). 이 중 `no_db` 175건은 DB 없이 0.5초 |
+| 백엔드 `pytest -q` (전체) | 34 | **587** | **587 통과, 실패 0** (약 40초). 이 중 `no_db` 206건은 DB 없이 약 3초 |
 | 프론트엔드 `node --test tests/` (전체) | 39 | **473** | **473 통과, 실패 0** |
-| 합계 | 72 | 1,030 | 전체 통과 |
+| 합계 | 73 | 1,060 | 전체 통과 |
 
 **측정 조건**
 - MySQL 컨테이너 기동, `.env` 의 `MYSQL_PORT=3307`, DB 마이그레이션 head `a7d3f1c9e5b2` 적용 상태에서 실행했다.
@@ -132,9 +132,10 @@
 | TC-107 | REQ-107 Alembic | 자동 + 수동 | `test_system_models.py`, `test_drop_legacy_tables.py`, 수동 `alembic check` | 모든 마이그레이션 적용 자동 검증은 없다 |
 | TC-108 | REQ-108 문자셋·시간대 | 수동 | 컨테이너 설정 확인 | 실행 중 컨테이너에 반영되었는지는 F1(Data Design) 승인 대기 |
 | TC-109 | REQ-109 UTC 저장, KST 표시 | 자동 | `test_stats_api.py`(KST 날짜), `format-kst.test.js` | |
-| TC-116 | REQ-116 컨테이너 격리 | 자동 + 수동 | `test_health.py`(DB 연결 성공·503), `test_static_mount.py` | 컨테이너 구성은 수동 |
-| TC-117 | REQ-117 단일 명령 기동 | 수동 | README §3.3 절차 | |
-| TC-151 | REQ-151 외부 자원 자체 호스팅 (ADR-007 결정 5) | 자동 + 수동 | `self-hosted.test.js`(앱 소스에 외부 http(s) URL 없음, `index.html` 이 참조한 vendor 파일 존재, Pretendard 92조각 완전성, `vendor/README.md` 기재). `design-tokens.test.js`, `display-font.test.js` 는 vendor 경로 기준으로 개정 | 수동: 네트워크 차단 상태에서 폰트·아이콘·모달 표시(모바일 점검 체크리스트) |
+| TC-116 | REQ-116 컨테이너 격리 | 자동 + 수동 | `test_health.py`(DB 연결 성공·503), `test_static_mount.py`, `test_container_files.py`(mysql 컨테이너·볼륨 이름 보존, 호스트 포트 loopback, 앱의 DB 호스트 `mysql`) | 컨테이너 상태는 수동 |
+| TC-117 | REQ-117 단일 명령 기동 | 자동 + 수동 | `test_container_files.py`(기동 순서 mysql→migrate→app, 필수 변수 누락 시 중단) | 수동: README §3.3(DB 또는 DB+앱), §3.8(새 PC) 절차, 시나리오 S10 |
+| TC-151 | REQ-151 외부 자원 자체 호스팅 (ADR-007 결정 5) | 자동 + 수동 | `self-hosted.test.js`(앱 소스에 외부 http(s) URL 없음, `index.html` 이 참조한 vendor 파일 존재, Pretendard 92조각 완전성, `vendor/README.md` 기재), `test_static_mount.py`(vendor 1년 캐시·앱 파일 비캐시·304 유지, woff2 MIME `font/woff2`). `design-tokens.test.js`, `display-font.test.js` 는 vendor 경로 기준으로 개정 | 수동: 네트워크 차단 상태에서 폰트·아이콘·모달 표시(모바일 점검 체크리스트) |
+| TC-152 | REQ-152 컨테이너 배포 재현성 (ADR-009) | 자동 + 수동 | `test_container_files.py` 19건: `.dockerignore` 비밀·로컬 자산 제외, Dockerfile 3단계·python 3.12·비root·헬스체크·`--reload` 없음·`.env` 미복사, compose 서비스 구성·DB 호스트 `mysql`·최소 환경 주입·루트 비밀번호 비전달·필수 변수 누락 시 중단·기동 순서·prod 소스 비마운트·mysql 포트 loopback, dev override 의 마운트 정책(`.env` 비마운트) | 수동: 시나리오 S10 (새 PC 시뮬레이션) |
 
 ### 4.4 UI·모바일 (자동화 한계가 큰 영역)
 
@@ -214,6 +215,16 @@
 - Then 변경 없음으로 처리되고 W 의 `word_id` 와 학습 기록이 유지된다
 - And 시드의 단어 내용이 바뀌면 같은 `word_id` 로 UPDATE 된다
 
+**S10. 다른 PC 에서 Docker 와 Git 만으로 앱을 실행한다** (TC-117, TC-152, ADR-009)
+- Given 빈 폴더에 저장소를 `git clone` 했고 `.env` 가 없다
+- When `docker compose --project-directory . -f docker/docker-compose.yml up -d` 를 실행한다
+- Then ".env 파일에 ... 를 설정하세요" 메시지와 함께 시작하지 않는다
+- When `cp .env.example .env` 로 값을 채운 뒤 `up -d --build` 를 실행한다
+- Then `mysql`·`app` 이 healthy 이고 `migrate` 는 `Exited (0)` 이며 마이그레이션 12개가 빈 DB 에 처음부터 적용된다
+- And `/health` 가 200, 가입 201 → 로그인 200 → 플래시카드 세션 생성 201, 로그인 없이 세션 생성은 401 이다
+- And 표준 단어장 5개(1,000단어)가 적재되어 있다
+- 수행 이력: 2026-11-25 임시 폴더(포트 8100·3308, 프로젝트 `vvclone`)에서 수행, 통과
+
 ## 6. 모바일 반응형 검증 절차 (REQ-119)
 
 브라우저가 없는 환경에서는 시각·터치 항목을 자동으로 검증할 수 없어서 사람이 점검한다. 현재 절차는 `ai-agent/claude/검토_261111_모바일_실기기_점검_체크리스트.md`(v2.2) 한 건이다.
@@ -245,6 +256,7 @@
 
 | 버전 | 날짜 | 내용 | 작성 |
 | :--- | :--- | :--- | :--- |
+| v1.1 개정 | 2026-11-25 | 앱 컨테이너화 반영: TC-116·117 개정, TC-152 신설, 시나리오 S10, 기준선 백엔드 587건(`no_db` 206건)·합계 1,060건 | Claude |
 | v1.1 개정 | 2026-11-24 | 외부 자원 자체 호스팅(REQ-151) 반영: TC-151 추가, 기준선 node 473건·합계 1,030건 | Claude |
 | v1.1 개정 | 2026-11-19 | 로그인 전 다크 모드 버튼(REQ-126) 반영: TC-126 검증 위치, 기준선 node 468건·합계 1,025건 | Claude |
 | v1.1 개정 | 2026-11-19 | SRS 규칙 개정(REQ-150) 반영: TC-150 검증 위치, 시나리오 S8·S9, 기준선 557건(전체 pytest)·no_db 175건 | Claude |

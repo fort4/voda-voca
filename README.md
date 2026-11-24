@@ -331,5 +331,8 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 | 데이터 설계서 | `docs/voda-voca_Data_Design_v2.2_261119.md` | `docs/old/` |
 | API 연동 규격서 | `docs/voda-voca_API_Integration_Spec_v2.2_261119.md` | `docs/old/` |
 | UI/UX 설계서 | `docs/voda-voca_UIUX_Design_Spec_v2.2_261105.md` | `docs/old/` |
+| 시스템 아키텍처 설계서 | `docs/voda-voca_Architecture_Design_v1.0_261119.md` (개정 이력은 문서 내 변경 이력) | - |
+| 아키텍처 결정 기록 (ADR-001~009) | `docs/voda-voca_Decision_Records_v1.0_261119.md` | - |
+| 테스트 명세서 | `docs/voda-voca_Test_Specification_v1.1_261119.md` | - |
 
 v2.2 진행 중에는 파일명을 바꾸지 않고 각 문서의 변경 이력 표에 개정 행을 추가합니다. 작업 일지와 결정 기록은 `ai-agent/claude/`에 있습니다.

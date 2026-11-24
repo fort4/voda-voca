@@ -199,9 +199,10 @@
 
 | ID | 요구사항 | 우선순위 | 상세 기준 |
 | :--- | :--- | :---: | :--- |
-| REQ-116 | 컨테이너 격리 | M | MySQL은 Docker 컨테이너로 실행하며, 애플리케이션은 컨테이너 네트워크 또는 `.env`에 지정된 호스트/포트로 접속한다. |
-| REQ-117 | 로컬 실행 환경 | M | WSL2 Ubuntu 24.04 + Docker Compose 환경에서 단일 명령으로 DB를 기동할 수 있어야 한다. |
+| REQ-116 | 컨테이너 격리 | M | MySQL은 Docker 컨테이너로 실행하며, 애플리케이션은 컨테이너(권장) 또는 호스트에서 실행할 수 있다. 컨테이너의 앱은 컨테이너 네트워크(`mysql:3306`)로, 호스트의 앱은 `.env`에 지정된 호스트/포트로 접속한다. DB 의 호스트 포트는 `127.0.0.1` 에만 연다. |
+| REQ-117 | 로컬 실행 환경 | M | WSL2 Ubuntu 24.04 + Docker Compose 환경에서 단일 명령(`docker compose up -d --build`)으로 DB 와 앱을 기동할 수 있어야 한다. DB 만 기동하는 방식(`up -d mysql`)도 지원한다. |
 | REQ-151 | 외부 자원 자체 호스팅 | S | (2026-11-24) 화면에 쓰는 라이브러리(Tailwind, SweetAlert2, Lucide)와 폰트(Pretendard, Paperlogy)는 `src/frontend/vendor/` 에서 같은 출처로 제공하며, 브라우저가 외부 도메인에 요청하지 않는다. 출처·버전·라이선스는 `vendor/README.md` 에 기록한다. |
+| REQ-152 | 컨테이너 배포 재현성 | S | (2026-11-25) Docker 와 Git 만 설치된 다른 PC 에서 저장소를 받아 `.env` 만 만들면 단일 명령(`docker compose up -d --build`)으로 앱이 실행되어야 한다. ① 이미지에는 `.env`·테스트 코드·DB 데이터가 들어가지 않는다. ② 앱은 비root 로 실행한다. ③ 필수 DB 설정이 없으면 안내 메시지와 함께 시작하지 않는다. ④ 개발용 컨테이너에서 전체 테스트를 실행할 수 있다. ⑤ DB 의 호스트 포트는 `127.0.0.1` 에만 연다. HTTPS 는 범위 밖이며 사내망·LAN 전용이다. |
 
 ### 5.6 품질 / 테스트
 
@@ -293,9 +294,10 @@ v1.0의 질의 사항 Q1~Q8에 대한 결정이다. 사용자가 명시적으로
 | REQ-113 | SQL 인젝션 방지 | M | Architecture Design, Data Design(§2.5) | `src/backend/services/` | TC-113 | 초안 |
 | REQ-114 | 터치 타겟 44px | M | UI/UX 설계서 | `src/frontend/` | TC-114 (브라우저 검증) | 초안 |
 | REQ-115 | 모바일 본문 16px | S | UI/UX 설계서 | `src/frontend/` | TC-115 (브라우저 검증) | 초안 |
-| REQ-116 | 컨테이너 격리 | M | Architecture Design | `docker/docker-compose.yml` | TC-116 | 구현 완료 (인프라) |
-| REQ-117 | 단일 명령 기동 | M | Deployment Spec (README) | `docker/docker-compose.yml` | TC-117 | 구현 완료 (인프라) |
+| REQ-116 | 컨테이너 격리 | M | Architecture Design | `docker/docker-compose.yml`, `docker/Dockerfile` | TC-116 | 구현 완료 (인프라) |
+| REQ-117 | 단일 명령 기동 | M | Deployment Spec (README) | `docker/docker-compose.yml`, `docker/docker-compose.dev.yml` | TC-117 | 구현 완료 (인프라) |
 | REQ-151 | 외부 자원 자체 호스팅 | S | Architecture Design | `src/frontend/vendor/`, `index.html` | TC-151 | 구현 완료 |
+| REQ-152 | 컨테이너 배포 재현성 | S | Architecture Design, ADR-009 | `docker/Dockerfile`, `docker/docker-compose.yml`, `docker/docker-compose.dev.yml`, `.dockerignore` | TC-152 | 구현 완료 |
 | REQ-118 | pytest 자동화 테스트 | M | Test Specification | `src/backend/tests/` | TC-118 | 초안 |
 | REQ-119 | 모바일 스크린샷 검증 | S | Test Specification | 검증 스크립트 | TC-119 | 초안 |
 | REQ-120 | 코드 추적성 (ID 명시) | M | 개발방법론 §3 | 모듈 헤더, 커밋 메시지 | 코드 리뷰 체크리스트 | 초안 |
@@ -341,6 +343,7 @@ v1.0의 질의 사항 Q1~Q8에 대한 결정이다. 사용자가 명시적으로
 | :--- | :--- | :--- | :--- |
 | v0.1 | 2026-11-02 | 초안 작성 (요구사항 ID 체계 수립, 기능/비기능 목록, 추적 매트릭스) | Claude |
 | v1.0 | 2026-11-02 | 사용자 승인 후 `docs/`로 승격 (파일명 `Requirement_Spec` 규칙 적용) | Claude |
+| v2.2 개정 | 2026-11-25 | **REQ-152 신설, REQ-116·117 개정**: 앱 컨테이너화(Dockerfile, `migrate`·`app` 서비스, 개발용 override). 사용자 확정: HTTPS 제외, git clone 전달, DB 포트 loopback (ADR-009) | Claude |
 | v2.2 개정 | 2026-11-24 | **REQ-151 신설**: 화면용 외부 라이브러리·폰트를 `vendor/` 로 자체 호스팅(Architecture A4 해소, ADR-007 결정 5). 기술 스택 서술에서 "Play CDN" 을 "Play 스크립트, vendor/ 자체 호스팅" 으로 정정 | Claude |
 | v2.2 개정 | 2026-11-19 | **REQ-126 개정**: 로그인 전 헤더(로그인 링크 왼쪽)에 다크 모드 전환 버튼 추가. 로그인 전에는 전환할 수 없던 제약을 해소 | Claude |
 | v2.2 개정 | 2026-11-19 | **REQ-150 개정**: 복습 시각을 "답한 시각 + 간격"에서 "간격일 뒤 한국 날짜 0시"로 바꾸고(밤에 맞힌 단어가 다음 날 오전에 기한 전이 되는 문제), 기한 전 정답은 단계·시각을 유지하도록 했다(같은 날 반복 학습으로 단계가 부풀어 7일 뒤로 밀리는 문제). 사용자 확정 2026-11-19 | Claude |
