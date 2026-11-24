@@ -58,3 +58,62 @@ def test_prod_stage_has_healthcheck_and_no_reload() -> None:
     prod = DOCKERFILE.read_text(encoding="utf-8").split(" AS prod", 1)[1]
     assert "HEALTHCHECK" in prod and "/health" in prod
     assert "--reload" not in prod
+
+
+# ---------- docker-compose.yml (2단계: mysql + migrate + app) ----------
+
+COMPOSE = REPO_ROOT / "docker" / "docker-compose.yml"
+
+
+def _compose() -> dict:
+    import yaml  # 개발 의존성(PyYAML)은 requirements-dev 에 포함된다
+
+    return yaml.safe_load(COMPOSE.read_text(encoding="utf-8"))
+
+
+def test_compose_has_mysql_migrate_app_services() -> None:
+    assert {"mysql", "migrate", "app"} <= set(_compose()["services"])
+
+
+def test_compose_keeps_mysql_data_volume_and_name() -> None:
+    """DB 컨테이너 이름과 데이터 볼륨 이름이 바뀌면 기존 개발 데이터를 잃은 것처럼 보인다 (회귀 방지)."""
+    c = _compose()
+    assert c["services"]["mysql"]["container_name"] == "voda-voca-mysql"
+    assert c["volumes"]["mysql_data"]["name"] == "voda-voca-mysql-data"
+
+
+@pytest.mark.parametrize("name", ["migrate", "app"])
+def test_app_services_reach_db_by_service_name_not_loopback(name: str) -> None:
+    env = _compose()["services"][name]["environment"]
+    assert env["MYSQL_HOST"] == "mysql", "컨테이너 안의 127.0.0.1 은 자기 자신이다"
+    assert str(env["MYSQL_PORT"]) == "3306", "컨테이너 사이 통신은 호스트 노출 포트(3307)가 아니라 3306 이다"
+
+
+@pytest.mark.parametrize("name", ["migrate", "app"])
+def test_app_services_get_only_needed_env_never_root_password(name: str) -> None:
+    svc = _compose()["services"][name]
+    assert "env_file" not in svc, ".env 를 통째로 넘기면 루트 비밀번호까지 앱에 전달된다"
+    assert "MYSQL_ROOT_PASSWORD" not in svc["environment"]
+    for needed in ["MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_DATABASE"]:
+        assert needed in svc["environment"]
+
+
+def test_startup_order_mysql_healthy_then_migrate_then_app() -> None:
+    services = _compose()["services"]
+    assert services["migrate"]["depends_on"]["mysql"]["condition"] == "service_healthy"
+    assert services["app"]["depends_on"]["mysql"]["condition"] == "service_healthy"
+    assert services["app"]["depends_on"]["migrate"]["condition"] == "service_completed_successfully"
+
+
+def test_migrate_runs_once_and_app_restarts() -> None:
+    services = _compose()["services"]
+    assert services["migrate"]["restart"] in ("no", False)
+    assert " ".join(services["migrate"]["command"]) == "alembic -c src/backend/alembic.ini upgrade head"
+    assert services["app"]["restart"] == "unless-stopped"
+
+
+def test_app_uses_prod_image_without_source_mount() -> None:
+    app = _compose()["services"]["app"]
+    assert app["build"]["target"] == "prod"
+    assert "volumes" not in app, "배포용 앱은 소스를 마운트하지 않는다 (개발용은 override 파일에서)"
+    assert "${APP_PORT:-8000}:8000" in app["ports"]
