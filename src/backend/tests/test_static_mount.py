@@ -61,3 +61,31 @@ async def test_vendor_font_is_served_with_font_mime_type(client: httpx.AsyncClie
     response = await client.get("/vendor/fonts/Paperlogy-7Bold.woff2")
     assert response.status_code == 200
     assert response.headers["content-type"] == "font/woff2"
+
+
+VENDOR_CACHE = "public, max-age=31536000, immutable"
+
+
+@pytest.mark.asyncio
+async def test_vendor_files_are_cached_for_a_year_because_versions_are_in_the_path(client: httpx.AsyncClient) -> None:
+    """vendor/ 는 파일명·폴더에 버전이 들어 있어(tailwindcss-3.4.17.js) 바뀌면 경로가 바뀐다. 오래 캐시해도 안전하다."""
+    for path in ["/vendor/tailwindcss-3.4.17.js", "/vendor/fonts/Paperlogy-7Bold.woff2"]:
+        response = await client.get(path)
+        assert response.status_code == 200
+        assert response.headers["cache-control"] == VENDOR_CACHE, path
+
+
+@pytest.mark.asyncio
+async def test_app_own_files_are_not_given_a_long_cache(client: httpx.AsyncClient) -> None:
+    """app.js/app.css 는 파일명에 버전이 없고 자주 고친다. 긴 캐시를 주면 사용자가 옛 화면을 계속 본다."""
+    for path in ["/", "/js/app.js", "/css/app.css"]:
+        response = await client.get(path)
+        assert "max-age" not in response.headers.get("cache-control", ""), path
+
+
+@pytest.mark.asyncio
+async def test_vendor_conditional_request_still_returns_304_with_cache_header(client: httpx.AsyncClient) -> None:
+    first = await client.get("/vendor/tailwindcss-3.4.17.js")
+    second = await client.get("/vendor/tailwindcss-3.4.17.js", headers={"If-None-Match": first.headers["etag"]})
+    assert second.status_code == 304
+    assert second.headers["cache-control"] == VENDOR_CACHE

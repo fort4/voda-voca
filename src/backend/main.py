@@ -9,6 +9,7 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, Response
 from fastapi.staticfiles import StaticFiles
+from starlette.types import Scope
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -60,6 +61,22 @@ async def health(
     return {"status": "ok", "db": "connected"}
 
 
+# vendor/ 는 폴더·파일명에 버전이 들어 있어(tailwindcss-3.4.17.js, sweetalert2-11.10.5/) 내용이 바뀌면 경로도 바뀐다.
+# 그래서 브라우저가 1년간 서버에 묻지 않고 저장해 두어도 안전하다 (2026-11-25). app.js·app.css 는 이름에 버전이 없고
+# 자주 고치므로 긴 캐시를 주지 않는다(ETag 로 매번 확인).
+VENDOR_CACHE_CONTROL = "public, max-age=31536000, immutable"
+
+
+class FrontendStaticFiles(StaticFiles):
+    """정적 프론트엔드 서빙. vendor/ 아래 파일에만 긴 캐시 헤더를 붙인다."""
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        response = await super().get_response(path, scope)
+        if path.startswith("vendor/") and response.status_code in (200, 304):
+            response.headers["Cache-Control"] = VENDOR_CACHE_CONTROL
+        return response
+
+
 # woff2 의 MIME 타입을 직접 등록한다 (2026-11-25). 파이썬은 OS 의 mime.types 를 읽는데 slim 컨테이너에는 그 파일이 없어
 # 호스트에서는 font/woff2, 컨테이너에서는 application/octet-stream 으로 달라진다. 환경과 무관하게 같게 맞춘다.
 mimetypes.add_type("font/woff2", ".woff2")
@@ -67,4 +84,4 @@ mimetypes.add_type("font/woff2", ".woff2")
 # 정적 프론트엔드 (같은 출처 배포, 2026-11-02). 모든 API 라우트를 등록한 뒤 마지막에 붙인다.
 # 라우트가 먼저 매칭되므로 /api, /health 는 정적 파일 마운트에 가려지지 않는다.
 FRONTEND_DIR = Path(__file__).resolve().parents[1] / "frontend"
-app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+app.mount("/", FrontendStaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
