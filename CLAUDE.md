@@ -14,7 +14,7 @@
 | :--- | :--- | :--- |
 | **Backend** | Python (FastAPI), SQLAlchemy 2.0 (asyncmy), Alembic | 비동기 지원 REST API 서버 및 DB 마이그레이션 |
 | **Frontend** | HTML5, Vanilla JavaScript (ES6+), JSDoc | 빌드 파이프라인 없는 순수 웹 표준 기반 프론트엔드 |
-| **UI / Styling** | Tailwind CSS (Play CDN), SweetAlert2, Lucide Icons | 모바일 우선(Mobile-First) 반응형 뷰포트 및 네이티브 모달 대체 |
+| **UI / Styling** | Tailwind CSS (Play 스크립트, vendor/ 자체 호스팅), SweetAlert2, Lucide Icons | 모바일 우선(Mobile-First) 반응형 뷰포트 및 네이티브 모달 대체 |
 | **Database** | MySQL 8.x | Docker 컨테이너 격리 운영 |
 | **Runtime / OS** | WSL2 Ubuntu 24.04 LTS | Linux 네이티브 파일 시스템 기반 개발 |
 | **Tooling** | Git, Docker Compose, pytest | 소스 형상 관리, 컨테이너 오케스트레이션, 단위/통합 테스트 |

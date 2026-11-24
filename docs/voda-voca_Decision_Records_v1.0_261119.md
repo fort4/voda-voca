@@ -206,21 +206,22 @@
 - **관련 요구사항**: REQ-116, REQ-114, REQ-115, `CLAUDE.md` §1, §4-6
 
 ### 결정
-1. 프론트엔드는 HTML5, Vanilla JavaScript(ES 모듈, JSDoc), Tailwind CSS(Play CDN), SweetAlert2, Lucide 로 구성하고 **빌드 파이프라인을 두지 않는다.**
+1. 프론트엔드는 HTML5, Vanilla JavaScript(ES 모듈, JSDoc), Tailwind CSS(Play 스크립트), SweetAlert2, Lucide 로 구성하고 **빌드 파이프라인을 두지 않는다.**
 2. FastAPI 가 같은 프로세스에서 정적 파일을 `/` 에 마운트해 서빙한다 (같은 출처).
 3. DOM 이 없는 순수 로직은 `js/core/` 에 두어 `node --test` 로 외부 패키지 없이 검증한다.
 4. 화면은 `innerHTML` 없이 `textContent` 로 렌더링한다.
+5. (2026-11-24) 외부 라이브러리·폰트는 CDN 이 아니라 `src/frontend/vendor/` 에 버전 고정 파일로 두고 같은 출처로 서빙한다. 출처·버전·라이선스는 `vendor/README.md` 에 기록하며, 앱 소스에 외부 URL 이 들어오면 `tests/self-hosted.test.js` 가 실패한다.
 
 ### 대안 (사후 정리)
 | 대안 | 장점 | 단점 | 판정 |
 | :--- | :--- | :--- | :--- |
 | React/Vue + 번들러 | 컴포넌트·상태 관리 생태계 | 빌드 도구, npm 의존성, 별도 개발 서버가 필요하다 | 기각 (지침이 금지) |
 | 프론트 별도 서버(Nginx 등) | 정적 자원 캐시·분리 | CORS·쿠키 설정, 컨테이너 추가 | 기각 (같은 출처가 ADR-001 쿠키 인증과 맞는다) |
-| **Vanilla JS + CDN + FastAPI 정적 마운트** | 도구가 없어 단순하다. 쿠키 인증이 자연스럽다 | CDN 가용성에 의존한다. 상태 관리를 직접 한다 | **채택** |
+| **Vanilla JS + vendor 자체 호스팅 + FastAPI 정적 마운트** | 도구가 없어 단순하다. 오프라인·CDN 장애와 무관하다. 쿠키 인증이 자연스럽다 | 저장소가 약 4MB 커진다. 라이브러리 업데이트를 수동으로 한다. 상태 관리를 직접 한다 | **채택** |
 
 ### 결과
-- 런타임에 외부 CDN 을 받으므로 오프라인이나 CDN 장애에서 화면이 깨진다. Tailwind Play CDN 은 프로덕션 사용이 권장되지 않는다. **운영 배포 전에 재검토가 필요한 항목**이다 (Architecture Design A4). 재검토는 지침(`CLAUDE.md` §1)과 충돌하므로 사용자 결정이 필요하다.
-- 서체 CDN 이 실패해도 시스템 폰트로 폴백되도록 `--font-sans` 체인을 둔다 (UI/UX 설계서).
+- CDN 의존은 해소했다 (Architecture Design A4). 다만 Tailwind Play 스크립트는 프로덕션 사용이 권장되지 않으므로, 성능 문제가 생기면 standalone CLI 로 정적 CSS 를 생성하는 방안을 별도 결정으로 검토한다 (지침 `CLAUDE.md` §1 과 충돌하므로 사용자 결정).
+- 서체 파일이 실패해도 시스템 폰트로 폴백되도록 `--font-sans` 체인을 둔다 (UI/UX 설계서).
 
 ---
 
@@ -249,5 +250,6 @@
 
 | 버전 | 날짜 | 내용 | 작성 |
 | :--- | :--- | :--- | :--- |
+| v1.0 개정 | 2026-11-24 | ADR-007 에 결정 5(vendor 자체 호스팅) 추가, 대안·결과 갱신 | Claude |
 | v1.0 개정 | 2026-11-19 | ADR-006 에 결정 7(복습 시각을 한국 날짜 0시로)·결정 8(기한 전 정답은 단계 유지) 추가 | Claude |
 | v1.0 | 2026-11-19 | 전신 문서(ADR-001~003)를 이어받고 ADR-003 을 Superseded 로 전환. ADR-004~008 을 사후 기록으로 추가 | Claude |

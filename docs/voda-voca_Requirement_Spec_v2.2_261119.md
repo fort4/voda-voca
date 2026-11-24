@@ -38,7 +38,7 @@
 | :--- | :--- |
 | Backend | Python FastAPI, SQLAlchemy 2.0 (asyncmy), Alembic |
 | Frontend | HTML5, Vanilla JavaScript (ES6+), JSDoc, 빌드 파이프라인 없음 |
-| UI | Tailwind CSS (Play CDN), SweetAlert2, Lucide Icons |
+| UI | Tailwind CSS (Play 스크립트, vendor/ 자체 호스팅), SweetAlert2, Lucide Icons |
 | DB | MySQL 8.x (Docker 컨테이너, utf8mb4, Asia/Seoul) |
 | 운영 | WSL2 Ubuntu 24.04, Docker Compose, pytest |
 
@@ -201,6 +201,7 @@
 | :--- | :--- | :---: | :--- |
 | REQ-116 | 컨테이너 격리 | M | MySQL은 Docker 컨테이너로 실행하며, 애플리케이션은 컨테이너 네트워크 또는 `.env`에 지정된 호스트/포트로 접속한다. |
 | REQ-117 | 로컬 실행 환경 | M | WSL2 Ubuntu 24.04 + Docker Compose 환경에서 단일 명령으로 DB를 기동할 수 있어야 한다. |
+| REQ-151 | 외부 자원 자체 호스팅 | S | (2026-11-24) 화면에 쓰는 라이브러리(Tailwind, SweetAlert2, Lucide)와 폰트(Pretendard, Paperlogy)는 `src/frontend/vendor/` 에서 같은 출처로 제공하며, 브라우저가 외부 도메인에 요청하지 않는다. 출처·버전·라이선스는 `vendor/README.md` 에 기록한다. |
 
 ### 5.6 품질 / 테스트
 
@@ -294,6 +295,7 @@ v1.0의 질의 사항 Q1~Q8에 대한 결정이다. 사용자가 명시적으로
 | REQ-115 | 모바일 본문 16px | S | UI/UX 설계서 | `src/frontend/` | TC-115 (브라우저 검증) | 초안 |
 | REQ-116 | 컨테이너 격리 | M | Architecture Design | `docker/docker-compose.yml` | TC-116 | 구현 완료 (인프라) |
 | REQ-117 | 단일 명령 기동 | M | Deployment Spec (README) | `docker/docker-compose.yml` | TC-117 | 구현 완료 (인프라) |
+| REQ-151 | 외부 자원 자체 호스팅 | S | Architecture Design | `src/frontend/vendor/`, `index.html` | TC-151 | 구현 완료 |
 | REQ-118 | pytest 자동화 테스트 | M | Test Specification | `src/backend/tests/` | TC-118 | 초안 |
 | REQ-119 | 모바일 스크린샷 검증 | S | Test Specification | 검증 스크립트 | TC-119 | 초안 |
 | REQ-120 | 코드 추적성 (ID 명시) | M | 개발방법론 §3 | 모듈 헤더, 커밋 메시지 | 코드 리뷰 체크리스트 | 초안 |
@@ -339,6 +341,7 @@ v1.0의 질의 사항 Q1~Q8에 대한 결정이다. 사용자가 명시적으로
 | :--- | :--- | :--- | :--- |
 | v0.1 | 2026-11-02 | 초안 작성 (요구사항 ID 체계 수립, 기능/비기능 목록, 추적 매트릭스) | Claude |
 | v1.0 | 2026-11-02 | 사용자 승인 후 `docs/`로 승격 (파일명 `Requirement_Spec` 규칙 적용) | Claude |
+| v2.2 개정 | 2026-11-24 | **REQ-151 신설**: 화면용 외부 라이브러리·폰트를 `vendor/` 로 자체 호스팅(Architecture A4 해소, ADR-007 결정 5). 기술 스택 서술에서 "Play CDN" 을 "Play 스크립트, vendor/ 자체 호스팅" 으로 정정 | Claude |
 | v2.2 개정 | 2026-11-19 | **REQ-126 개정**: 로그인 전 헤더(로그인 링크 왼쪽)에 다크 모드 전환 버튼 추가. 로그인 전에는 전환할 수 없던 제약을 해소 | Claude |
 | v2.2 개정 | 2026-11-19 | **REQ-150 개정**: 복습 시각을 "답한 시각 + 간격"에서 "간격일 뒤 한국 날짜 0시"로 바꾸고(밤에 맞힌 단어가 다음 날 오전에 기한 전이 되는 문제), 기한 전 정답은 단계·시각을 유지하도록 했다(같은 날 반복 학습으로 단계가 부풀어 7일 뒤로 밀리는 문제). 사용자 확정 2026-11-19 | Claude |
 | v2.2 | 2026-11-19 | v2.1 개정분(2026-11-05~11-11)을 v2.2 로 확정하고 파일명을 `v2.2_261119` 로 갱신(구버전 `docs/old/` 보관). **REQ-150 신설**(간격 반복·오늘 복습, 이슈 #25). 개정 초안(`검토_261111_SRS_문서개정초안.md`)이 쓴 "REQ-149 신설"은 REQ-149(환경 설정)와 번호가 겹쳐 REQ-150 으로 정정했다 | Claude |

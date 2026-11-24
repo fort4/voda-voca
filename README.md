@@ -35,8 +35,8 @@ v2.2는 학습 경험과 시각 체계를 다듬는 릴리즈입니다. 문서 �
 | 데이터베이스 | MySQL **8.0** (Docker 컨테이너) | 문자셋 `utf8mb4`, 콜레이션 `utf8mb4_0900_ai_ci`, 시간대 Asia/Seoul |
 | 인증 | 세션 쿠키 (HttpOnly, SameSite=Lax), bcrypt | 세션은 DB `sessions` 테이블에 저장 |
 | 프론트엔드 | HTML5, Vanilla JavaScript (ES 모듈, JSDoc), **빌드 없음** | 해시 라우팅, `textContent` 기반 렌더링 |
-| UI | Tailwind CSS (Play CDN), SweetAlert2 11.10.5, Lucide 0.460.0 | Zinc 뉴트럴 + Indigo 포인트, 다크 모드 |
-| 서체 | Pretendard Variable (본문), Paperlogy Bold (제목·학습 단어) | CDN, `font-display: swap`, 실패 시 시스템 폰트 |
+| UI | Tailwind CSS (Play 스크립트, vendor/ 자체 호스팅), SweetAlert2 11.10.5, Lucide 0.460.0 | Zinc 뉴트럴 + Indigo 포인트, 다크 모드 |
+| 서체 | Pretendard Variable (본문), Paperlogy Bold (제목·학습 단어) | vendor/ 자체 호스팅, `font-display: swap`, 실패 시 시스템 폰트 |
 | 테스트 | pytest 9 (백엔드), `node --test` (프론트엔드) | 외부 프론트 의존성 없음 |
 
 프론트엔드에는 npm 의존성이 없습니다. `package.json`은 테스트 실행 스크립트만 가집니다.
@@ -64,6 +64,7 @@ voda-voca/
 │   └── frontend/            정적 프론트엔드 (FastAPI 가 같은 출처로 서빙)
 │       ├── index.html
 │       ├── css/app.css      디자인 시스템 (토큰, 컴포넌트, 플립 카드, 모달 모션, 다크 모드)
+│       ├── vendor/          자체 호스팅 외부 자원 (Tailwind, SweetAlert2, Lucide, 서체; 출처·라이선스는 vendor/README.md)
 │       ├── js/app.js        부트스트랩, 라우트, 하단 탭바, 계정 드롭다운
 │       ├── js/core/         API 클라이언트, 라우터, DOM, 세션 러너·드라이버, 콤보, 사운드, 테마, TTS,
 │       │                    설정·북마크 저장소, 복습함·통계·환경 설정 뷰모델, 토스트
@@ -154,14 +155,14 @@ DB 컨테이너와 마이그레이션이 준비되어 있어야 합니다.
 - **푸시 전 마이그레이션 검사**: `.venv/bin/alembic -c src/backend/alembic.ini check` 가 `No new upgrade operations detected.` 를 내야 합니다 (모델은 바꿨는데 마이그레이션을 빼먹은 경우를 잡습니다).
 - 개발 중에는 지금 작업하는 테스트만 돌립니다 (예: `.venv/bin/python -m pytest -q src/backend/tests/test_bookmark_api.py`).
 
-### 4.2 프론트엔드 (node --test, 468건)
+### 4.2 프론트엔드 (node --test, 473건)
 ```bash
 cd src/frontend
 npm test            # 또는: node --test tests/
 ```
 - 외부 패키지를 설치하지 않습니다. 순수 로직(API 클라이언트, 라우터, 세션 러너, 콤보, 사운드, 저장소, 뷰모델)과, 화면 배선·디자인 토큰·다크 모드 누락을 소스 수준에서 검사하는 테스트를 돌립니다.
-- 최근 검증 결과: 468 passed (2026-11-19).
-- 누적 검증: 백엔드 557건과 프론트엔드 468건, 합계 1,025건이 모두 통과합니다.
+- 최근 검증 결과: 473 passed (2026-11-24).
+- 누적 검증: 백엔드 557건과 프론트엔드 473건, 합계 1,030건이 모두 통과합니다.
 
 ### 4.3 문법 검사 (프론트엔드)
 ```bash

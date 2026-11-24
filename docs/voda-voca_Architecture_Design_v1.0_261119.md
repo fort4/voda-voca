@@ -23,7 +23,7 @@
 
 | # | 원칙 | 근거 |
 | :-: | :--- | :--- |
-| P1 | **빌드 없는 프론트엔드**: HTML, ES 모듈, CDN 라이브러리만 쓴다. 번들러·npm 런타임 의존성이 없다 | CLAUDE.md §1 |
+| P1 | **빌드 없는 프론트엔드**: HTML, ES 모듈, `vendor/` 에 둔 라이브러리만 쓴다 (CDN 요청 없음). 번들러·npm 런타임 의존성이 없다 | CLAUDE.md §1 |
 | P2 | **단일 출처(same-origin)**: API 와 정적 프론트를 한 FastAPI 프로세스가 서빙한다 | ADR-001 (쿠키 인증, CORS·CSRF 면적 최소화) |
 | P3 | **DB 는 컨테이너, 앱은 호스트**: 데이터 계층만 Docker 로 격리한다 | REQ-116, CLAUDE.md §4-7 |
 | P4 | **비동기 I/O**: 라우터부터 DB 드라이버까지 async | REQ-101 |
@@ -47,12 +47,11 @@
  [Docker 컨테이너 voda-voca-mysql (MySQL 8.0)] :3306
    └─ 볼륨 voda-voca-mysql-data (utf8mb4, utf8mb4_0900_ai_ci, +09:00)
 
- [외부 CDN] (브라우저가 직접 받음, 서버는 관여하지 않음)
-   jsdelivr: Pretendard, Paperlogy, SweetAlert2 / unpkg: Lucide / Tailwind Play CDN
+ ※ 화면 자원(Tailwind, SweetAlert2, Lucide, 서체)도 /vendor/* 로 같은 출처에서 받는다 (외부 CDN 없음, 2026-11-24)
 ```
 
 - **행위자**: 일반 사용자 한 종류. 관리자 역할은 1차에서 제외했다 (요구사항 Q8).
-- **외부 시스템**: 서버가 호출하는 외부 서비스는 없다. 외부 의존은 브라우저가 받는 CDN 자산뿐이다 (§9 제약 참조).
+- **외부 시스템**: 서버가 호출하는 외부 서비스는 없다. 외부 의존도 없다. 화면 자원은 `vendor/` 에서 제공한다 (2026-11-24, A4 해소).
 - 발음 듣기는 브라우저의 Web Speech API, 효과음은 Web Audio 합성이라 서버나 음원 파일이 필요 없다.
 
 ## 4. 배포(실행) 토폴로지
@@ -112,7 +111,8 @@ js/routes.js     해시 라우트 표 (#/home, #/explore, #/review, #/stats, #/s
 js/core/         DOM 이 없는 순수 로직: api, router, 세션 러너·드라이버, 콤보, 뷰모델, 저장소, 사운드, TTS
 js/views/        화면 (core 의 모델을 받아 textContent 로 렌더링)
 js/views/components/  북마크 버튼, 해설 시트, 단어 시트, 품사 태그 등
-css/app.css      디자인 토큰, 컴포넌트, 다크 모드 (Tailwind Play CDN 과 병용)
+css/app.css      디자인 토큰, 컴포넌트, 다크 모드 (Tailwind Play 스크립트와 병용)
+vendor/          자체 호스팅 외부 자원 (출처·버전·라이선스: vendor/README.md)
 tests/           node --test (순수 로직 + 소스 수준 정적 검사)
 ```
 
@@ -201,7 +201,7 @@ POST /api/study/sessions/{id}/answer
 | A1 | 단일 프로세스 가정 | 로그인 제한이 프로세스 메모리에 있어 워커를 늘리면 한도가 워커별로 갈린다 (REQ-121 도 단일 프로세스 한정으로 명시) | 수평 확장 불가 | 확장 시 공유 저장소(Redis 또는 DB 테이블)로 교체 |
 | A2 | 앱 미컨테이너화 | Dockerfile 과 앱 서비스가 없다. 배포는 호스트에서 uvicorn 직접 실행 | 재현 가능한 배포·운영 환경 부재 | 운영 배포가 필요해지면 Dockerfile 과 compose 서비스 추가 (사용자 승인 필요한 구조 변경) |
 | A3 | 시드 자동 적재 | 서버 시작마다 시드를 DB 에 반영한다 | 잘못된 시드가 즉시 DB 에 들어간다 | 파일 수정 전 백업. 시작 시 검증 실패는 기동을 막는다 |
-| A4 | CDN 의존 | Tailwind Play CDN, SweetAlert2, Lucide, 서체를 런타임에 외부에서 받는다. Tailwind Play CDN 은 프로덕션 비권장 | 오프라인·CDN 장애 시 화면이 깨진다 | 운영 전 빌드된 CSS 또는 자체 호스팅 검토 (P1 과 충돌하므로 결정 필요) |
+| A4 | ~~CDN 의존~~ **해소 (2026-11-24)** | Tailwind, SweetAlert2, Lucide, 서체를 `src/frontend/vendor/` 로 옮겨 같은 출처에서 제공한다 (ADR-007 결정 5, REQ-151) | 잔여: Tailwind Play 스크립트는 브라우저에서 스타일을 계산하므로 운영 비권장 | 성능 문제가 생기면 standalone CLI 로 정적 CSS 를 생성하는 방안을 별도 결정으로 검토 (P1 과 충돌하므로 사용자 결정) |
 | A5 | 세션 정리 | 만료된 `sessions`, `quiz_sessions` 물리 삭제 배치가 없다 (Data Design F4) | 행이 누적된다 | 후속 |
 | A6 | 이어하기 없음 | 진행 중 세션을 다시 조회하는 API 가 없다 | 새로고침하면 이어갈 수 없다 (푼 문항은 기록됨) | 후속 |
 | A7 | 관측성 | 구조화 로그, 메트릭, 알림 없음 | p95 300ms(REQ-102) 를 실측할 수단이 없다 | 후속 |
@@ -226,4 +226,5 @@ POST /api/study/sessions/{id}/answer
 
 | 버전 | 날짜 | 내용 | 작성 |
 | :--- | :--- | :--- | :--- |
+| v1.0 개정 | 2026-11-24 | 외부 CDN 자체 호스팅 반영: P1, §3 배치도·외부 시스템, §5 디렉터리, A4 해소 | Claude |
 | v1.0 | 2026-11-19 | 최초 작성. 현행 구현(`a48958d`) 기준 기록 | Claude |

@@ -8,7 +8,7 @@
 | 산출물 경로 | `docs/voda-voca_UIUX_Design_Spec_v2.2_261105.md` (이전 버전: `docs/old/voda-voca_UIUX_Design_Spec_v2.1_261105.md` 외 보관) |
 | 작성일 | 2026-11-05 (v2.1: 2026-11-05, v2.0: 2026-11-02) |
 | 기준 | 요구사항 명세 v2.2 (REQ-012~023, 114, 115, 119, 125~127, 131~134, 137~142, 144), API 연동 규격서 v2.2, 데이터 설계서 v2.2, 구현 (`src/frontend/js/`) |
-| 기술 제약 | CLAUDE.md §1: HTML5, Vanilla JS (ES6+, JSDoc), Tailwind CSS (Play CDN), SweetAlert2, Lucide Icons. 빌드 파이프라인 없음 |
+| 기술 제약 | CLAUDE.md §1: HTML5, Vanilla JS (ES6+, JSDoc), Tailwind CSS (Play 스크립트, vendor/ 자체 호스팅), SweetAlert2, Lucide Icons. 빌드 파이프라인 없음 |
 
 > **v2.2 요약**: 화면 구성과 기능은 v2.1 그대로 두고 **시각 체계만 개편**했습니다. ① 폰트를 **Pretendard Variable** 하나로 통일, ② 용도 기반 **타입 스케일 7단계**와 간격·반경·여백 **토큰**, ③ 버튼·카드·칩을 **`.btn` / `.card` / `.chip` 컴포넌트**로 일원화(3D 눌림 포함), ④ 화면당 **주 행동(primary) 1개** 원칙, ⑤ 640px 이상에서 여백·카드 패딩·학습 단어 크기를 키우는 **반응형 토큰**. 변경 범위는 §6.1, §6.2, §6.4, §12(→ 12.1~12.5)입니다.
 >
@@ -385,7 +385,7 @@ IDLE ─START─▶ LOADING ─SESSION_LOADED─▶ QUESTION_ACTIVE ─ANSWER_RE
 | 위험 | Red (삭제, 탈퇴, 오답 표시) |
 | 표면 | 흰 배경, 1px 보더(zinc-200), 반경 16px, 얇은 그림자 2단계. 컴포넌트는 `.card` (§12.3) |
 | 버튼 (v2.2) | `.btn` 컴포넌트 (§12.3). 반경 12px, 최소 44px, 누르면 2px 가라앉는 3D 눌림, 키보드 포커스는 인디고 외곽선 |
-| 아이콘 | Lucide 0.460.0 (CDN 고정). 화면과 모달을 그릴 때마다 SVG 로 바꾼다 (`refreshIcons`) |
+| 아이콘 | Lucide 0.460.0 (vendor/ 자체 호스팅). 화면과 모달을 그릴 때마다 SVG 로 바꾼다 (`refreshIcons`) |
 | 헤더와 탭바 | 블러 배경, 얇은 보더, 탭바는 활성 항목에 알약형 인디케이터. 로그인 상태이고 인증 화면·학습 세션이 아닐 때만 보인다 (§2.2) |
 | 동작 줄이기 | 사용자가 설정하면 모든 애니메이션과 전환을 끈다 |
 | 다크 모드 (v1.2) | `html.dark` 클래스로 전환하며 Zinc 계열만 쓴다 (Slate 미사용). 배경 치환: `bg-white`→#18181b, `bg-zinc-50`→#09090b, `bg-zinc-100`→#27272a, `bg-zinc-200`→#3f3f46 (`css/app.css`의 `html.dark` 재정의). 초기값은 저장된 선택(`voda.theme`), 없으면 시스템 설정 |
@@ -399,9 +399,9 @@ IDLE ─START─▶ LOADING ─SESSION_LOADED─▶ QUESTION_ACTIVE ─ANSWER_RE
 
 ### 12.1 서체와 타입 스케일 (v2.2)
 
-- **본문 서체**: Pretendard Variable. 라틴 글리프가 Inter 기반이라 영단어와 한글이 같은 서체로 위계를 이룹니다. jsDelivr 동적 서브셋 CSS(`pretendardvariable-dynamic-subset.min.css`, v1.3.9)를 `preconnect` 와 함께 불러오며 `font-display: swap` 입니다.
+- **본문 서체**: Pretendard Variable. 라틴 글리프가 Inter 기반이라 영단어와 한글이 같은 서체로 위계를 이룹니다. `vendor/` 의 동적 서브셋 CSS(`pretendardvariable-dynamic-subset.css`, v1.3.9, woff2 92조각)를 같은 출처에서 불러오며(화면에 쓰인 글자가 속한 조각만 내려받음) `font-display: swap` 입니다.
 - **제목 전용 서체** (2026-11-11): 화면 제목(`.text-title`)·섹션 제목(`.text-heading`)·`.text-display`·학습 단어(`.session-term`)·헤더 브랜드명(`.brand-name`)에만 **Paperlogy Bold**(`--font-display: "Paperlogy", var(--font-sans)`)를 씁니다. 본문·버튼·칩·발음기호(`--font-ipa`)는 Pretendard 입니다. 로딩 전이나 실패 시에는 `--font-sans` 체인으로 보입니다.
-- **제목 서체 로딩**: `@font-face` 한 벌(`Paperlogy-7Bold.woff2`, 약 160KB, 한글 전체 포함)을 `font-weight: 600 800` 구간에 연결해 제목(700)·학습 단어(800)가 합성 굵기 없이 같은 파일로 그려집니다. 버전을 고정(`projectnoonnu/2408-3@1.0`, `@latest` 금지)하고 `font-display: swap` 이며 `index.html` 에서 `<link rel="preload" as="font" type="font/woff2" crossorigin>` 으로 미리 요청합니다. **라이선스: 배포 전 확인 필요**(무료 상업 사용 가능 여부).
+- **제목 서체 로딩**: `@font-face` 한 벌(`Paperlogy-7Bold.woff2`, 약 160KB, 한글 전체 포함)을 `font-weight: 600 800` 구간에 연결해 제목(700)·학습 단어(800)가 합성 굵기 없이 같은 파일로 그려집니다. `vendor/fonts/Paperlogy-7Bold.woff2` 로 두고 `font-display: swap` 이며 `index.html` 에서 `<link rel="preload" as="font" type="font/woff2" crossorigin>` 으로 미리 요청합니다. **라이선스: 배포 전 확인 필요**(무료 상업 사용 가능 여부).
 - **폴백 체인** (`--font-sans`): `"Pretendard Variable"`, Pretendard, -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Segoe UI", Roboto, sans-serif. CDN 로딩이 실패해도 한글이 시스템 폰트로 읽힙니다.
 - **Tailwind 등록**: `index.html` 의 `tailwind.config` 가 `fontFamily.sans` 와 아래 `fontSize` 를 CSS 변수로 참조합니다. 값은 `app.css` 한 곳에서만 관리하며 `text-sm` 등 기본 단계는 그대로 둡니다.
 
@@ -646,6 +646,7 @@ DB 에는 슬래시 없는 미국식 IPA 가 저장되고(예: `ˈæpəl`), 화�
 
 | 버전 | 날짜 | 내용 | 작성 |
 | :--- | :--- | :--- | :--- |
+| v2.2 개정 | 2026-11-24 | 외부 CDN 자체 호스팅 반영(§12.1 서체, 아이콘, 기술 제약): 서체·라이브러리를 `vendor/` 에서 같은 출처로 제공, `preconnect` 제거 | Claude |
 | v2.2 개정 | 2026-11-19 | 로그인 전 헤더 다크 모드 버튼 추가(§12.12, REQ-126): 로그인 링크 왼쪽 44px 아이콘 버튼, 아이콘·라벨은 누르면 바뀔 모드. "알려진 제약" 문구 정정 | Claude |
 | v2.2 개정 | 2026-11-19 | 복습함에 "오늘 복습" 카드 추가(§3.4, REQ-150). 기준 문서 버전을 요구사항·API·데이터 v2.2 로 갱신 | Claude |
 | v2.2 개정 | 2026-11-11 | 퀴즈 문제 카드에서 품사 태그를 표제어 위로 이동(§3.6). 순서는 힌트 → 품사 → 표제어. 플래시카드 앞면·해설 시트 순서는 변경 없음 | Claude |
