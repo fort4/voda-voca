@@ -157,3 +157,12 @@ def test_dev_override_mounts_what_the_tests_read_as_read_only() -> None:
 def test_dev_override_disables_pytest_cache_in_readonly_workdir() -> None:
     """/app 은 root 소유라 app 사용자가 .pytest_cache 를 쓸 수 없다. 경고 대신 캐시를 끈다."""
     assert _dev()["services"]["app"]["environment"]["PYTEST_ADDOPTS"] == "-p no:cacheprovider"
+
+
+@pytest.mark.parametrize("name", ["migrate", "app"])
+@pytest.mark.parametrize("var", ["MYSQL_DATABASE", "MYSQL_USER", "MYSQL_PASSWORD"])
+def test_required_db_settings_fail_fast_when_env_is_missing(name: str, var: str) -> None:
+    """새 PC 에서 .env 를 만들지 않고 실행하면 빈 비밀번호로 조용히 시작하는 대신, 안내 메시지와 함께 중단된다."""
+    value = str(_compose()["services"][name]["environment"][var])
+    assert value.startswith("${" + var + ":?"), f"{var} 는 필수 표기(:?)여야 한다"
+    assert ".env" in value, "메시지에 .env 를 만들라는 안내가 있어야 한다"

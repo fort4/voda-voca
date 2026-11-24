@@ -45,9 +45,9 @@ services:
       # 호스트용 .env 의 MYSQL_HOST/MYSQL_PORT(127.0.0.1:3307)는 쓰지 않는다. 루트 비밀번호도 앱에 넘기지 않는다.
       MYSQL_HOST: mysql
       MYSQL_PORT: "3306"
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?.env 파일에 MYSQL_DATABASE 를 설정하세요 (cp .env.example .env)}
+      MYSQL_USER: ${MYSQL_USER:?.env 파일에 MYSQL_USER 를 설정하세요 (cp .env.example .env)}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?.env 파일에 MYSQL_PASSWORD 를 설정하세요 (cp .env.example .env)}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
     depends_on:
       mysql:
