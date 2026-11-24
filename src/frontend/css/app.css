@@ -96,7 +96,7 @@ body {
 /* 제목·큰 글씨 전용 폰트: Paperlogy Bold 한 벌(woff2 약 160KB)을 600~800 구간에 연결해 합성 굵기 없이 쓴다. 로딩 전에는 본문 폰트로 보인다 */
 @font-face {
   font-family: "Paperlogy";
-  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-7Bold.woff2") format("woff2");
+  src: url("../vendor/fonts/Paperlogy-7Bold.woff2") format("woff2");
   font-weight: 600 800;
   font-style: normal;
   font-display: swap;

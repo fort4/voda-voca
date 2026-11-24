@@ -13,12 +13,11 @@ const read = (path) => readFileSync(join(ROOT, path), "utf8");
 const css = read("css/app.css");
 const html = read("index.html");
 
-test("@font-face: Paperlogy 를 버전 고정(@latest 금지) woff2 로 불러오고 font-display: swap 을 쓴다", () => {
+test("@font-face: Paperlogy 를 vendor/ 의 woff2 로 불러오고 font-display: swap 을 쓴다", () => {
   const face = css.match(/@font-face\s*\{[^}]*Paperlogy[^}]*\}/)?.[0];
   assert.ok(face, "Paperlogy @font-face 가 있다");
-  assert.match(face, /Paperlogy-7Bold\.woff2/);
-  assert.match(face, /2408-3@1\.0\//);
-  assert.doesNotMatch(face, /@latest/);
+  assert.match(face, /url\("\.\.\/vendor\/fonts\/Paperlogy-7Bold\.woff2"\)/);
+  assert.doesNotMatch(face, /https?:/, "외부 주소를 쓰지 않는다");
   assert.match(face, /font-display:\s*swap/);
   assert.match(face, /font-weight:\s*600 800/, "제목(700)·학습 단어(800) 모두 합성 굵기 없이 이 파일로 그린다");
 });

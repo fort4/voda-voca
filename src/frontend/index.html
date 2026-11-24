@@ -12,12 +12,12 @@
     <meta name="theme-color" content="#4f46e5" />
     <!-- 파비콘: 별도 파일 없이 인라인 SVG 로 둔다. 이 링크가 있으면 브라우저가 /favicon.ico 를 요청하지 않아 404 가 사라진다 -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%234f46e5'/%3E%3Cpath d='M12 18h18a6 6 0 0 1 6 6v24a4 4 0 0 0-4-4H12z' fill='%23fff'/%3E%3Cpath d='M52 18H34v26a4 4 0 0 1 4-4h14z' fill='%23fff' fill-opacity='.8'/%3E%3C/svg%3E" />
+    <!-- 외부 자원은 모두 vendor/ 에서 같은 출처로 제공한다 (출처·버전·라이선스: vendor/README.md). 오프라인·CDN 장애와 무관하게 같은 화면이 나온다 -->
     <!-- 폰트: Pretendard Variable 동적 서브셋 CSS (font-display: swap 포함). 실패하면 app.css 의 --font-sans 폴백 체인을 쓴다 -->
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
-    <!-- 제목·큰 글씨 전용 폰트(Paperlogy Bold, 버전 고정). 미리 요청해 제목이 늦게 바뀌는 깜빡임을 줄인다 -->
-    <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-7Bold.woff2" />
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="vendor/fonts/pretendard-1.3.9/pretendardvariable-dynamic-subset.css" />
+    <!-- 제목·큰 글씨 전용 폰트(Paperlogy Bold). 미리 요청해 제목이 늦게 바뀌는 깜빡임을 줄인다 -->
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="vendor/fonts/Paperlogy-7Bold.woff2" />
+    <script src="vendor/tailwindcss-3.4.17.js"></script>
     <!-- Tailwind 설정: 폰트와 타입 스케일은 app.css 토큰을 참조해 한 곳에서만 값을 관리한다. 기존 text-sm 등 기본 단계는 그대로 둔다 -->
     <script>
       tailwind.config = {
@@ -37,9 +37,9 @@
         },
       };
     </script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.5/dist/sweetalert2.min.css" />
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.5/dist/sweetalert2.all.min.js"></script>
-    <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="vendor/sweetalert2-11.10.5/sweetalert2.min.css" />
+    <script src="vendor/sweetalert2-11.10.5/sweetalert2.all.min.js"></script>
+    <script src="vendor/lucide-0.460.0/lucide.min.js"></script>
     <link rel="stylesheet" href="css/app.css" />
     <!-- 첫 화면이 밝게 번쩍이지 않도록, 테마 클래스는 본문을 그리기 전에 붙인다 (저장값 > 시스템 설정). core/theme.js 와 같은 규칙 -->
     <script>

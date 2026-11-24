@@ -45,9 +45,9 @@ test("body 는 --font-sans 를 쓰고 한글 단어 단위 줄바꿈을 한다",
   assert.match(body, /word-break:\s*keep-all/);
 });
 
-test("index.html: Pretendard Variable 을 preconnect 와 함께 CDN 에서 불러온다 (swap 서브셋 CSS)", () => {
-  assert.match(html, /<link[^>]+rel="preconnect"[^>]+href="https:\/\/cdn\.jsdelivr\.net"/);
-  assert.match(html, /<link[^>]+rel="stylesheet"[^>]+pretendard[^>]*variable[^>]*dynamic-subset[^>]*\.css/i);
+test("index.html: Pretendard Variable 을 vendor/ 에서 불러온다 (swap 서브셋 CSS, 외부 요청 없음)", () => {
+  assert.match(html, /<link[^>]+rel="stylesheet"[^>]+href="vendor\/fonts\/pretendard-[^"]*variable[^"]*dynamic-subset\.css"/i);
+  assert.doesNotMatch(html, /rel="preconnect"/, "같은 출처라 preconnect 가 필요 없다");
 });
 
 test("index.html: Tailwind 설정에 fontFamily 와 타입 스케일(fontSize)이 등록되어 있다", () => {
@@ -60,8 +60,10 @@ test("index.html: Tailwind 설정에 fontFamily 와 타입 스케일(fontSize)�
   }
 });
 
-test("Tailwind 설정 스크립트는 Play CDN 스크립트보다 뒤에 온다", () => {
-  assert.ok(html.indexOf("cdn.tailwindcss.com") < html.indexOf("tailwind.config"));
+test("Tailwind 설정 스크립트는 Tailwind 스크립트(vendor)보다 뒤에 온다", () => {
+  const lib = html.indexOf("vendor/tailwindcss-");
+  assert.ok(lib !== -1, "vendor 의 Tailwind 스크립트를 로드한다");
+  assert.ok(lib < html.indexOf("tailwind.config"));
 });
 
 // ---------- 3단계: 타입 스케일 치환 ----------
