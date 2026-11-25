@@ -3,7 +3,7 @@
  * 파일 위치: src/frontend/js/core/form.js
  */
 
-import { h, icon, refreshIcons } from "./dom.js";
+import { button, h, icon, refreshIcons } from "./dom.js";
 import { passwordToggleState } from "./password-toggle.js";
 
 export const INPUT_CLASS =
@@ -46,6 +46,42 @@ export function field({ id, label, type = "text", autocomplete, inputmode, place
     input.classList.toggle("border-red-500", Boolean(msg));
   };
   return { wrap, input, setError };
+}
+
+/** 확인 결과 줄의 색조 → 클래스. 초록·빨강은 다크 모드 오버라이드가 있는 색만 쓴다 (dark-theme.test.js). */
+const RESULT_TONE_CLASS = {
+  ok: "text-emerald-700",
+  bad: "text-red-600",
+  neutral: "text-zinc-500",
+};
+
+/**
+ * 입력 칸 옆에 "중복 확인" 버튼이 붙는 칸 (닉네임 중복 확인, REQ-158).
+ * field 와 같은 반환값에 확인 버튼(checkButton)과 결과 줄 갱신(setResult)을 더한다.
+ * 결과 줄은 aria-live="polite" 라 스크린리더가 확인 결과를 읽는다. 버튼은 type="button" 이라 폼을 제출하지 않는다.
+ * @param {Parameters<typeof field>[0] & {buttonLabel?: string}} opts
+ * @returns {ReturnType<typeof field> & {checkButton: HTMLButtonElement, setResult: (r: {text: string, tone: "ok"|"bad"|"neutral"}) => void}}
+ */
+export function checkField({ buttonLabel = "중복 확인", ...opts }) {
+  const base = field(opts);
+  const statusId = `${opts.id}-status`;
+  const checkButton = button({ variant: "secondary", type: "button" }, buttonLabel);
+  checkButton.classList.add("min-h-[44px]", "shrink-0", "whitespace-nowrap");
+  const status = h("p", { id: statusId, class: "min-h-[1.25rem] text-sm text-zinc-500", "aria-live": "polite" });
+
+  // 입력 칸과 버튼을 한 줄에 둔다. 좁은 화면에서도 입력 칸이 줄어들 수 있게 min-w-0 을 준다.
+  base.input.classList.add("min-w-0", "flex-1");
+  const row = h("div", { class: "flex items-start gap-2" });
+  base.input.replaceWith(row);
+  row.append(base.input, checkButton);
+  base.input.setAttribute("aria-describedby", `${base.input.getAttribute("aria-describedby")} ${statusId}`);
+  base.wrap.insertBefore(status, base.wrap.lastElementChild); // 오류 문구 바로 위
+
+  const setResult = ({ text, tone }) => {
+    status.textContent = text;
+    status.className = `min-h-[1.25rem] text-sm ${RESULT_TONE_CLASS[tone] ?? RESULT_TONE_CLASS.neutral}`;
+  };
+  return { ...base, checkButton, setResult };
 }
 
 /**

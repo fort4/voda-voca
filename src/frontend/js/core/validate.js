@@ -1,5 +1,5 @@
 /*
- * 2026-11-02 - voda-voca - 입력 검증 규칙: 서버 스키마(REQ-111)와 같은 제한값을 전송 전에 확인한다. 순수 함수.
+ * 2026-11-26 - voda-voca - 입력 검증 규칙: 서버 스키마(REQ-111, REQ-158)와 같은 제한값을 전송 전에 확인한다. 순수 함수.
  * 파일 위치: src/frontend/js/core/validate.js
  */
 
@@ -12,6 +12,19 @@ export const LIMITS = Object.freeze({
   PASSWORD_MAX_BYTES: 72,
 });
 
+/**
+ * 비밀번호 확인란의 즉시 안내. 공백도 글자로 비교한다(앞뒤 공백을 지우지 않는다).
+ * 확인란이 비어 있으면 안내하지 않는다.
+ * @param {string} password
+ * @param {string} confirm
+ * @returns {{kind: "empty"|"match"|"mismatch", message: string}}
+ */
+export function passwordConfirmState(password, confirm) {
+  if (confirm === "") return { kind: "empty", message: "" };
+  if (confirm === password) return { kind: "match", message: "비밀번호가 동일합니다." };
+  return { kind: "mismatch", message: "비밀번호가 일치하지 않습니다." };
+}
+
 /** @param {string} value @returns {string|null} */
 export function validatePassword(value) {
   if (value.length < LIMITS.PASSWORD_MIN) return `비밀번호는 ${LIMITS.PASSWORD_MIN}자 이상이어야 합니다.`;
@@ -22,7 +35,7 @@ export function validatePassword(value) {
 }
 
 /**
- * 닉네임: 공백 제거 후 2~30자. 로그인 식별자이며 중복될 수 없다 (회원 체계 단순화).
+ * 닉네임: 공백 제거 후 2~30자. 로그인 식별자이며 중복될 수 없다.
  * @param {string} value
  * @returns {string|null}
  */

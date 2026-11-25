@@ -1,5 +1,5 @@
 /*
- * 2026-11-02 - voda-voca - 입력 검증·포맷 단위 테스트: 서버 제한값과 같은 경계 (72바이트, 255자, 50자 등)
+ * 2026-11-26 - voda-voca - 입력 검증·포맷 단위 테스트: 서버 제한값과 같은 경계 (72바이트, 닉네임 30자 등), 비밀번호 확인
  * 파일 위치: src/frontend/tests/validate.test.js
  */
 
@@ -9,11 +9,12 @@ import { formatKst, formatRetry, utf8ByteLength } from "../js/core/format.js";
 import {
   mapFieldErrors,
   nicknameConfirmationMatches,
+  passwordConfirmState,
   validateNickname,
   validatePassword,
 } from "../js/core/validate.js";
 
-test("validateNickname: 공백 제거 후 2~30자 (이메일 없는 회원 체계)", () => {
+test("validateNickname: 공백 제거 후 2~30자 (로그인 식별자이자 고유한 이름)", () => {
   assert.match(validateNickname("   "), /닉네임을 입력/);
   assert.match(validateNickname("가"), /2자 이상/);
   assert.equal(validateNickname(" ab "), null, "앞뒤 공백을 빼고 2자면 통과");
@@ -61,4 +62,31 @@ test("formatKst: UTC 시각을 한국 시각(+9시간)으로 보여 준다", () 
   const text = formatKst("2026-11-02T05:30:00.123Z");
   assert.ok(text.includes("14:30"), text);
   assert.equal(formatKst("잘못된 값"), "");
+});
+
+test("passwordConfirmState: 비었으면 안내 없음, 같으면 '비밀번호가 동일합니다.', 다르면 불일치", () => {
+  assert.deepEqual(passwordConfirmState("longenough1", ""), { kind: "empty", message: "" });
+  assert.deepEqual(passwordConfirmState("longenough1", "longenough1"), {
+    kind: "match",
+    message: "비밀번호가 동일합니다.",
+  });
+  assert.deepEqual(passwordConfirmState("longenough1", "longenough"), {
+    kind: "mismatch",
+    message: "비밀번호가 일치하지 않습니다.",
+  });
+});
+
+test("passwordConfirmState: 비밀번호가 비어 있으면 확인란이 비어 있을 때만 '비어 있음'이고, 확인란만 채우면 불일치", () => {
+  assert.equal(passwordConfirmState("", "").kind, "empty");
+  assert.equal(passwordConfirmState("", "x").kind, "mismatch");
+});
+
+test("passwordConfirmState: 공백도 글자로 비교한다 (앞뒤 공백을 지우지 않는다)", () => {
+  assert.equal(passwordConfirmState("abc12345", "abc12345 ").kind, "mismatch");
+});
+
+test("이메일 검증 함수는 없다 (닉네임·비밀번호만 받는다)", async () => {
+  const mod = await import("../js/core/validate.js");
+  assert.equal(mod.validateEmail, undefined);
+  assert.equal(mod.normalizeEmail, undefined);
 });
