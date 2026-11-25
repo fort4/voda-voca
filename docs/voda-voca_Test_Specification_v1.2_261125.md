@@ -54,9 +54,9 @@
 
 | 대상 | 파일 수 | 케이스 수 | 측정 결과 |
 | :--- | :-: | :-: | :--- |
-| 백엔드 `pytest -q` (전체) | 38 | **669** | **668 통과, 1 skip, 실패 0** (약 36초). skip 1건은 마이그레이션 파일 스캔을 건너뛰는 항목(마이그레이션은 별도 테스트가 검사). 이 중 `no_db` 287건은 DB 없이 약 9초 |
-| 프론트엔드 `node --test tests/` (전체) | 39 | **478** | **478 통과, 실패 0** |
-| 합계 | 77 | 1,147 | 전체 통과 |
+| 백엔드 `pytest -q` (전체) | 39 | **686** | **685 통과, 1 skip, 실패 0** (약 24초). skip 1건은 마이그레이션 파일 스캔을 건너뛰는 항목(마이그레이션은 별도 테스트가 검사). 이 중 `no_db` 287건은 DB 없이 약 9초 |
+| 프론트엔드 `node --test tests/` (전체) | 41 | **492** | **492 통과, 실패 0** |
+| 합계 | 80 | 1,178 | 전체 통과 (2026-11-25 REQ-154~156 반영 후 재측정) |
 
 **측정 조건**
 - 2026-11-25, SQLite 전환(ADR-010) 후 측정. 임시 SQLite 파일에 마이그레이션 `0001` 과 시드가 적용된 상태다. `alembic check` 는 `No new upgrade operations detected.` 이다.
@@ -94,6 +94,7 @@
 | TC-113 | REQ-113 SQL 인젝션 방지 | **없음** | — | 표제어 검색 API 가 폐기되어 LIKE 이스케이프 대상이 사실상 없다. 파라미터 바인딩은 ORM 사용으로 구조적으로 보장되며 전용 테스트는 없다 |
 | TC-121 | REQ-121 로그인 무차별 대입 방어 | 자동 | `test_rate_limit_units.py`(윈도우 경계, 키 독립성), `test_login_rate_limit_api.py`(429, `Retry-After`) | 단일 프로세스 한정 |
 | TC-122 | REQ-122 회원 탈퇴 | 자동 | `test_auth_api.py` | 표준 콘텐츠 보존, 개인 데이터 CASCADE 삭제 |
+| TC-156 | REQ-156 비밀번호 보기/숨기기 | 자동 | `password-toggle.test.js`(상태 모델: 입력 type·라벨·`aria-pressed`·아이콘, `passwordField` 소스 검사: `type="button"`·44px, 로그인·가입 화면 적용, 401 시 숨김 복귀), `dark-theme.test.js`(새 색 클래스의 다크 오버라이드) | 소스 검사 수준이며 브라우저 실물 확인은 수동 |
 
 ### 4.2 학습 핵심 (표준 단어장·세션·복습)
 
@@ -110,6 +111,8 @@
 | TC-124 | REQ-124 즉각 피드백·해설 | 자동 | `test_learning_session_api.py`, `session-view-model.test.js` | 출제 응답 정답 비노출(D16)은 이 파일에서 확인한다 |
 | TC-129 | REQ-129 오답 복습 | 자동 | `test_review_session_api.py`, `test_stats_api.py`, `review-model.test.js`, `review-view-null.test.js`(조건부 자식 null 회귀) | |
 | TC-131 | REQ-131 학습 지표 서버 집계 | 자동 | `test_stats_api.py`, `stats-page-model.test.js`, `home-model.test.js` | KST 날짜 경계 포함 |
+| TC-154 | REQ-154 자주 틀리는 단어 상위 N | 자동 | `test_study_analytics_api.py`(오답 횟수 내림차순, 틀린 적 없는 단어 제외, 동률은 최근 오답 우선, `limit`, 타인 기록 격리, 범위 밖 422, 401), `analytics-model.test.js`(순위·문구·막대 비율) | 한 번 맞혀도 횟수가 줄지 않는 점이 TC-129 와 다르다 |
+| TC-155 | REQ-155 시험 성적 추이 | 자동 | `test_study_analytics_api.py`(회차 번호·채점, 미완료·플래시카드·타인 세션 제외, `sessions` 제한과 번호 유지, 한국 날짜 묶기(UTC 15:30 경계), `days` 창, 범위 밖 422), `analytics-model.test.js`(직전 회차 대비 변화 문구, 날짜 라벨) | 세션은 DB 에 직접 심어 검증 |
 | TC-132 | REQ-132 최근 7일 차트 | 자동 | `test_stats_api.py`, `weekly-chart.test.js` | |
 | TC-133 | REQ-133 단어장 진행률·학습 시작 | 자동 | `explore-model.test.js`, `test_vocabulary_api.py` | |
 | TC-140~143 | REQ-140~143 표준 단어장 카탈로그·단어·활성화·시드 | 자동 | `test_vocabulary_api.py`, `test_system_seed.py`(파일 검증, 해시, 멱등 적재), `test_system_models.py` | 시드 59건이 가장 두껍다 |
@@ -257,6 +260,7 @@
 | 버전 | 날짜 | 내용 | 작성 |
 | :--- | :--- | :--- | :--- |
 | **v1.2** | 2026-11-25 | **SQLite 전환 반영**: 전략표·실행 전제·기준선(668 통과/478 통과)·TC-116/117/152 개정, **TC-153 신설**(과제 서버 규격), 시나리오 S10 개정 | Claude |
+| v1.2 개정 | 2026-11-25 | **TC-154·155·156 신설**(자주 틀리는 단어, 시험 성적 추이, 비밀번호 토글). 기준선 재측정: 백엔드 686건(685 통과·1 skip, +17), 프론트엔드 492건(+14), 합계 1,178건. `alembic check` 는 `No new upgrade operations detected.` (스키마 변경 없음) | Claude |
 | v1.1 개정 | 2026-11-25 | 앱 컨테이너화 반영: TC-116·117 개정, TC-152 신설, 시나리오 S10, 기준선 백엔드 587건(`no_db` 206건)·합계 1,060건 | Claude |
 | v1.1 개정 | 2026-11-24 | 외부 자원 자체 호스팅(REQ-151) 반영: TC-151 추가, 기준선 node 473건·합계 1,030건 | Claude |
 | v1.1 개정 | 2026-11-19 | 로그인 전 다크 모드 버튼(REQ-126) 반영: TC-126 검증 위치, 기준선 node 468건·합계 1,025건 | Claude |

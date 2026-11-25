@@ -94,9 +94,11 @@
 | 15 | GET | `/api/study/logs` | REQ-016 | 필수 | 200 | 422, 401 |
 | 16 | GET | `/api/users/me/settings` | REQ-147 | 필수 | 200 | 401 |
 | 17 | PATCH | `/api/users/me/settings` | REQ-147 | 필수 | 200 | 422, 401 |
+| 18 | GET | `/api/study/frequent-wrong` | REQ-154 | 필수 | 200 | 422, 401 |
+| 19 | GET | `/api/study/score-trend` | REQ-155 | 필수 | 200 | 422, 401 |
 | — | GET | `/health` | 운영 | — | 200 | 503 |
 
-> 이 표는 `app.openapi()` 의 경로·메서드 집합과 일치합니다 (인증 5건, 표준 단어장 3건, 북마크 3건, 학습 5건, 설정 2건 = 18건 + health).
+> 이 표는 `app.openapi()` 의 경로·메서드 집합과 일치합니다 (인증 5건, 표준 단어장 3건, 북마크 3건, 학습 7건, 설정 2건 = 20건 + health).
 
 ---
 
@@ -270,6 +272,24 @@
 **#15 GET `/api/study/logs?limit=`**
 - 응답 200: `{"items": [{"word_id", "vocabulary_id", "term", "is_correct": boolean, "created_at"}]}`
 - 최신순, 본인 기록만. 한 번에 최대 100건이며 통계의 근거는 아닙니다 (#13 이 서버 집계).
+
+**#18 GET `/api/study/frequent-wrong?limit=`** (`FrequentWrongList`, REQ-154)
+- `limit`: 기본 10, 1~50 (범위 밖은 422).
+- 응답 200: `{"items": [{"word_id", "vocabulary_id", "vocabulary_title", "term", "meaning", "wrong_count", "answered_count", "last_wrong_at"}]}`
+- **누적 오답 횟수** 내림차순(`study_logs` 의 오답 행 수, 본인 기록만). 횟수가 같으면 최근에 틀린 단어, 그다음 `word_id` 순. 틀린 적 없는 단어는 없다. 한 번 맞혀도 `wrong_count` 는 줄지 않는다 — 마지막 결과 기준인 #14 와 다르다. `answered_count` 는 그 단어를 푼 누적 횟수(정답 포함).
+
+**#19 GET `/api/study/score-trend?sessions=&days=`** (`ScoreTrendOut`, REQ-155)
+- `sessions`: 기본 20, 1~100. `days`: 기본 30, 1~90. 범위 밖은 422.
+- 응답 200:
+  ```json
+  {
+    "sessions": [{"round": 3, "session_id": 41, "taken_at": "2026-11-25T02:00:00Z", "total": 10, "correct": 8, "accuracy": 80.0}],
+    "daily": [{"date": "2026-11-25", "answered": 20, "correct": 17, "accuracy": 85.0}]
+  }
+  ```
+- `sessions`: `mode=quiz` 이고 답한 문항 수가 문항 수 이상인 세션만, 오래된 회차부터. `round` 는 전체 이력의 순서라 최근 N회만 받아도 번호가 유지된다. 채점은 세션에 저장된 정답 번호와 고른 번호의 비교다.
+- `daily`: 퀴즈 모드 `study_logs` 를 **한국 날짜**로 묶은 값. 오늘을 포함한 최근 `days`일 중 기록이 있는 날만, 오래된 날부터. 플래시카드는 제외. `accuracy` 는 0~100(소수 첫째 자리).
+- 둘 다 기록이 없으면 `{"sessions": [], "daily": []}`.
 
 ### 3.6 헬스체크
 
@@ -464,6 +484,7 @@ POST /api/study/sessions  ─►  items[0..N-1]
 | v2.1 개정 | 2026-11-11 | 세션 북마크 상태 `bookmarked` 필드 추가 (REQ-148, v2.2): `SessionItemOut`(#11 출제)에 `boolean`(기본 false). 하위 호환 | Claude |
 | v2.1 개정 | 2026-11-11 | 북마크 목록(#10)·오답 목록(#14)에 `pos`, `phonetic` 필드 추가 (REQ-144·146, 복습함 표시). 모두 `string|null` 추가 필드라 하위 호환. 퀴즈 출제 응답의 발음기호 비노출 규칙은 변경 없음 | Claude |
 | v2.2 | 2026-11-19 | v2.1 개정분(2026-11-06~11-11)을 v2.2 로 확정, 파일명 `v2.2_261119` (구버전 `docs/old/` 보관). **`POST /api/study/sessions` 의 `source=due`(오늘 복습)와 `GET /api/study/stats` 의 `due_review_count` 추가** (REQ-150). `source=all` 복습 슬롯의 SRS 우선 규칙 | Claude |
+| v2.2 개정 | 2026-11-25 | 학습 분석 API 2건 추가: `GET /api/study/frequent-wrong`(#18, REQ-154), `GET /api/study/score-trend`(#19, REQ-155). 신규 경로라 기존 응답은 바뀌지 않는다(하위 호환) | Claude |
 | v2.1 | 2026-11-05 | 중앙 제공형 단어장 전환 반영. `/api/wordbooks/*`, `/api/words/*`, `/api/study/flashcards`, `/api/study/quiz/*` 제거. `GET /api/vocabularies`, `GET /api/vocabularies/{id}/words`, `POST /api/users/me/active-vocabulary`, `POST /api/study/sessions`(source: all/bookmarks/wrong), `POST /api/study/sessions/{id}/answer`, `GET /api/study/wrong-words`, `GET /api/study/stats` 추가. 출제 응답 정답 비노출·채점 응답 공개 규격, 멱등 재전송, 숙련도 전이, `X-Error-Code` 표 명시. 요구사항 명세 v2.1, 데이터 설계 v2.1 과 정합 | Claude |
 | v2.0 | 2026-11-02 | `example_meaning`, 학습 로그 `wordbook_id` 등 (`docs/old/voda-voca_API_Integration_Spec_v2.0_261102.md`) | Claude |
 | v1.2 이하 | 2026-11-02 | `docs/old/` 보관본 참조 | Claude |
