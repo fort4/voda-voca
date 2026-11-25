@@ -5,7 +5,7 @@
 
 import { api } from "../core/api.js";
 import { formatRetry } from "../core/format.js";
-import { field, alertBox } from "../core/form.js";
+import { field, passwordField, alertBox } from "../core/form.js";
 import { button, h } from "../core/dom.js";
 import { setUser } from "../core/state.js";
 import { toast } from "../core/toast.js";
@@ -19,7 +19,7 @@ import { mapFieldErrors } from "../core/validate.js";
  */
 export function loginView(root, { query, navigate }) {
   const nickname = field({ id: "nickname", label: "닉네임", autocomplete: "username" });
-  const password = field({ id: "password", label: "비밀번호", type: "password", autocomplete: "current-password" });
+  const password = passwordField({ id: "password", label: "비밀번호", autocomplete: "current-password" });
   const banner = alertBox();
   const note = h("p", { class: "min-h-[1.5rem] text-sm text-zinc-500", "aria-live": "polite" });
   const submit = button({ type: "submit", full: true }, "로그인");
@@ -79,6 +79,7 @@ export function loginView(root, { query, navigate }) {
       }
       if (error.status === 401) {
         password.input.value = "";
+        password.hide();
         banner.show(error.detail);
       } else if (error.status === 422) {
         const mapped = mapFieldErrors(error.fields, ["nickname", "password"]);

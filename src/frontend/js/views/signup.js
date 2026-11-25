@@ -4,7 +4,7 @@
  */
 
 import { api } from "../core/api.js";
-import { field, alertBox } from "../core/form.js";
+import { field, passwordField, alertBox } from "../core/form.js";
 import { button, h } from "../core/dom.js";
 import { mapFieldErrors, validateNickname, validatePassword } from "../core/validate.js";
 
@@ -19,10 +19,9 @@ export function signupView(root, { navigate }) {
     autocomplete: "username",
     hint: "2~30자. 다른 사람과 겹치지 않는 이름이어야 합니다.",
   });
-  const password = field({
+  const password = passwordField({
     id: "password",
     label: "비밀번호",
-    type: "password",
     autocomplete: "new-password",
     hint: "8자 이상, 72바이트 이하 (한글은 한 글자가 3바이트)",
   });
