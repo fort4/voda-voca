@@ -1,4 +1,4 @@
-# 2026-11-05 - voda-voca - 표준 단어장 라우터: 카탈로그, 단어 목록, 활성 단어장 변경
+# 2026-11-05 - voda-voca - 표준 단어장 라우터: 카탈로그, 단어 목록·검색, 활성 단어장 변경
 # 파일 위치: src/backend/routers/vocabulary.py
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -21,6 +21,7 @@ VOCABULARY_NOT_FOUND = HTTPException(
 
 WORD_PAGE_SIZE_DEFAULT = 50
 WORD_PAGE_SIZE_MAX = 200
+WORD_SEARCH_MAX = 100  # 표제어 길이 한도와 같다
 
 
 @router.get("", response_model=list[VocabularyOut])
@@ -39,12 +40,13 @@ async def list_vocabulary_words(
     vocabulary_id: int,
     page: int = Query(default=1, ge=1),
     size: int = Query(default=WORD_PAGE_SIZE_DEFAULT, ge=1, le=WORD_PAGE_SIZE_MAX),
+    q: str | None = Query(default=None, max_length=WORD_SEARCH_MAX, description="표제어나 뜻의 일부 (REQ-163)"),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session),
 ) -> VocabularyWordPage:
-    """단어장의 단어 목록 (읽기 전용). 내 북마크 여부를 함께 준다."""
+    """단어장의 단어 목록 (읽기 전용). q 를 주면 표제어나 뜻에 들어 있는 단어만 준다. 내 북마크 여부를 함께 준다."""
     try:
-        rows, total = await system_vocab.list_words(db, user.id, vocabulary_id, page, size)
+        rows, total = await system_vocab.list_words(db, user.id, vocabulary_id, page, size, q)
     except VocabularyNotFoundError as exc:
         raise VOCABULARY_NOT_FOUND from exc
     return VocabularyWordPage(

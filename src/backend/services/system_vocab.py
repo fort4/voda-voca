@@ -1,7 +1,7 @@
-# 2026-11-05 - voda-voca - 표준 단어장 서비스: 카탈로그와 내 진행률, 단어 목록, 활성 단어장 변경
+# 2026-11-05 - voda-voca - 표준 단어장 서비스: 카탈로그와 내 진행률, 단어 목록·검색, 활성 단어장 변경
 # 파일 위치: src/backend/services/system_vocab.py
 
-from sqlalchemy import Integer, case, func, select
+from sqlalchemy import Integer, case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import Bookmark, SystemVocabulary, SystemWord, User, UserWordProgress
@@ -72,19 +72,32 @@ async def get_vocabulary(db: AsyncSession, vocabulary_id: int) -> SystemVocabula
     return vocabulary
 
 
+def _word_conditions(vocabulary_id: int, query: str | None) -> list:
+    """목록과 전체 수가 같은 조건을 쓴다. 빈 검색어는 거르지 않는다.
+
+    autoescape 로 검색어의 %, _ 를 일반 문자로 만든다 (REQ-113). SQLite 의 LIKE 는 영문 대소문자를 구분하지 않는다.
+    """
+    conditions = [SystemWord.vocabulary_id == vocabulary_id]
+    text = (query or "").strip()
+    if text:
+        conditions.append(
+            or_(SystemWord.term.contains(text, autoescape=True), SystemWord.meaning.contains(text, autoescape=True))
+        )
+    return conditions
+
+
 async def list_words(
-    db: AsyncSession, user_id: int, vocabulary_id: int, page: int, size: int
+    db: AsyncSession, user_id: int, vocabulary_id: int, page: int, size: int, query: str | None = None
 ) -> tuple[list[tuple[SystemWord, bool]], int]:
-    """단어장의 단어를 order_index 순으로 한 페이지. (단어, 내 북마크 여부) 목록과 전체 수를 돌려준다."""
+    """단어장의 단어를 order_index 순으로 한 페이지. (단어, 내 북마크 여부) 목록과 (검색 조건에 맞는) 전체 수를 돌려준다."""
     await get_vocabulary(db, vocabulary_id)
-    total = (
-        await db.execute(select(func.count()).select_from(SystemWord).where(SystemWord.vocabulary_id == vocabulary_id))
-    ).scalar_one()
+    conditions = _word_conditions(vocabulary_id, query)
+    total = (await db.execute(select(func.count()).select_from(SystemWord).where(*conditions))).scalar_one()
     flag = Bookmark.id.is_not(None).label("bookmarked")
     rows = await db.execute(
         select(SystemWord, flag)
         .outerjoin(Bookmark, (Bookmark.word_id == SystemWord.id) & (Bookmark.user_id == user_id))
-        .where(SystemWord.vocabulary_id == vocabulary_id)
+        .where(*conditions)
         .order_by(SystemWord.order_index, SystemWord.id)
         .offset((page - 1) * size)
         .limit(size)
