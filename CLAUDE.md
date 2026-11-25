@@ -6,16 +6,17 @@
 - **시스템명**: 보다보카 (웹 기반 단어장 서비스)
 - **목적**: 모바일 뷰포트 반응형 UI를 지원하며, 다중 사용자가 접속하여 단어 학습 및 관리를 수행할 수 있는 웹 서비스 구축
 - **작업 환경**: Windows 11 + WSL2 (Ubuntu 24.04 LTS), Docker 환경
-- **진행 상태**: 요구사항 정의 및 개발 환경 구성 단계
+- **진행 상태**: v2.2 개발 중. 2026-11-25 DB 를 SQLite 로 전환(ADR-010)하고 기말과제 서버 규격(루트 Dockerfile, 8080, UID 10001)에 맞췄다
+- **기말과제**: AI기반프로그래밍 2026-2 「단어장 앱」. 요구사항 ID(VOCA-FR/NFR/SUB)는 `docs/` 요구사항 명세 §11 에서 REQ 와 연결해 추적한다 (§9)
 
 ### 기술 스택 명세
 
 | 계층 | 기술 스택 | 설명 |
 | :--- | :--- | :--- |
-| **Backend** | Python (FastAPI), SQLAlchemy 2.0 (asyncmy), Alembic | 비동기 지원 REST API 서버 및 DB 마이그레이션 |
+| **Backend** | Python (FastAPI), SQLAlchemy 2.0 (aiosqlite), Alembic | 비동기 지원 REST API 서버 및 DB 마이그레이션 |
 | **Frontend** | HTML5, Vanilla JavaScript (ES6+), JSDoc | 빌드 파이프라인 없는 순수 웹 표준 기반 프론트엔드 |
 | **UI / Styling** | Tailwind CSS (Play 스크립트, vendor/ 자체 호스팅), SweetAlert2, Lucide Icons | 모바일 우선(Mobile-First) 반응형 뷰포트 및 네이티브 모달 대체 |
-| **Database** | MySQL 8.x | Docker 컨테이너 격리 운영 |
+| **Database** | SQLite 3 (단일 파일, `DB_PATH`) | WAL, 외래키 강제, 트랜잭션 `BEGIN IMMEDIATE`. 컨테이너에서는 `/data` 볼륨 (v2.2 까지는 MySQL 8.x) |
 | **Runtime / OS** | WSL2 Ubuntu 24.04 LTS | Linux 네이티브 파일 시스템 기반 개발 |
 | **Tooling** | Git, Docker Compose, pytest | 소스 형상 관리, 컨테이너 오케스트레이션, 단위/통합 테스트 |
 
@@ -50,7 +51,10 @@ voda-voca/
 ├── src/                          # 서비스 구현 소스 코드 (프론트엔드 및 백엔드)
 │   ├── backend/                  # FastAPI 애플리케이션 (라우터, 모델, 서비스 로직)
 │   └── frontend/                 # HTML, CSS, Vanilla JS 정적 자원
-└── docker/                       # docker-compose.yml, Dockerfile, DB 초기화 스크립트
+├── Dockerfile                    # 앱 이미지 (base → dev → prod, 마지막이 배포용). 과제 서버는 이 파일로 빌드한다
+├── docker-entrypoint.sh          # 시작할 때 마이그레이션 적용 후 서버 실행
+├── .github/workflows/            # docker-check.yml: 과제 점검 워크플로 (수정하지 않는다)
+└── docker/                       # docker-compose.yml(앱 단일 서비스), docker-compose.dev.yml
 ```
 
 ### 디렉토리별 문서 작성 권한 및 이동 규칙
@@ -84,7 +88,7 @@ Claude Code는 단순 코더가 아닌 **분석자, 설계자, 구현자, 문서
 4. **점진적 구현**: 200줄 이상의 작업은 단일 파일 단위로 분할하여 구현하며, 500줄을 초과하는 모듈은 기능 분리를 제안한다.
 5. **학습 중심 피드백**: 코드를 신규 생성하거나 리팩토링할 때는 변경 배경과 공학적 이유를 명시한다.
 6. **모바일 뷰포트 우선 고려**: 프론트엔드 작업 시 모바일 화면비(`viewport`, Touch Event, 반응형 레이아웃)를 최우선 기준으로 작성한다.
-7. **컨테이너 격리 보장**: 데이터베이스 접근 및 연동은 로컬 직접 설치가 아닌 Docker 컨테이너 통신을 기준으로 구성한다.
+7. **컨테이너 실행 보장**: 앱은 Docker 컨테이너로 재현 가능해야 한다. DB 는 SQLite 파일(`DB_PATH`)이며 별도 서버 설치가 필요 없다. 컨테이너는 비root(UID 10001)로 실행하고 쓰기는 `/data` 와 `/tmp` 에만 한다.
 8. **작업 완료 보고**: 세션 종료 시 변경 파일 목록, 주요 로직 요약, 테스트 결과를 명확히 정리하여 보고한다.
 
 ### 테스트 운용 원칙 (TDD)
@@ -96,7 +100,7 @@ Claude Code는 단순 코더가 아닌 **분석자, 설계자, 구현자, 문서
    | 시점 | 실행 범위 | 명령 예시 |
    | :--- | :--- | :--- |
    | Red/Green 반복 중 | 지금 쓰는 테스트 하나 | `.venv/bin/python -m pytest -q src/backend/tests/test_x.py::test_y`, `cd src/frontend && node --test tests/x.test.js` |
-   | DB 없이 빠른 확인 | 순수 단위 테스트(`no_db` 표시)만. Docker 불필요 | `.venv/bin/python -m pytest -q -m no_db` |
+   | DB 파일 없이 빠른 확인 | 순수 단위 테스트(`no_db` 표시)만 | `.venv/bin/python -m pytest -q -m no_db` |
    | 기능 단위를 마칠 때 | 영향받는 모듈의 테스트 파일 | `.venv/bin/python -m pytest -q src/backend/tests/test_x.py` |
    | 커밋 전 | 위 범위 + 직전 실패 테스트 우선 | `.venv/bin/python -m pytest -q --lf` |
    | 푸시 전 / PR | 백엔드와 프론트엔드 전체 + 마이그레이션 일치 검사 | `.venv/bin/python -m pytest -q`, `cd src/frontend && node --test tests/`, `.venv/bin/alembic -c src/backend/alembic.ini check` |
@@ -186,3 +190,15 @@ Claude Code는 단순 코더가 아닌 **분석자, 설계자, 구현자, 문서
 - **형식**: `[프로젝트명] yymmdd-주요작업`
 - **예시**: `[voda-voca] 261104-학습지표 서버집계`
 - 프로젝트명은 `voda-voca`, 날짜는 세션 작업일(yymmdd), 주요작업은 해당 세션의 핵심 작업을 간결하게 요약한다.
+
+---
+
+## 9. 요구사항 ID 추적 (기말과제 VOCA-SUB-022)
+
+요구사항 ID 는 문서, 코드, 테스트를 잇는 추적 키다 (`개발방법론.md` §3-1).
+
+1. **ID 체계**: 프로젝트 자체 ID 는 `REQ-xxx`(요구사항 명세), 테스트는 `TC-xxx`(테스트 정의서), 결정은 `ADR-xxx`(결정 기록)다. 기말과제가 정한 `VOCA-FR/NFR/SUB-xxx` 는 요구사항 명세 **§11** 의 표에서 `REQ-xxx` 와 연결하고 구현 여부(✅🟡❌➖)를 표시한다.
+2. **추적 방향**: 요구사항 명세 §7 추적 매트릭스가 `REQ → 설계 문서 → 구현 파일 → TC → 상태` 를 잇는다. 코드의 테스트·커밋 메시지·문서에서 ID 로 서로를 찾는다.
+3. **작업 흐름(분석 → 설계 → 구현 → 테스트)**: 새 기능은 ① 요구사항 명세에 ID 와 상세 기준을 먼저 쓰고(분석), ② 데이터·아키텍처·API 설계를 갱신하고(설계), ③ 실패하는 테스트를 먼저 쓴 뒤 구현하고(TDD, §4), ④ 영향받는 범위의 테스트를 돌려 결과를 범위와 함께 보고한다(테스트). 문서와 코드는 같은 작업 단위에서 함께 갱신한다 (원칙 3).
+4. **상태는 정직하게**: 구현하지 않았거나 일부만 구현한 요구사항은 §11 에 ❌/🟡 로 적고 차이를 설명한다. 미구현을 완료로 표시하지 않는다.
+5. **제출 규격 점검**: 서버 배포 규격(루트 `Dockerfile`, `0.0.0.0:8080`, UID 10001, `/data`, 실행 중 인터넷 불필요)은 `test_container_files.py` 가 정적으로 고정하고, push 때 `.github/workflows/docker-check.yml` 이 실제로 빌드·실행해 점검한다. 이 워크플로 파일은 고치지 않는다.

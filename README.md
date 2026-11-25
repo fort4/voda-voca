@@ -2,9 +2,45 @@
 
 모바일에 맞춘 웹 기반 영어 단어 학습 서비스입니다. 서비스가 준비한 **표준 단어장**(5종, 1,000단어)을 골라 학습 세션 하나에서 4지선다 퀴즈와 플래시카드로 외우고, 북마크와 틀린 단어를 복습함에서 다시 봅니다.
 
-- **버전**: v2.2 개발 중 (최근 릴리즈 태그 `v2.1.0`)
-- **설계 문서**: [`docs/`](docs/) (요구사항 명세 v2.2, 데이터 설계서 v2.2, API 연동 규격서 v2.2, UI/UX 설계서 v2.2, 아키텍처 설계서 v1.0, 결정 기록 v1.0, 테스트 정의서 v1.1)
+- **버전**: v2.2 개발 중 (최근 릴리즈 태그 `v2.1.0`), 2026-11-25 DB 를 SQLite 로 전환
+- **설계 문서**: [`docs/`](docs/) (요구사항 명세 v2.3, 데이터 설계서 v3.0, API 연동 규격서 v2.2, UI/UX 설계서 v2.2, 아키텍처 설계서 v1.1, 결정 기록 v1.1, 테스트 정의서 v1.2)
+- **선택한 DB**: **SQLite** (단일 파일, 기본 `/data/voca.db`). PostgreSQL 은 쓰지 않는다
 - **작업 환경**: Windows 11 + WSL2 (Ubuntu 24.04), Docker
+
+---
+
+## 기말과제 제출 정보 (AI기반프로그래밍 2026-2, 단어장 앱)
+
+| 항목 | 내용 |
+| :--- | :--- |
+| 앱 | 보다보카: 표준 단어장 5종(1,000단어)으로 퀴즈·플래시카드 학습, 간격 반복 복습, 북마크, 학습 통계 |
+| DB | **SQLite** (`DB_PATH`, 기본 `/data/voca.db`, WAL). 시작할 때 테이블을 자동 생성하고 빈 DB 에서 시작한다 (VOCA-NFR-003) |
+| 서버 규격 | 루트 `Dockerfile`, `0.0.0.0:8080`, UID 10001, 쓰기는 `/data`·`/tmp` 만, 실행 중 인터넷 불필요, 점검 워크플로 `.github/workflows/docker-check.yml` 통과 |
+| 실행 | `docker build -t voca-app . && docker run -p 8080:8080 -e SECRET_KEY=change-me -v voca-data:/data voca-app` → http://localhost:8080 (자세한 방법은 §3) |
+| 문서 | `docs/` (요구사항 명세 §11 에 과제 ID 매핑), `CLAUDE.md`, 커밋 이력 |
+
+### 구현한 요구사항 ID (기준일 2026-11-25)
+
+상태: ✅ 구현 / 🟡 일부 / ❌ 미구현 / ➖ 선택하지 않음. 상세 근거와 차이는 [`요구사항 명세 §11`](docs/voda-voca_Requirement_Spec_v2.3_261125.md)에 있다.
+
+| 영역 | ID | 상태 |
+| :--- | :--- | :---: |
+| 단어 등록 | VOCA-FR-001, 002, 003, 004 | ❌ (표준 단어장은 읽기 전용 공용 콘텐츠) |
+| 암기 | VOCA-FR-012, 013 | ✅ |
+| 암기 | VOCA-FR-011, 014 | 🟡 (일차 개념 없음, 간격 반복으로 대체) |
+| 시험 | VOCA-FR-025 | ✅ |
+| 시험 | VOCA-FR-021, 022, 026 | 🟡 (문항 수 10·20·30, 오답·복습·미학습 배분, 형식·방향 컬럼 없음) |
+| 시험 | VOCA-FR-023, 024 | ❌ (영→한 4지선다 한 가지) |
+| 통계 | VOCA-FR-034 | ✅ |
+| 통계 | VOCA-FR-031, 033 | 🟡 (진행률은 있고 일차 없음, 오답 횟수 순 아님) |
+| 통계 | VOCA-FR-032 | ❌ (회차별 정답률 추이 없음) |
+| 로그인 (도전) | VOCA-FR-041, 042, 043 | ✅ |
+| 다른 계정 이력 (도전) | VOCA-FR-051~053 | ➖ |
+| 설정 (도전) | VOCA-FR-062 | ✅ |
+| 설정 (도전) | VOCA-FR-061 | 🟡 (학습 개수만) |
+| 비기능 | VOCA-NFR-001~005 | ✅ |
+
+기본 요구사항의 ❌/🟡 는 후속 구현 대상이다 (요구사항 명세 §11.4).
 
 ---
 
@@ -30,9 +66,9 @@ v2.2는 학습 경험과 시각 체계를 다듬는 릴리즈입니다. 문서 �
 
 | 계층 | 기술 | 비고 |
 | :--- | :--- | :--- |
-| 백엔드 | Python 3.12, FastAPI 0.162, SQLAlchemy 2.1 (asyncmy), Pydantic 2 | 비동기 REST API |
+| 백엔드 | Python 3.12, FastAPI 0.162, SQLAlchemy 2.1 (aiosqlite), Pydantic 2 | 비동기 REST API |
 | 마이그레이션 | Alembic 1.20 | 스키마 변경은 마이그레이션으로만 한다 |
-| 데이터베이스 | MySQL **8.0** (Docker 컨테이너) | 문자셋 `utf8mb4`, 콜레이션 `utf8mb4_0900_ai_ci`, 시간대 Asia/Seoul |
+| 데이터베이스 | **SQLite** (단일 파일) | WAL, 외래키 강제, 트랜잭션 `BEGIN IMMEDIATE`, 시각은 UTC 저장, 닉네임·표제어는 `NOCASE` |
 | 인증 | 세션 쿠키 (HttpOnly, SameSite=Lax), bcrypt | 세션은 DB `sessions` 테이블에 저장 |
 | 프론트엔드 | HTML5, Vanilla JavaScript (ES 모듈, JSDoc), **빌드 없음** | 해시 라우팅, `textContent` 기반 렌더링 |
 | UI | Tailwind CSS (Play 스크립트, vendor/ 자체 호스팅), SweetAlert2 11.10.5, Lucide 0.460.0 | Zinc 뉴트럴 + Indigo 포인트, 다크 모드 |
@@ -51,14 +87,17 @@ voda-voca/
 ├── 개발방법론.md             최상위 개발방법론 정책
 ├── docs/                    공식 설계 문서 (현행 버전), docs/old/ 에 이전 버전 보관
 ├── ai-agent/claude/         작업 일지, 검토·개정 초안, 작업계획
-├── docker/                  docker-compose.yml (MySQL 8.0)
+├── Dockerfile               앱 이미지 (base → dev → prod, 마지막이 배포용)
+├── docker-entrypoint.sh     시작할 때 마이그레이션 적용 후 서버 실행
+├── docker/                  docker-compose.yml (앱 단일 서비스), docker-compose.dev.yml
+├── .github/workflows/       docker-check.yml (과제 점검 워크플로, 수정하지 않음)
 ├── src/
 │   ├── backend/             FastAPI 애플리케이션
 │   │   ├── routers/         auth, vocabulary, bookmark, study, study_session, user_settings
 │   │   ├── services/        인증, 표준 단어장, 학습 세션(출제·채점), 통계, 진행도, 시드 로더
 │   │   ├── schemas/         Pydantic 요청·응답 모델
 │   │   ├── models/          SQLAlchemy 모델 (user, system_vocabulary, system_word, bookmark, study_log, quiz_session, user_word_progress, session)
-│   │   ├── alembic/         마이그레이션
+│   │   ├── alembic/         마이그레이션 (SQLite 초기 리비전 0001)
 │   │   ├── data/seeds/      표준 단어장 시드 (vocabularies.json, words/*.json 5종)
 │   │   └── tests/           pytest 테스트 (통합 + 단위)
 │   └── frontend/            정적 프론트엔드 (FastAPI 가 같은 출처로 서빙)
@@ -87,140 +126,106 @@ voda-voca/
 
 ---
 
-## 3. 로컬 실행 환경 구축
+## 3. 실행 방법
 
 ### 3.1 준비물
-- Docker Desktop 또는 Docker Engine (Docker Compose v2)
-- Python 3.12
-- Node.js (프론트엔드 단위 테스트용, 검증 환경: v26)
+- **컨테이너로 실행**: Docker 와 Git 만 있으면 된다.
+- **호스트에서 개발·테스트**: Python 3.12, Node.js (프론트엔드 단위 테스트용, 검증 환경: v26). DB 서버는 필요 없다.
 - 브라우저 (Chrome, Edge 등 최신 버전)
 
 ### 3.2 환경 변수 설정
 ```bash
 cp .env.example .env
 ```
-`.env`에서 다음 값을 실제 값으로 바꿉니다. 이 파일은 저장소에 커밋하지 않습니다.
+`.env` 는 저장소에 커밋하지 않는다 (`.env.example` 만 커밋).
 
 | 변수 | 설명 |
 | :--- | :--- |
-| `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD` | 애플리케이션 DB 계정 |
-| `MYSQL_ROOT_PASSWORD` | MySQL root 비밀번호 (컨테이너 초기화용) |
-| `MYSQL_HOST`, `MYSQL_PORT` | **호스트에서 직접 실행하는 앱·테스트**가 접속할 DB 주소 (기본 `127.0.0.1:3306`). Docker 의 앱 컨테이너는 이 값을 쓰지 않고 `mysql:3306` 으로 접속합니다. `MYSQL_PORT` 는 호스트에 열리는 DB 포트이기도 합니다 |
-| `APP_PORT` | 앱 컨테이너가 호스트에 여는 포트 (기본 `8000`) |
+| `DB_PATH` | SQLite 파일 경로. 로컬 개발 기본 예시는 `./data/voca.db`, 컨테이너는 `/data/voca.db` (상위 폴더가 없으면 만든다) |
+| `SECRET_KEY` | 비밀값. 코드에 쓰지 않고 환경 변수로만 넣는다. 컨테이너 compose 는 없으면 시작하지 않는다 |
+| `APP_PORT` | 앱 컨테이너가 호스트에 여는 포트 (기본 `8080`) |
 | `TZ` | 시간대 (기본 `Asia/Seoul`) |
 | `COOKIE_SECURE` | HTTP(로컬·사내망)는 `false`, HTTPS 배포는 `true` |
 
-`MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD` 가 비어 있으면 Docker 앱 서비스는 "`.env` 파일에 ... 를 설정하세요" 라는 메시지와 함께 시작하지 않습니다.
-
-### 3.3 컨테이너 실행 (DB, 또는 DB + 앱)
-프로젝트 루트에서 실행합니다. 기본 compose 파일은 **세 서비스**를 정의합니다: `mysql`(DB), `migrate`(마이그레이션을 한 번 실행하고 종료), `app`(화면과 API 를 함께 서빙).
-
+### 3.3 컨테이너로 실행 (권장)
 ```bash
-# (A) DB 만 띄우고 앱은 호스트 Python 으로 실행 (3.4~3.6 을 이어서 진행)
-docker compose --project-directory . -f docker/docker-compose.yml up -d mysql
-docker compose --project-directory . -f docker/docker-compose.yml ps   # healthy 가 될 때까지 기다린다
+# 이미지 빌드 (마지막 스테이지 = 배포용이 기본 대상)
+docker build -t voca-app .
 
-# (B) DB + 앱을 모두 컨테이너로 (호스트에 Python 이 필요 없음, 3.4~3.6 생략) -> http://localhost:8000
-docker compose --project-directory . -f docker/docker-compose.yml up -d --build
+# 실행: DB 파일은 이름 있는 볼륨 /data 에 보관된다. 시작할 때 마이그레이션이 자동 적용된다.
+docker run -d --name voca -p 8080:8080 -e SECRET_KEY=change-me -v voca-data:/data voca-app
+curl http://localhost:8080/health      # {"status":"ok","db":"connected"}
 ```
-(B) 는 `mysql`(healthy) → `migrate`(`alembic upgrade head`) → `app` 순서로 시작합니다. `app` 은 시작할 때 표준 단어장 시드를 멱등으로 적재합니다.
+또는 compose 로 (프로젝트 루트에서, `.env` 에 `SECRET_KEY` 필요):
+```bash
+docker compose --project-directory . -f docker/docker-compose.yml up -d --build   # http://localhost:8080
+```
+- 시작할 때 표준 단어장 시드(1,000단어)를 멱등으로 적재한다. 시작부터 `/health` 200 까지 약 4초다.
+- 과제 서버와 같은 조건(UID 10001, 읽기 전용 파일시스템, 권한 제거, 메모리 1GB)에서도 동작한다.
 
-### 3.4 Python 가상환경과 패키지
+### 3.4 호스트에서 직접 실행 (개발)
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements-dev.txt
+DB_PATH=./data/voca.db PYTHONPATH=src .venv/bin/alembic -c src/backend/alembic.ini upgrade head
+DB_PATH=./data/voca.db PYTHONPATH=src .venv/bin/uvicorn backend.main:app --reload --port 8080
 ```
+- 웹 앱: http://localhost:8080/ , API 문서: http://localhost:8080/docs , 헬스체크: http://localhost:8080/health
+- 새 DB 는 비어 있다. 서버가 시작될 때 `src/backend/data/seeds/` 의 표준 단어장이 DB 에 반영된다. 시드 파일을 고치거나 추가하기 전에 DB 파일을 복사해 백업한다.
+- 처음 방문하면 로그인 화면이 나온다. "회원가입"에서 **닉네임과 비밀번호**만 입력해 가입하고, 탐색에서 단어장을 고르면 학습을 시작할 수 있다.
 
-### 3.5 데이터베이스 마이그레이션
-```bash
-.venv/bin/alembic -c src/backend/alembic.ini upgrade head
-```
-현재 head 는 `a7d3f1c9e5b2`입니다.
-
-### 3.6 서버 실행
-```bash
-PYTHONPATH=src .venv/bin/uvicorn backend.main:app --reload --port 8000
-```
-- 웹 앱: http://localhost:8000/
-- API 문서(자동 생성): http://localhost:8000/docs
-- 헬스체크: http://localhost:8000/health (DB 연결 상태를 `{"status": "ok", "db": "connected"}`로 보여 준다)
-
-> **시드 자동 적재**: 서버가 시작(또는 리로드)될 때 `src/backend/data/seeds/`의 표준 단어장을 DB에 INSERT/UPDATE 합니다. 시드 파일을 고치거나 추가하기 전에 DB를 백업하세요.
-
-처음 방문하면 로그인 화면이 나옵니다. "회원가입"에서 **닉네임과 비밀번호**만 입력해 가입하고, 탐색에서 단어장을 고르면 학습을 시작할 수 있습니다.
-
-### 3.7 Docker 로 개발하기 (개발용 컨테이너)
-호스트에 Python 을 설치하지 않고, 컨테이너 안에서 서버·테스트·마이그레이션 검사를 실행합니다. 기본 compose 파일 뒤에 개발용 override(`docker/docker-compose.dev.yml`)를 겹칩니다. 이 설정은 `./src` 를 마운트해 파일을 저장하면 서버가 자동으로 다시 시작되고, 새 마이그레이션도 이미지를 다시 만들지 않아도 적용됩니다.
-
+### 3.5 개발용 컨테이너 (호스트에 Python 이 없을 때)
 ```bash
 alias dc='docker compose --project-directory . -f docker/docker-compose.yml -f docker/docker-compose.dev.yml'
-dc up -d --build                                          # 개발 서버 (--reload), http://localhost:8000
+dc up -d --build                                          # 개발 서버 (--reload), http://localhost:8080
 dc run --rm app python -m pytest -q                       # 컨테이너 안에서 백엔드 전체 테스트
 dc run --rm app alembic -c src/backend/alembic.ini check  # 마이그레이션 일치 검사
-dc logs -f app                                            # 서버 로그
 ```
-- 저장소 전체나 `.env` 는 마운트하지 않습니다. 테스트가 읽는 `pytest.ini`, `.coveragerc`, `docker/`, `.dockerignore` 만 읽기 전용으로 엽니다.
-- 개발 이미지에는 헬스체크가 없습니다. 상태는 `curl localhost:8000/health` 로 확인하세요.
-- 프론트엔드 `node --test` 는 이미지에 Node 가 없어 호스트에서 실행합니다.
-- 배포용(prod) 이미지로 되돌리려면 기본 compose 파일만으로 `up -d` 합니다.
+- `./src` 를 마운트해 저장하면 서버가 다시 시작된다. 저장소 전체나 `.env` 는 마운트하지 않고, 테스트가 읽는 파일만 읽기 전용으로 연다.
+- 프론트엔드 `node --test` 는 이미지에 Node 가 없어 호스트에서 실행한다.
 
-### 3.8 다른 PC 에 배포하기 (git clone 방식, HTTP 전용)
-새 PC 에는 **Docker 와 Git 만** 있으면 됩니다. Python, MySQL, 라이브러리는 이미지가 담고 있습니다.
-
-> **보안 전제**: HTTPS 를 쓰지 않으므로 로그인 비밀번호가 암호화되지 않은 채 네트워크를 오갑니다. **신뢰할 수 있는 사내망·LAN 에서만** 쓰고 인터넷에 공개하지 마세요. `COOKIE_SECURE` 는 `false` 로 둡니다.
-
+### 3.6 다른 PC·서버에 배포 (git clone 방식)
 ```bash
-# 1) 소스 받기 (Docker, Git 설치 후)
 git clone <저장소 주소> voda-voca && cd voda-voca
-
-# 2) 환경 변수: 비밀번호를 반드시 바꾼다 (.env 는 이 PC 에서만 만들고 커밋하지 않는다)
-cp .env.example .env
-#   편집: MYSQL_PASSWORD, MYSQL_ROOT_PASSWORD (필요하면 APP_PORT)
-
-# 3) 빌드와 실행: DB -> 마이그레이션 -> 앱 순서로 자동 시작
+cp .env.example .env            # SECRET_KEY 를 바꾼다. .env 는 커밋하지 않는다
 docker compose --project-directory . -f docker/docker-compose.yml up -d --build
-
-# 4) 확인
-docker compose --project-directory . -f docker/docker-compose.yml ps    # app, mysql 이 healthy, migrate 는 Exited (0)
-curl http://localhost:8000/health                                        # {"status":"ok","db":"connected"}
+curl http://localhost:8080/health
 ```
-- **다른 기기에서 접속**: `http://<이 PC 의 IP>:8000`. 접속이 안 되면 이 PC 의 방화벽에서 `APP_PORT`(기본 8000)의 들어오는 연결을 허용하세요.
-- **빈 DB 로 시작**: 이미지에는 DB 데이터가 들어 있지 않습니다. 단어 카탈로그(1,000단어)는 시작할 때 시드로 적재되지만, 기존 사용자와 학습 기록은 따로 옮겨야 합니다 (아래 백업·복원).
-- **업데이트**: `git pull` 후 같은 `up -d --build` 를 다시 실행합니다. 데이터 볼륨은 유지되고 마이그레이션이 자동 적용됩니다.
-- **중지·삭제**: 중지는 `docker compose ... stop`, 다시 시작은 `start` 입니다. **`down -v` 는 DB 데이터 볼륨까지 지우므로 쓰지 않습니다.**
-- **백업·복원**:
+- **서버 접두사**: 학교 서버처럼 `/2026/voca-<학번>/` 아래로 옮겨져도 동작한다. 화면은 해시 라우팅과 상대경로이고, API 경로는 `js/core/api.js` 가 모듈 위치에서 계산한다.
+- **HTTP 전용**: HTTPS 를 쓰지 않으면 로그인 비밀번호가 암호화되지 않은 채 오간다. 신뢰할 수 있는 사내망·LAN 에서만 쓰고 `COOKIE_SECURE=false` 로 둔다.
+- **업데이트**: `git pull` 후 같은 `up -d --build`. 데이터 볼륨은 유지되고 마이그레이션이 자동 적용된다. **`down -v` 는 DB 볼륨까지 지우므로 쓰지 않는다.**
+- **백업·복원**: DB 가 파일 하나다. 앱을 멈춘 뒤 볼륨의 `voca.db`(`-wal`, `-shm` 이 있으면 함께)를 복사한다. 파일에 개인 학습 데이터가 있으니 공유하지 않는다.
   ```bash
-  # 백업 (DB 를 읽기만 한다. 파일에 개인 학습 데이터가 있으니 공유하지 않는다)
-  docker exec voda-voca-mysql sh -c 'mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" --single-transaction --routines --triggers --no-tablespaces "$MYSQL_DATABASE"' > backup.sql
-  # 복원 (빈 DB 의 새 PC 에서. 기존 데이터를 덮어쓰므로 주의)
-  docker exec -i voda-voca-mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"' < backup.sql
+  docker compose --project-directory . -f docker/docker-compose.yml stop
+  docker run --rm -v voda-voca-data:/data -v "$PWD":/backup busybox cp -a /data /backup/voca-data-backup
+  docker compose --project-directory . -f docker/docker-compose.yml start
   ```
-- **DB 포트**: `mysql` 서비스는 `MYSQL_PORT`(기본 3306) 를 호스트의 `127.0.0.1` 에만 엽니다. 같은 망의 다른 기기는 DB 에 접속할 수 없고, 앱 컨테이너는 내부 네트워크(`mysql:3306`)로 접속합니다. 방화벽에서는 `APP_PORT` 만 허용하면 됩니다.
-- 브라우저 캐시: `vendor/`(Tailwind, 폰트 등)는 1년간 캐시되도록 응답합니다(버전이 경로에 있어 안전). `app.js`·`app.css` 는 매번 변경 여부를 확인합니다.
+- 브라우저 캐시: `vendor/`(Tailwind, 폰트 등)는 1년간 캐시된다(버전이 경로에 있어 안전). `app.js`·`app.css` 는 매번 변경 여부를 확인한다.
+- **과제 점검 워크플로**: push 하면 `.github/workflows/docker-check.yml` 이 학교 서버와 같은 조건으로 빌드·실행·링크 점검을 한다. 이 파일은 수정하지 않는다.
 
 ---
 
 ## 4. 테스트 실행
 
-### 4.1 백엔드 (pytest, 587건)
-DB 컨테이너와 마이그레이션이 준비되어 있어야 합니다.
+### 4.1 백엔드 (pytest, 669건)
+Docker 도 DB 서버도 필요 없습니다. 테스트가 임시 SQLite 파일을 만들어 마이그레이션과 시드를 적용합니다.
 ```bash
 .venv/bin/python -m pytest -q
 ```
-- 통합 테스트는 실제 MySQL 에 연결합니다. 테스트 계정은 `tvoda-` 접두사를 쓰고 표준 단어장 테스트 데이터도 테스트 뒤에 지웁니다.
-- 최근 검증 결과: 587 passed (2026-11-25). 커버리지는 98%(2026-11-19 측정)입니다 (`--cov=backend`, 설정은 `.coveragerc`).
-- **DB 없이 빠르게**: 순수 단위 테스트에는 `no_db` 표시가 붙어 있어 Docker 없이 `.venv/bin/python -m pytest -q -m no_db` (206건, 약 3초)로 돌립니다. 새 순수 단위 테스트에는 `pytestmark = pytest.mark.no_db` 를 붙이세요 (표시가 거짓이면 `test_no_db_guard.py` 가 실패합니다).
+- 통합 테스트는 세션 단위 임시 SQLite 파일에 연결하며 개발자의 실제 DB(`DB_PATH`)는 건드리지 않습니다. 테스트 계정은 `tvoda-` 접두사를 씁니다.
+- 최근 검증 결과: 668 passed, 1 skipped (2026-11-25, 약 36초). 커버리지는 98%(2026-11-19 측정, SQLite 전환 전)입니다 (`--cov=backend`, 설정은 `.coveragerc`).
+- **DB 없이 빠르게**: 순수 단위 테스트에는 `no_db` 표시가 붙어 있어 `.venv/bin/python -m pytest -q -m no_db` (287건, 약 9초)로 돌립니다. 새 순수 단위 테스트에는 `pytestmark = pytest.mark.no_db` 를 붙이세요 (표시가 거짓이면 `test_no_db_guard.py` 가 실패합니다).
 - **푸시 전 마이그레이션 검사**: `.venv/bin/alembic -c src/backend/alembic.ini check` 가 `No new upgrade operations detected.` 를 내야 합니다 (모델은 바꿨는데 마이그레이션을 빼먹은 경우를 잡습니다).
 - 개발 중에는 지금 작업하는 테스트만 돌립니다 (예: `.venv/bin/python -m pytest -q src/backend/tests/test_bookmark_api.py`).
 
-### 4.2 프론트엔드 (node --test, 473건)
+### 4.2 프론트엔드 (node --test, 478건)
 ```bash
 cd src/frontend
 npm test            # 또는: node --test tests/
 ```
 - 외부 패키지를 설치하지 않습니다. 순수 로직(API 클라이언트, 라우터, 세션 러너, 콤보, 사운드, 저장소, 뷰모델)과, 화면 배선·디자인 토큰·다크 모드 누락을 소스 수준에서 검사하는 테스트를 돌립니다.
-- 최근 검증 결과: 473 passed (2026-11-24).
-- 누적 검증: 백엔드 587건과 프론트엔드 473건, 합계 1,060건이 모두 통과합니다.
+- 최근 검증 결과: 478 passed (2026-11-25).
+- 누적 검증: 백엔드 668건(1 skip)과 프론트엔드 478건이 모두 통과합니다.
 
 ### 4.3 문법 검사 (프론트엔드)
 ```bash
@@ -305,7 +310,7 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 ## 7. 보안과 운영 메모
 - 세션 쿠키는 JavaScript 에서 읽을 수 없습니다 (HttpOnly). 토큰 원문은 저장하지 않고 SHA-256 값만 DB 에 둡니다.
 - 비밀번호는 bcrypt 로 해시합니다. 평문은 저장하지 않습니다.
-- 모든 SQL 은 파라미터 바인딩을 씁니다.
+- 모든 SQL 은 파라미터 바인딩을 씁니다. 외래키 강제(`foreign_keys=ON`)와 쓰기 직렬화(`BEGIN IMMEDIATE`)는 연결 단계에서 설정합니다.
 - 북마크, 학습 기록, 진행도, 설정은 사용자별로 격리됩니다.
 - 로그인 무차별 대입 방어는 프로세스 메모리에서 동작합니다. 워커를 여러 개 띄우면 한도가 워커마다 따로 적용되므로, 그 경우 공유 저장소가 필요합니다.
 - 프론트엔드는 `innerHTML`을 쓰지 않고 `textContent`로만 텍스트를 넣습니다.
@@ -319,7 +324,7 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 - 제목 폰트(Paperlogy)의 상업적 사용 라이선스는 배포 전에 확인해야 합니다.
 - 효과음은 브라우저 정책에 따라 첫 사용자 동작 뒤부터 날 수 있습니다. 발음 듣기는 브라우저에 영어 음성이 없으면 동작하지 않습니다.
 - 모바일 실제 기기에서의 시각 점검(360px 레이아웃, 다크 모드의 북마크 색, 발음기호 글리프)은 자동 테스트로 확인할 수 없어 수동 점검 대상입니다.
-- HTTPS 배포와 워커 다중화 설정은 아직 문서화된 운영 절차가 없습니다. §3.8 의 배포 절차는 **HTTP 로 쓰는 사내망·LAN 전용**입니다.
+- HTTPS 배포와 워커 다중화 설정은 아직 문서화된 운영 절차가 없습니다. §3.6 의 배포 절차는 **HTTP 로 쓰는 사내망·LAN 전용**입니다. SQLite 는 단일 프로세스·단일 컨테이너를 전제로 하며 워커를 늘리면 쓰기 경합이 생깁니다.
 
 ---
 
@@ -327,12 +332,12 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 
 | 문서 | 현행 버전 | 이전 버전 |
 | :--- | :--- | :--- |
-| 요구사항 명세 | `docs/voda-voca_Requirement_Spec_v2.2_261119.md` | `docs/old/` |
-| 데이터 설계서 | `docs/voda-voca_Data_Design_v2.2_261119.md` | `docs/old/` |
+| 요구사항 명세 (§11 에 과제 ID 매핑) | `docs/voda-voca_Requirement_Spec_v2.3_261125.md` | `docs/old/` |
+| 데이터 설계서 | `docs/voda-voca_Data_Design_v3.0_261125.md` | `docs/old/` |
 | API 연동 규격서 | `docs/voda-voca_API_Integration_Spec_v2.2_261119.md` | `docs/old/` |
 | UI/UX 설계서 | `docs/voda-voca_UIUX_Design_Spec_v2.2_261105.md` | `docs/old/` |
-| 시스템 아키텍처 설계서 | `docs/voda-voca_Architecture_Design_v1.0_261119.md` (개정 이력은 문서 내 변경 이력) | - |
-| 아키텍처 결정 기록 (ADR-001~009) | `docs/voda-voca_Decision_Records_v1.0_261119.md` | - |
-| 테스트 명세서 | `docs/voda-voca_Test_Specification_v1.1_261119.md` | - |
+| 시스템 아키텍처 설계서 | `docs/voda-voca_Architecture_Design_v1.1_261125.md` | `docs/old/` |
+| 아키텍처 결정 기록 (ADR-001~010) | `docs/voda-voca_Decision_Records_v1.1_261125.md` | `docs/old/` |
+| 테스트 명세서 | `docs/voda-voca_Test_Specification_v1.2_261125.md` | `docs/old/` |
 
 v2.2 진행 중에는 파일명을 바꾸지 않고 각 문서의 변경 이력 표에 개정 행을 추가합니다. 작업 일지와 결정 기록은 `ai-agent/claude/`에 있습니다.
