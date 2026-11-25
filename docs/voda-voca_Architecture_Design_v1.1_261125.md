@@ -118,7 +118,7 @@ HTTP 요청
   → db/session.py 엔진·세션 팩토리, 요청당 1세션 (get_db_session). 연결 PRAGMA 와 BEGIN IMMEDIATE 설정, db/errors.py 무결성 오류 판별
   → SQLite (aiosqlite)
 schemas/          Pydantic 요청·응답 모델 (REQ-111). 라우터와 서비스가 공유
-core/             config, deps(get_current_user), rate_limit
+core/             config, deps(get_current_user, get_admin_user), rate_limit, admin, terms(표제어 중복 판정)
 ```
 
 의존 방향은 위에서 아래 한 방향이다. `services/` 는 FastAPI 에 의존하지 않는다 (오류는 `services/errors.py` 의 도메인 예외로 던지고 라우터가 HTTP 로 바꾼다). 이 덕에 `session_picker.py`, `srs.py`, `progress.py` 같은 순수 함수는 DB 없이 단위 테스트한다.
@@ -127,6 +127,7 @@ core/             config, deps(get_current_user), rate_limit
 | :--- | :--- | :--- |
 | `/api/auth` | 가입, 로그인, 로그아웃, 내 정보, 탈퇴 | `auth`, `password`, `session` |
 | `/api/vocabularies`, `/api/users/me` | 표준 단어장 목록, 단어 목록, 활성 단어장 지정 | `system_vocab` |
+| `/api/admin` | 관리자 단어장·단어 생성·수정·삭제 (라우터 전체에 관리자 검사) | `admin_content` |
 | `/api/study/sessions` | 학습 세션 생성, 문항별 답 기록 | `learning_session`, `session_picker`, `progress`, `srs` |
 | `/api/study` | 오답 단어, 통계, 학습 이력 | `stats`, `study_log`, `study` |
 | `/api/bookmarks` | 북마크 추가·삭제·목록 | `bookmark` |
@@ -161,7 +162,8 @@ src/backend/data/seeds/vocabularies.json + words/*.json (5종, 1,000단어)
    → 서버 시작 시 services/system_seed.py 가 검증·적재 (멱등)
        단어장은 slug, 단어는 (vocabulary_id, term) 으로 식별
        content_hash 가 같으면 건너뛰고, 다르면 UPDATE (word_id 불변 → 학습 기록 유지)
-   → system_vocabularies, system_words (읽기 전용 공용 데이터)
+   → system_vocabularies, system_words (source='seed'. 관리자 등록분 source='admin' 은 보존하고,
+     같은 표제어가 시드에 들어오면 시드가 우선한다, ADR-012)
 ```
 
 시드 파일을 바꾸면 서버 재시작 때 운영 DB 에 반영된다. 파일 추가·수정 전에 DB 백업이 필요하다 (README §3.6).
@@ -264,6 +266,7 @@ POST /api/study/sessions/{id}/answer
 | 버전 | 날짜 | 내용 | 작성 |
 | :--- | :--- | :--- | :--- |
 | **v1.1** | 2026-11-25 | **SQLite 전환·과제 서버 규격(ADR-010, REQ-153)**: §3 배치도, §4 토폴로지·설정 주입, §4.2 서버 접두사 대응 신설, 4.1 이미지(루트 Dockerfile, uid 10001, entrypoint), §5·§8 DB 표기. A11(백업은 DB 파일 복사로 단순화) | Claude |
+| v1.1 개정 | 2026-11-26 | §5 에 관리 라우터·서비스와 시드의 관리자 등록분 처리 추가 (REQ-160·161, ADR-012) | Claude |
 | v1.1 개정 | 2026-11-26 | §4 기동 순서에 관리자 계정 준비 추가 (REQ-159, ADR-011). 스키마 변경 없음 | Claude |
 | v1.0 개정 | 2026-11-25 | 앱 컨테이너화 반영: P3, §3 배치도, §4 토폴로지·설정 주입·4.1 신설, §8 테스트 구조, A2 해소, A10·A11 추가 (ADR-009) | Claude |
 | v1.0 개정 | 2026-11-24 | 외부 CDN 자체 호스팅 반영: P1, §3 배치도·외부 시스템, §5 디렉터리, A4 해소 | Claude |

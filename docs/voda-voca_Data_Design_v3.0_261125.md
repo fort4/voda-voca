@@ -63,6 +63,7 @@ erDiagram
         INT total_words
         INT sort_order
         CHAR content_hash
+        VARCHAR source "seed|admin"
     }
     system_words {
         INTEGER id PK
@@ -72,6 +73,7 @@ erDiagram
         VARCHAR example
         VARCHAR example_meaning
         INT order_index
+        VARCHAR source "seed|admin"
     }
     user_word_progress {
         INTEGER id PK
@@ -195,7 +197,7 @@ erDiagram
 
 ### 3.2 system_vocabularies (표준 단어장) — REQ-140, REQ-143
 
-서버 시드 파일로만 바뀌는 읽기 전용 카탈로그다. 사용자 쓰기 경로는 없다.
+단어장 카탈로그다. 표준 단어장(`source='seed'`)은 서버 시드로만 바뀌고, 관리자 단어장(`source='admin'`)은 관리 API 로 만든다 (REQ-160). 일반 사용자의 쓰기 경로는 없다.
 
 | 컬럼 | 타입 | NULL | 기본값 | 제약 / 설명 |
 | :--- | :--- | :---: | :--- | :--- |
@@ -208,12 +210,13 @@ erDiagram
 | `total_words` | INTEGER | N | `0` | 시더가 실제 단어 수로 갱신하는 비정규화 값 |
 | `sort_order` | INT | N | `0` | 카탈로그 노출 순서 |
 | `content_hash` | VARCHAR(64) | Y | NULL | 시드 내용의 SHA-256. 같으면 쓰기를 건너뛴다. NULL 이면 아직 적재되지 않은 행이다. |
+| `source` | VARCHAR(10) | N | `'seed'` | `'seed'` \| `'admin'`. 값 제한은 앱이 한다. 마이그레이션 `0003` |
 | `created_at`, `updated_at` | DATETIME | N | UTC 현재 시각(§2.2) | UTC |
 
 **인덱스**: `PRIMARY KEY (id)`, `UNIQUE uk_sysvoc_slug (slug)`, `KEY idx_sysvoc_category (category)`
 **CHECK**: `ck_sysvoc_level_range` (`level BETWEEN 1 AND 5`), `ck_sysvoc_title_not_blank` (`length(trim(title)) > 0`)
 
-### 3.3 system_words (표준 단어) — REQ-141, REQ-143
+### 3.3 system_words (표준 단어와 관리자 등록 단어) — REQ-141, REQ-143, REQ-161
 
 | 컬럼 | 타입 | NULL | 기본값 | 제약 / 설명 |
 | :--- | :--- | :---: | :--- | :--- |
@@ -227,13 +230,14 @@ erDiagram
 | `phonetic` | VARCHAR(100) | Y | NULL | 발음기호 (v2.2 사용, REQ-144). **슬래시 없는 미국식 IPA 문자열** (예: `ˈæpəl`). 화면이 `/…/` 서식을 입힌다. NULL 이면 화면이 발음기호 요소를 그리지 않는다. 시드 로더가 IPA 문자만 허용하고 한글·슬래시·대괄호·제어 문자·100자 초과를 거부한다. 값이 없는 단어는 NULL 이며 빈 문자열로 저장하지 않는다. 마이그레이션은 없다 (`b1e5c0a7d2f4` 가 이미 같은 규격으로 만들었다) |
 | `level` | INTEGER | Y | NULL | 단어 난이도. **확장 필드, 1단계 미사용** |
 | `order_index` | INT | N | `0` | 단어장 안의 순서. 미학습 단어는 이 순서로 출제된다 (REQ-012). |
+| `source` | VARCHAR(10) | N | `'seed'` | `'seed'` \| `'admin'`. 관리자 등록 단어만 수정·삭제한다. 시드에 같은 표제어(대소문자·악센트 무시, `core/terms.py`)가 들어오면 같은 행을 `'seed'` 로 바꿔 이력을 보존한다. 마이그레이션 `0003` |
 
 **인덱스**: `PRIMARY KEY (id)`, `UNIQUE uk_sysword_vocab_term (vocabulary_id, term)` (`term` 이 `NOCASE` 라 대소문자를 무시하고 유일. 악센트는 시더가 정규화), `KEY idx_sysword_vocab_order (vocabulary_id, order_index)`
 **CHECK**: `ck_sysword_not_blank` (`length(trim(term)) > 0 AND length(trim(meaning)) > 0`)
 
 **설계 메모**
 - 단어 목록(`GET /api/vocabularies/{id}/words`)은 `WHERE vocabulary_id = ? ORDER BY order_index` 의 OFFSET 페이징이다. 단어장당 수백~천 건이라 keyset 은 도입하지 않는다.
-- `words` 와 달리 `user_id` 가 없다 — 공용 콘텐츠이므로 소유권 개념이 없다.
+- `words` 와 달리 `user_id` 가 없다 — 공용 콘텐츠이므로 사용자 소유권이 없다(출처만 `source` 로 구분한다).
 
 ### 3.4 user_word_progress (사용자별 단어 학습 요약) — REQ-016, REQ-012
 
@@ -459,7 +463,7 @@ CREATE TABLE system_vocabularies (
 	sort_order INTEGER DEFAULT 0 NOT NULL, 
 	content_hash VARCHAR(64), 
 	created_at DATETIME DEFAULT (strftime('%Y-%m-%d %H:%M:%f000', 'now')) NOT NULL, 
-	updated_at DATETIME DEFAULT (strftime('%Y-%m-%d %H:%M:%f000', 'now')) NOT NULL, 
+	updated_at DATETIME DEFAULT (strftime('%Y-%m-%d %H:%M:%f000', 'now')) NOT NULL, source VARCHAR(10) DEFAULT 'seed' NOT NULL, 
 	PRIMARY KEY (id), 
 	CONSTRAINT ck_sysvoc_title_not_blank CHECK (length(trim(title)) > 0), 
 	CONSTRAINT ck_sysvoc_level_range CHECK (level BETWEEN 1 AND 5), 
@@ -476,7 +480,7 @@ CREATE TABLE system_words (
 	pos VARCHAR(20), 
 	phonetic VARCHAR(100), 
 	level INTEGER, 
-	order_index INTEGER DEFAULT 0 NOT NULL, 
+	order_index INTEGER DEFAULT 0 NOT NULL, source VARCHAR(10) DEFAULT 'seed' NOT NULL, 
 	PRIMARY KEY (id), 
 	CONSTRAINT ck_sysword_not_blank CHECK (length(trim(term)) > 0 AND length(trim(meaning)) > 0), 
 	CONSTRAINT fk_sysword_vocabulary FOREIGN KEY(vocabulary_id) REFERENCES system_vocabularies (id) ON DELETE CASCADE, 
@@ -602,6 +606,8 @@ CREATE INDEX idx_uwp_word ON user_word_progress (word_id);
 | 리비전 | 내용 |
 | :--- | :--- |
 | **`0001`** (v3.0) | SQLite 초기 스키마. 위 DDL 의 8개 테이블과 인덱스를 한 번에 만든다. 빈 DB 에서 `alembic upgrade head` 한 번으로 시작하며(VOCA-NFR-003), 컨테이너는 시작할 때 `docker-entrypoint.sh` 가 이를 실행한다. |
+| `0002` (v3.0 개정) | `quiz_sessions`·`study_logs` 에 출제 방향·형식 컬럼 (REQ-157) |
+| `0003` (v3.0 개정) | `system_vocabularies`·`system_words` 에 `source` 컬럼 (REQ-160·161). **테이블을 재작성하지 않고 `ADD COLUMN`** 만 쓴다: 재작성은 `COLLATE NOCASE` 를 잃고 `ON DELETE CASCADE` 로 학습 이력을 지울 위험이 있다 (ADR-012) |
 
 **이력 압축**: v2.2 까지의 MySQL 리비전 12개(`08e3374f8644` … `a7d3f1c9e5b2`)는 MySQL 전용 구문(`mysql.BIGINT`, `UTC_TIMESTAMP`, `JSON_OBJECT`, `ENGINE=InnoDB`)을 담고 있어 SQLite 에서 실행할 수 없으므로 `0001` 하나로 재작성했다. 옛 리비전 파일은 git 이력(커밋 `d1e58dc` 이전)에, 옛 스키마의 DDL 은 `docs/old/voda-voca_Data_Design_v2.2_261119.md` 에 남아 있다. 기존 MySQL 데이터는 이관하지 않는다(D20).
 
@@ -650,6 +656,7 @@ CREATE INDEX idx_uwp_word ON user_word_progress (word_id);
 
 | 버전 | 날짜 | 내용 | 작성 |
 | :--- | :--- | :--- | :--- |
+| v3.0 개정 | 2026-11-26 | `system_vocabularies.source`, `system_words.source` 추가(마이그레이션 `0003`, REQ-160·161), §1·§3.2·§3.3·§5 갱신 | Claude |
 | v3.0 개정 | 2026-11-25 | **출제 방향·형식 컬럼(REQ-157, 마이그레이션 `0002`)**: `quiz_sessions.direction`·`format`, `study_logs.direction`·`format` 추가(NOT NULL, 기본 `en_to_ko`·`choice`, CHECK 제약). 기존 행은 기본값으로 채워진다. `questions` 스냅샷 키 `direction`·`format`·`prompt`·`meaning`·`proposed` 추가 | Claude |
 | **v3.0** | 2026-11-25 | **SQLite 전환(ADR-010)**: 타입(INTEGER PK/FK, DATETIME UTC 마이크로초, VARCHAR+CHECK), 대소문자 정책(`NOCASE`), 시간 기본값(`strftime`), 외래키 PRAGMA, `BEGIN IMMEDIATE` 동시성, §5 DDL 을 실제 스키마 덤프로 교체, 마이그레이션 12개를 `0001` 하나로 압축. 테이블·컬럼 의미 변경 없음. D20~D21 추가, F1 폐기 | Claude |
 | v2.2 개정 | 2026-11-19 | **SRS 복습 시각 규칙 개정(REQ-150)**: `next_review_at` 을 한국 날짜 0시로 맞추고 기한 전 정답은 단계·시각 유지. §3.4 규칙·컬럼 설명 갱신. **스키마·마이그레이션 변경 없음** | Claude |

@@ -98,9 +98,15 @@
 | 17 | PATCH | `/api/users/me/settings` | REQ-147 | 필수 | 200 | 422, 401 |
 | 18 | GET | `/api/study/frequent-wrong` | REQ-154 | 필수 | 200 | 422, 401 |
 | 19 | GET | `/api/study/score-trend` | REQ-155 | 필수 | 200 | 422, 401 |
+| 20 | POST | `/api/admin/vocabularies` | REQ-160 | 관리자 | 201 | 401, 403, 422 |
+| 21 | PATCH | `/api/admin/vocabularies/{vocabulary_id}` | REQ-160 | 관리자 | 200 | 401, 403, 404, 422 |
+| 22 | DELETE | `/api/admin/vocabularies/{vocabulary_id}` | REQ-160 | 관리자 | 204 | 401, 403, 404 |
+| 23 | POST | `/api/admin/vocabularies/{vocabulary_id}/words` | REQ-161 | 관리자 | 201 | 401, 403, 404, 409, 422 |
+| 24 | PUT | `/api/admin/words/{word_id}` | REQ-161 | 관리자 | 200 | 401, 403, 404, 409, 422 |
+| 25 | DELETE | `/api/admin/words/{word_id}` | REQ-161 | 관리자 | 204 | 401, 403, 404 |
 | — | GET | `/health` | 운영 | — | 200 | 503 |
 
-> 이 표는 `app.openapi()` 의 경로·메서드 집합과 일치합니다 (인증 5건, 표준 단어장 3건, 북마크 3건, 학습 7건, 설정 2건 = 20건 + health).
+> 이 표는 `app.openapi()` 의 경로·메서드 집합과 일치합니다 (인증 7건, 표준 단어장 3건, 북마크 3건, 학습 7건, 설정 2건, 관리 6건 = 28건 + health).
 
 ---
 
@@ -159,7 +165,7 @@
 
 ### 3.2 표준 단어장 (읽기 전용, REQ-140~142)
 
-표준 단어장은 서버 시드로만 바뀌며 생성·수정·삭제 API 가 없습니다.
+표준 콘텐츠는 서버 시드로만 바뀝니다. 이 절의 API 는 조회와 학습 단어장 선택이며, 관리자의 생성·수정·삭제는 §3.8 입니다. #5·#6·#7 응답의 단어장·단어에는 `source`(`"seed"` 표준, `"admin"` 관리자 등록)가 있습니다 (추가 필드, 하위 호환).
 
 **#5 GET `/api/vocabularies?category=&level=`**
 - 쿼리: `category`(최대 50자, 선택), `level`(1~5, 선택). 정렬: `sort_order`, `id`.
@@ -336,6 +342,26 @@
 - 세션 생성(#11)에서 `count` 를 생략하면 이 설정이 적용됩니다.
 
 ---
+
+### 3.8 관리 API (REQ-160, REQ-161)
+
+모두 관리자(REQ-159) 전용입니다. 비로그인 401, 일반 사용자 403 `{"detail": "관리자만 사용할 수 있습니다."}`.
+
+**#20 POST `/api/admin/vocabularies`** — 본문 `{"title": string(1~100), "description": string|null(≤255), "category": string(1~50), "level": 1~5}`. 201 `VocabularyOut`(`source: "admin"`, `total_words: 0`). `slug` 는 서버가 만듭니다.
+
+**#21 PATCH `/api/admin/vocabularies/{vocabulary_id}`** — `title`, `description` 중 보낸 항목만 바꿉니다(`description: null` 은 지움). 200 `VocabularyOut`.
+
+**#22 DELETE `/api/admin/vocabularies/{vocabulary_id}`** — 204. 단어, 학습 이력, 진도, 북마크, 학습 세션이 함께 지워지고 활성 선택은 비워집니다.
+
+**#23 POST `/api/admin/vocabularies/{vocabulary_id}/words`** — 본문 `{"term": string(1~100), "meaning": string(1~200), "example": string|null(≤500), "example_meaning": string|null(≤500)}`. 201 `VocabularyWordOut`. 표준 단어장에도 더할 수 있습니다.
+
+**#24 PUT `/api/admin/words/{word_id}`** — #23 과 같은 본문으로 네 항목을 모두 바꿉니다. 200 `VocabularyWordOut`. `word_id` 는 유지됩니다.
+
+**#25 DELETE `/api/admin/words/{word_id}`** — 204. 모든 사용자의 그 단어 이력·진도·북마크가 함께 지워집니다.
+
+- 표준(시드) 콘텐츠의 수정·삭제: 403 + `X-Error-Code: SEED_READ_ONLY`
+- 표제어 중복(대소문자·악센트 무시): 409 + `X-Error-Code: TERM_TAKEN`
+- 없는 단어장·단어: 404
 
 ## 4. HTTP 상태 코드 매핑 (프론트 처리 규칙)
 
@@ -516,3 +542,4 @@ POST /api/study/sessions  ─►  items[0..N-1]
 | v2.2 개정 | 2026-11-26 | 가입(#1)에 `password_confirm` 요청 필드 추가(불일치 422)와 409 의 `X-Error-Code: NICKNAME_TAKEN`, 닉네임 중복 확인 `GET /api/auth/check-nickname`(#1b, IP 당 1분 30회) 추가(REQ-158). 이메일·OAuth 는 받지 않는다. `password_confirm` 필수라 옛 클라이언트의 가입 요청은 422 가 된다(프론트는 함께 갱신) | Claude |
 | v2.2 개정 | 2026-11-26 | 단어 목록(#6)에 검색어 `q` 파라미터 추가 (REQ-163). 하위 호환 | Claude |
 | v2.2 개정 | 2026-11-26 | 비밀번호 변경 `PUT /api/auth/me/password`(#4c, REQ-164) 추가, `UserOut.is_admin` 추가, `admin` 예약 닉네임, 관리자 탈퇴 403 (REQ-159) | Claude |
+| v2.2 개정 | 2026-11-26 | 관리 API #20~#25 추가(§3.8, REQ-160·161), 단어장·단어 응답에 `source` 추가 | Claude |
