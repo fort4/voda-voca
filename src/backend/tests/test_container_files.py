@@ -245,3 +245,21 @@ def test_dev_override_mounts_what_the_tests_read_as_read_only() -> None:
 def test_dev_override_disables_pytest_cache_in_readonly_workdir() -> None:
     """/app 은 root 소유라 app 사용자가 .pytest_cache 를 쓸 수 없다. 경고 대신 캐시를 끈다."""
     assert _yaml(COMPOSE_DEV)["services"]["app"]["environment"]["PYTEST_ADDOPTS"] == "-p no:cacheprovider"
+
+
+# ---------- 과제 점검 워크플로 ----------
+
+WORKFLOW = REPO_ROOT / ".github" / "workflows" / "docker-check.yml"
+
+
+def test_course_check_workflow_is_present_and_untouched_in_its_key_rules() -> None:
+    """제출 요건(VOCA-SUB-037): 점검 워크플로를 고치지 않고 넣는다. 사라지거나 핵심 규칙이 바뀌면 알린다.
+
+    파일 전체 해시는 과목이 파일을 갱신하면 깨지므로, 앱 쪽에 영향을 주는 규칙만 고정한다.
+    """
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert "이 파일은 수정하지 마세요" in text
+    assert "docker build -t voca-app ." in text, "리포 루트 Dockerfile 로 빌드한다"
+    assert "--user 10001:10001" in text and "--cap-drop ALL" in text
+    assert "--internal" in text, "인터넷이 막힌 네트워크에서 실행한다"
+    assert "on: [push, workflow_dispatch]" in text

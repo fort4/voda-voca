@@ -12,6 +12,7 @@ import {
   cleanMessage,
   parseFieldErrors,
   parseRetryAfter,
+  resolveApiBase,
   setUnauthorizedHandler,
   toApiError,
 } from "../js/core/api.js";
@@ -169,4 +170,31 @@ test("toApiError: X-Error-Code 헤더를 code 로 싣는다 (문구가 바뀌어
   assert.equal(withCode.status, 400);
   const without = toApiError(404, new Headers(), { detail: "없음" });
   assert.equal(without.code, null);
+});
+
+// --- API 기준 경로: 서버가 /2026/voca-<학번>/ 같은 접두사 아래에서 서비스해도 모듈 위치로 앱 루트를 찾는다 ---
+
+test("resolveApiBase: 루트에서 서비스하면 /api", () => {
+  assert.equal(resolveApiBase("http://localhost:8080/js/core/api.js"), "/api");
+});
+
+test("resolveApiBase: 접두사 아래에서 서비스하면 접두사를 유지한다", () => {
+  assert.equal(
+    resolveApiBase("https://school.example/2026/voca-20240001/js/core/api.js"),
+    "/2026/voca-20240001/api",
+  );
+});
+
+test("resolveApiBase: 주소창이 슬래시 없이 열려도(모듈 위치 기준이라) 같은 결과", () => {
+  // 상대경로 'api' 는 페이지가 /2026/voca-x (슬래시 없음)로 열리면 /2026/api 로 어긋난다. 모듈 URL 은 항상 정확하다.
+  assert.equal(resolveApiBase("https://h/2026/voca-x/js/core/api.js?v=3#x"), "/2026/voca-x/api");
+});
+
+test("resolveApiBase: http(s) 가 아니면(테스트·file://) 기본값 /api", () => {
+  assert.equal(resolveApiBase("file:///home/u/src/frontend/js/core/api.js"), "/api");
+});
+
+test("resolveApiBase: 결과는 호스트 없는 경로다 (서버 접두사 치환과 호스트 고정 금지 규칙)", () => {
+  const base = resolveApiBase("https://school.example/2026/voca-x/js/core/api.js");
+  assert.ok(base.startsWith("/") && !base.includes("//") && !base.includes("school.example"));
 });

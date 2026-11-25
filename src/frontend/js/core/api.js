@@ -5,7 +5,24 @@
 
 /** @typedef {{field: string|null, message: string}} FieldError */
 
-export const API_BASE = "/api";
+/**
+ * 이 모듈(js/core/api.js)의 URL 로 API 기준 경로를 구한다.
+ *
+ * 서버는 앱을 `/2026/voca-<학번>/` 같은 접두사 아래에서 서비스한다. `/api` 로 고정하면 접두사가 빠져 다른 앱을 호출하고,
+ * 상대경로 `api` 는 주소창이 슬래시 없이 열리면(`/2026/voca-x`) `/2026/api` 로 어긋난다. 모듈 파일은 항상 앱 루트 아래
+ * `js/core/` 에 있으므로 두 단계 위가 앱 루트다. 호스트는 붙이지 않고 경로만 쓴다.
+ * http(s) 가 아닌 환경(Node 테스트, file://)에서는 기본값 `/api` 다.
+ *
+ * @param {string} moduleUrl 이 모듈의 URL (import.meta.url)
+ * @returns {string} 예: "/api", "/2026/voca-20240001/api"
+ */
+export function resolveApiBase(moduleUrl) {
+  const url = new URL(moduleUrl);
+  if (url.protocol !== "http:" && url.protocol !== "https:") return "/api";
+  return new URL("../../api", url).pathname;
+}
+
+export const API_BASE = resolveApiBase(import.meta.url);
 export const DEFAULT_TIMEOUT_MS = 15000;
 
 /** 401 을 받았을 때 호출되는 콜백. app.js 가 등록한다 (세션 만료 처리). */
