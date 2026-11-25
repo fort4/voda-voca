@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from sqlalchemy import func, select
-from sqlalchemy.dialects.mysql import insert as mysql_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.db.session import get_session_factory
@@ -91,7 +91,7 @@ class SeedReport:
 
 
 def _term_key(term: str) -> str:
-    """DB 콜레이션(utf8mb4_0900_ai_ci)처럼 대소문자와 악센트를 무시한 비교 키다."""
+    """대소문자와 악센트를 무시한 비교 키다 (DB 의 NOCASE 는 악센트를 접지 못해 앱이 정규화한다)."""
     decomposed = unicodedata.normalize("NFKD", term.casefold())
     return "".join(ch for ch in decomposed if unicodedata.category(ch) != "Mn")
 
@@ -215,7 +215,7 @@ async def _seed_one(session: AsyncSession, data: SeedVocabularyData, report: See
 
     # 1) 행이 없으면 만든다. 다른 워커가 먼저 만들었다면 아무 일도 하지 않는다 (slug 유니크 + no-op upsert).
     await session.execute(
-        mysql_insert(SystemVocabulary)
+        sqlite_insert(SystemVocabulary)
         .values(
             slug=data.slug,
             title=data.title,
@@ -224,17 +224,16 @@ async def _seed_one(session: AsyncSession, data: SeedVocabularyData, report: See
             description=data.description,
             sort_order=data.sort_order,
         )
-        .on_duplicate_key_update(slug=SystemVocabulary.slug)
+        .on_conflict_do_nothing(index_elements=["slug"])
     )
 
-    # 2) 단어장 행을 잠가 같은 단어장의 동시 적재를 직렬화한다. 나중 워커는 앞 워커가 끝난 뒤 해시를 본다.
+    # 2) 단어장 행을 읽는다. 같은 단어장의 동시 적재는 SQLite 의 쓰기 직렬화(BEGIN IMMEDIATE)가 순서대로 처리한다.
+    #    나중 워커는 앞 워커가 끝난 뒤 해시를 본다.
     vocabulary = (
-        await session.execute(
-            select(SystemVocabulary).where(SystemVocabulary.slug == data.slug).with_for_update()
-        )
+        await session.execute(select(SystemVocabulary).where(SystemVocabulary.slug == data.slug))
     ).scalar_one()
 
-    # content_hash 가 NULL 이면 아직 한 번도 적재되지 않은 행이다 (rowcount 는 드라이버의 found-rows 설정 때문에 믿지 않는다).
+    # content_hash 가 NULL 이면 아직 한 번도 적재되지 않은 행이다 (rowcount 는 upsert 에서 믿을 수 없어 쓰지 않는다).
     created = vocabulary.content_hash is None
     if not created and vocabulary.content_hash == content_hash:
         report.unchanged += 1
@@ -279,7 +278,7 @@ async def _seed_one(session: AsyncSession, data: SeedVocabularyData, report: See
             row.term, row.meaning, row.example, row.example_meaning, row.order_index, row.phonetic, row.pos = new_values
             updated += 1
     if inserted:
-        await session.execute(mysql_insert(SystemWord), inserted)
+        await session.execute(sqlite_insert(SystemWord), inserted)
 
     # 시드에서 빠진 단어는 지우지 않는다 (학습 이력이 참조할 수 있다). 경고만 남긴다.
     for key, row in existing.items():

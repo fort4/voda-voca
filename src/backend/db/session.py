@@ -39,6 +39,22 @@ def _apply_sqlite_pragmas(dbapi_connection, _record) -> None:  # noqa: ANN001
         cursor.close()
 
 
+def _disable_driver_autobegin(dbapi_connection, _record) -> None:  # noqa: ANN001
+    """드라이버가 멋대로 BEGIN 하지 않게 한다. 트랜잭션 시작은 아래 _begin_immediate 가 정한다."""
+    dbapi_connection.isolation_level = None
+
+
+def _begin_immediate(connection) -> None:  # noqa: ANN001
+    """모든 트랜잭션을 BEGIN IMMEDIATE 로 시작해 쓰기 잠금을 처음에 잡는다.
+
+    MySQL 의 SELECT ... FOR UPDATE(행 잠금)를 대신한다. 기본(DEFERRED)은 읽기로 시작한 트랜잭션이 나중에 쓰기로
+    올라갈 때, 그 사이 다른 연결이 커밋했다면 busy_timeout 과 무관하게 즉시 SQLITE_BUSY 로 실패한다. 요청마다
+    인증이 먼저 읽기 때문에 실제로 일어난다. IMMEDIATE 는 시작 시점에 busy_timeout 만큼 기다려 순서대로 진행한다.
+    대가: 읽기 요청도 쓰기 잠금을 잠깐 잡는다. 단일 컨테이너의 소규모 서비스에서는 허용 가능하다 (ADR-010).
+    """
+    connection.exec_driver_sql("BEGIN IMMEDIATE")
+
+
 @lru_cache
 def get_engine() -> AsyncEngine:
     """비동기 엔진을 생성한다 (프로세스당 1개).
@@ -54,6 +70,8 @@ def get_engine() -> AsyncEngine:
         pass  # 만들 수 없으면 첫 연결에서 SQLAlchemyError 로 드러난다 (/health 가 503 으로 응답하도록 여기서는 예외를 내지 않는다)
     engine = create_async_engine(settings.database_url, echo=False)
     event.listen(engine.sync_engine, "connect", _apply_sqlite_pragmas)
+    event.listen(engine.sync_engine, "connect", _disable_driver_autobegin)
+    event.listen(engine.sync_engine, "begin", _begin_immediate)
     return engine
 
 

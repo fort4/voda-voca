@@ -3,11 +3,10 @@
 
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, Index
-from sqlalchemy.dialects.mysql import BIGINT, BINARY, DATETIME
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, LargeBinary
 from sqlalchemy.orm import Mapped, mapped_column
 
-from backend.models.base import TABLE_OPTIONS, UTC_NOW_DEFAULT, Base
+from backend.models.base import UTC_NOW_DEFAULT, Base
 
 
 class AuthSession(Base):
@@ -21,17 +20,16 @@ class AuthSession(Base):
     __table_args__ = (
         Index("idx_sessions_user", "user_id"),
         Index("idx_sessions_expires", "expires_at"),
-        TABLE_OPTIONS,
     )
 
-    id: Mapped[bytes] = mapped_column(BINARY(32), primary_key=True)
+    id: Mapped[bytes] = mapped_column(LargeBinary(32), primary_key=True)
     user_id: Mapped[int] = mapped_column(
-        BIGINT(unsigned=True),
+        Integer,
         ForeignKey("users.id", ondelete="CASCADE", name="fk_sessions_user"),
         nullable=False,
     )
     created_at: Mapped[datetime] = mapped_column(
-        DATETIME(fsp=3), nullable=False, server_default=UTC_NOW_DEFAULT
+        DateTime, nullable=False, server_default=UTC_NOW_DEFAULT
     )
     # 절대 만료 시각 (UTC). 기본 수명 14일은 REQ-002 기본값이다.
-    expires_at: Mapped[datetime] = mapped_column(DATETIME(fsp=3), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)

@@ -3,11 +3,10 @@
 
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, Index, String, UniqueConstraint, text
-from sqlalchemy.dialects.mysql import BIGINT, DATETIME, INTEGER
+from sqlalchemy import CheckConstraint, DateTime, Index, Integer, String, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from backend.models.base import TABLE_OPTIONS, UTC_NOW_DEFAULT, Base, utcnow
+from backend.models.base import NOCASE, UTC_NOW_DEFAULT, Base, utcnow
 
 
 class SystemVocabulary(Base):
@@ -25,22 +24,21 @@ class SystemVocabulary(Base):
         UniqueConstraint("slug", name="uk_sysvoc_slug"),
         Index("idx_sysvoc_category", "category"),
         CheckConstraint("level BETWEEN 1 AND 5", name="ck_sysvoc_level_range"),
-        CheckConstraint("CHAR_LENGTH(TRIM(title)) > 0", name="ck_sysvoc_title_not_blank"),
-        TABLE_OPTIONS,
+        CheckConstraint("length(trim(title)) > 0", name="ck_sysvoc_title_not_blank"),
     )
 
-    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
-    slug: Mapped[str] = mapped_column(String(50), nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    slug: Mapped[str] = mapped_column(String(50, collation=NOCASE), nullable=False)
     title: Mapped[str] = mapped_column(String(100), nullable=False)
     category: Mapped[str] = mapped_column(String(50), nullable=False)
-    level: Mapped[int] = mapped_column(INTEGER, nullable=False, server_default=text("1"))
+    level: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("1"))
     description: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    total_words: Mapped[int] = mapped_column(INTEGER(unsigned=True), nullable=False, server_default=text("0"))
-    sort_order: Mapped[int] = mapped_column(INTEGER, nullable=False, server_default=text("0"))
+    total_words: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
     content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DATETIME(fsp=3), nullable=False, server_default=UTC_NOW_DEFAULT
+        DateTime, nullable=False, server_default=UTC_NOW_DEFAULT
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DATETIME(fsp=3), nullable=False, server_default=UTC_NOW_DEFAULT, onupdate=utcnow
+        DateTime, nullable=False, server_default=UTC_NOW_DEFAULT, onupdate=utcnow
     )

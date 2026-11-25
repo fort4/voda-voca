@@ -4,7 +4,7 @@
 from datetime import datetime
 
 from sqlalchemy import select
-from sqlalchemy.dialects.mysql import insert as mysql_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import StudyLog, UserWordProgress
@@ -38,20 +38,20 @@ async def record_result(
     답을 기록하는 모든 경로(옛 퀴즈 API, 새 세션 API)가 이 함수를 거친다. 호출자는 같은 문항을 두 번 기록하지 않아야
     한다 (세션의 answers 가 멱등을 보장한다). 숙련 규칙은 services/progress.py 의 apply_result 가 가진다.
 
-    진행도 행이 처음이면 먼저 만들어 두고(동시 요청과 겹쳐도 한 행만 남는다) 행을 잠근 채 갱신하므로,
-    같은 사용자·단어에 대한 동시 기록도 순서대로 정확히 센다.
+    진행도 행이 처음이면 먼저 만들어 두고(동시 요청과 겹쳐도 한 행만 남는다) 갱신한다. SQLite 는 행 잠금이 없지만
+    모든 트랜잭션이 BEGIN IMMEDIATE 로 시작해 쓰기가 한 번에 하나씩 처리되므로(db/session.py), 같은 사용자·단어에 대한
+    동시 기록도 순서대로 정확히 센다.
     """
     db.add(StudyLog(user_id=user_id, word_id=word_id, is_correct=is_correct, mode=mode))
     await db.execute(
-        mysql_insert(UserWordProgress)
+        sqlite_insert(UserWordProgress)
         .values(user_id=user_id, word_id=word_id)
-        .on_duplicate_key_update(user_id=UserWordProgress.user_id)
+        .on_conflict_do_nothing(index_elements=["user_id", "word_id"])
     )
     row = (
         await db.execute(
             select(UserWordProgress)
             .where(UserWordProgress.user_id == user_id, UserWordProgress.word_id == word_id)
-            .with_for_update()
         )
     ).scalar_one()
     state = apply_result(progress_state_of(row), is_correct, now)

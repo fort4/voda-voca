@@ -3,11 +3,10 @@
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, Enum, ForeignKey, Index, UniqueConstraint, text
-from sqlalchemy.dialects.mysql import BIGINT, DATETIME, INTEGER, TINYINT
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Index, Integer, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from backend.models.base import TABLE_OPTIONS, Base
+from backend.models.base import Base
 
 
 class UserWordProgress(Base):
@@ -24,30 +23,29 @@ class UserWordProgress(Base):
         Index("idx_uwp_user_memorized", "user_id", "is_memorized"),
         Index("idx_uwp_word", "word_id"),
         Index("idx_uwp_user_next_review", "user_id", "next_review_at"),
-        TABLE_OPTIONS,
     )
 
-    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(
-        BIGINT(unsigned=True),
+        Integer,
         ForeignKey("users.id", ondelete="CASCADE", name="fk_uwp_user"),
         nullable=False,
     )
     word_id: Mapped[int] = mapped_column(
-        BIGINT(unsigned=True),
+        Integer,
         ForeignKey("system_words.id", ondelete="CASCADE", name="fk_uwp_word"),
         nullable=False,
     )
-    correct_count: Mapped[int] = mapped_column(INTEGER(unsigned=True), nullable=False, server_default=text("0"))
-    wrong_count: Mapped[int] = mapped_column(INTEGER(unsigned=True), nullable=False, server_default=text("0"))
+    correct_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    wrong_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
     consecutive_correct_count: Mapped[int] = mapped_column(
-        INTEGER(unsigned=True), nullable=False, server_default=text("0")
+        Integer, nullable=False, server_default=text("0")
     )
     is_memorized: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("0"))
     last_result: Mapped[str | None] = mapped_column(
-        Enum("CORRECT", "WRONG", name="uwp_last_result"), nullable=True
+        Enum("CORRECT", "WRONG", name="uwp_last_result", create_constraint=True), nullable=True
     )
-    last_studied_at: Mapped[datetime | None] = mapped_column(DATETIME(fsp=3), nullable=True)
+    last_studied_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     # SRS (이슈 #25): 복습 단계 0~5 와 다음 복습 예정 시각. 갱신은 services/srs.py 의 schedule_next 가 맡는다.
-    interval_step: Mapped[int] = mapped_column(TINYINT(unsigned=True), nullable=False, server_default=text("0"))
-    next_review_at: Mapped[datetime | None] = mapped_column(DATETIME(fsp=3), nullable=True)
+    interval_step: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    next_review_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

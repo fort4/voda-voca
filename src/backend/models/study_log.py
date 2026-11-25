@@ -3,11 +3,10 @@
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Index, String
-from sqlalchemy.dialects.mysql import BIGINT, DATETIME
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from backend.models.base import TABLE_OPTIONS, UTC_NOW_DEFAULT, Base
+from backend.models.base import UTC_NOW_DEFAULT, Base
 
 STUDY_MODE_QUIZ = "quiz"
 STUDY_MODE_FLASHCARD = "flashcard"
@@ -25,17 +24,16 @@ class StudyLog(Base):
         Index("idx_study_logs_user_created", "user_id", "created_at"),
         Index("idx_study_logs_word", "word_id"),
         CheckConstraint("mode IN ('quiz', 'flashcard')", name="ck_study_logs_mode"),
-        TABLE_OPTIONS,
     )
 
-    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(
-        BIGINT(unsigned=True),
+        Integer,
         ForeignKey("users.id", ondelete="CASCADE", name="fk_study_logs_user"),
         nullable=False,
     )
     word_id: Mapped[int] = mapped_column(
-        BIGINT(unsigned=True),
+        Integer,
         ForeignKey("system_words.id", ondelete="CASCADE", name="fk_study_logs_word"),
         nullable=False,
     )
@@ -43,5 +41,5 @@ class StudyLog(Base):
     # 학습 모드. 플래시카드의 '알아요/헷갈려요'는 정답/오답으로 기록하되 모드로 구분한다 (이슈 #17).
     mode: Mapped[str] = mapped_column(String(20), nullable=False, server_default=STUDY_MODE_QUIZ)
     created_at: Mapped[datetime] = mapped_column(
-        DATETIME(fsp=3), nullable=False, server_default=UTC_NOW_DEFAULT
+        DateTime, nullable=False, server_default=UTC_NOW_DEFAULT
     )

@@ -3,42 +3,40 @@
 
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, ForeignKey, String, UniqueConstraint, text
-from sqlalchemy.dialects.mysql import BIGINT, DATETIME, SMALLINT
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from backend.models.base import TABLE_OPTIONS, UTC_NOW_DEFAULT, Base, utcnow
+from backend.models.base import NOCASE, UTC_NOW_DEFAULT, Base, utcnow
 
 
 class User(Base):
     __tablename__ = "users"
     __table_args__ = (
         UniqueConstraint("nickname", name="uk_users_nickname"),
-        CheckConstraint("CHAR_LENGTH(TRIM(nickname)) > 0", name="ck_users_nickname_not_blank"),
+        CheckConstraint("length(trim(nickname)) > 0", name="ck_users_nickname_not_blank"),
         # 허용 값(10/20/30)은 앱이 검증한다. DB 는 양수만 보장해 옵션을 늘려도 마이그레이션이 필요 없다 (REQ-147).
         CheckConstraint("quiz_count > 0", name="ck_users_quiz_count_positive"),
         CheckConstraint("flashcard_count > 0", name="ck_users_flashcard_count_positive"),
         CheckConstraint("daily_goal > 0", name="ck_users_daily_goal_positive"),
-        TABLE_OPTIONS,
     )
 
-    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     # bcrypt 해시 문자열 (ADR-002). 평문은 저장하지 않는다.
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    nickname: Mapped[str] = mapped_column(String(50), nullable=False)
+    nickname: Mapped[str] = mapped_column(String(50, collation=NOCASE), nullable=False)
     # 사용자가 지금 집중해서 학습하는 표준 단어장. 단어장이 지워지면 NULL 로 돌아간다.
     active_vocabulary_id: Mapped[int | None] = mapped_column(
-        BIGINT(unsigned=True),
+        Integer,
         ForeignKey("system_vocabularies.id", ondelete="SET NULL", name="fk_users_active_vocabulary"),
         nullable=True,
     )
     # 학습 개수 설정 (REQ-147): 퀴즈·플래시카드 1회 문항 수와 하루 목표. 기본 10.
-    quiz_count: Mapped[int] = mapped_column(SMALLINT(unsigned=True), nullable=False, server_default=text("10"))
-    flashcard_count: Mapped[int] = mapped_column(SMALLINT(unsigned=True), nullable=False, server_default=text("10"))
-    daily_goal: Mapped[int] = mapped_column(SMALLINT(unsigned=True), nullable=False, server_default=text("10"))
+    quiz_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("10"))
+    flashcard_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("10"))
+    daily_goal: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("10"))
     created_at: Mapped[datetime] = mapped_column(
-        DATETIME(fsp=3), nullable=False, server_default=UTC_NOW_DEFAULT
+        DateTime, nullable=False, server_default=UTC_NOW_DEFAULT
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DATETIME(fsp=3), nullable=False, server_default=UTC_NOW_DEFAULT, onupdate=utcnow
+        DateTime, nullable=False, server_default=UTC_NOW_DEFAULT, onupdate=utcnow
     )

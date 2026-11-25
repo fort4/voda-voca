@@ -8,7 +8,7 @@
 
 from datetime import date, datetime, time, timedelta
 
-from sqlalchemy import Integer, case, func, literal_column, select
+from sqlalchemy import Date, Integer, case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import Bookmark, StudyLog, SystemVocabulary, SystemWord, UserWordProgress
@@ -26,8 +26,8 @@ def kst_today(now: datetime) -> date:
 
 
 def _kst_day_of(column):
-    """UTC 로 저장된 시각 컬럼을 한국 날짜(DATE)로 바꾸는 SQL 식."""
-    return func.date(func.date_add(column, literal_column("INTERVAL 9 HOUR")))
+    """UTC 로 저장된 시각 컬럼을 한국 날짜(DATE)로 바꾸는 SQL 식 (SQLite date() 에 +9 시간 보정을 준다)."""
+    return func.date(column, "+9 hours", type_=Date)
 
 
 async def wrong_word_ids(db: AsyncSession, user_id: int) -> set[int]:

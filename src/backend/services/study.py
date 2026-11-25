@@ -127,9 +127,10 @@ def _build_question(
 
 
 async def lock_session(db: AsyncSession, user_id: int, session_id: int) -> QuizSession:
-    """세션 행을 FOR UPDATE 로 잠가 가져온다. 같은 세션의 동시 요청(재전송, 중복 제출)이 순서대로 처리된다."""
+    """세션 행을 가져온다. 같은 세션의 동시 요청(재전송, 중복 제출)은 트랜잭션이 BEGIN IMMEDIATE 로 시작해
+    쓰기가 한 번에 하나씩 처리되므로(db/session.py) 순서대로 처리된다. (SQLite 에는 행 잠금이 없다.)"""
     query = select(QuizSession).where(QuizSession.id == session_id, QuizSession.user_id == user_id)
-    row = (await db.execute(query.with_for_update())).scalar_one_or_none()
+    row = (await db.execute(query)).scalar_one_or_none()
     if row is None:
         raise QuizSessionNotFoundError
     return row

@@ -3,11 +3,10 @@
 
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, CheckConstraint, ForeignKey, Index, String, text
-from sqlalchemy.dialects.mysql import BIGINT, DATETIME
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Index, Integer, JSON, String, text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from backend.models.base import TABLE_OPTIONS, UTC_NOW_DEFAULT, Base
+from backend.models.base import UTC_NOW_DEFAULT, Base
 
 QUIZ_SOURCE_VOCABULARY = "vocabulary"
 QUIZ_SOURCE_BOOKMARKS = "bookmarks"
@@ -36,26 +35,25 @@ class QuizSession(Base):
         ),
         CheckConstraint("mode IN ('quiz', 'flashcard')", name="ck_quiz_sessions_mode"),
         Index("idx_quiz_sessions_user", "user_id"),
-        TABLE_OPTIONS,
     )
 
-    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(
-        BIGINT(unsigned=True),
+        Integer,
         ForeignKey("users.id", ondelete="CASCADE", name="fk_quiz_sessions_user"),
         nullable=False,
     )
     vocabulary_id: Mapped[int | None] = mapped_column(
-        BIGINT(unsigned=True),
+        Integer,
         ForeignKey("system_vocabularies.id", ondelete="CASCADE", name="fk_quiz_sessions_vocabulary"),
         nullable=True,
     )
     source: Mapped[str] = mapped_column(String(16), nullable=False)
     mode: Mapped[str] = mapped_column(String(20), nullable=False, server_default="quiz")
     questions: Mapped[list[dict]] = mapped_column(JSON, nullable=False)
-    answers: Mapped[dict] = mapped_column(JSON, nullable=False, server_default=text("(JSON_OBJECT())"))
+    answers: Mapped[dict] = mapped_column(JSON, nullable=False, server_default=text("'{}'"))
     is_submitted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    expires_at: Mapped[datetime] = mapped_column(DATETIME(fsp=3), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DATETIME(fsp=3), nullable=False, server_default=UTC_NOW_DEFAULT
+        DateTime, nullable=False, server_default=UTC_NOW_DEFAULT
     )
