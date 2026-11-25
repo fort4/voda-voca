@@ -64,6 +64,7 @@
 | :--- | :--- | :--- |
 | 비밀번호 | 최소 8자, 최대 **72바이트(UTF-8)** | 한글은 3바이트이므로 글자 수와 다를 수 있음 |
 | 닉네임 | 2~30자 (공백 제거 후), 중복 불가 | 대소문자 무시 유일 (409) |
+| CSV 업로드 (#26) | 파일 512KB, 데이터 500행 | 크기 초과 413, 행 수 초과 400 |
 | 카탈로그 `category` | 최대 50자 | 필터 값 |
 | 카탈로그 `level` | 1~5 | 범위 밖은 422 |
 | 세션 `count` | 1~30 (생략하면 내 설정, 기본 10) | 범위 밖·null 은 422 |
@@ -104,9 +105,10 @@
 | 23 | POST | `/api/admin/vocabularies/{vocabulary_id}/words` | REQ-161 | 관리자 | 201 | 401, 403, 404, 409, 422 |
 | 24 | PUT | `/api/admin/words/{word_id}` | REQ-161 | 관리자 | 200 | 401, 403, 404, 409, 422 |
 | 25 | DELETE | `/api/admin/words/{word_id}` | REQ-161 | 관리자 | 204 | 401, 403, 404 |
+| 26 | POST | `/api/admin/vocabularies/{vocabulary_id}/words/import` | REQ-162 | 관리자 | 200 | 400, 401, 403, 404, 413, 415 |
 | — | GET | `/health` | 운영 | — | 200 | 503 |
 
-> 이 표는 `app.openapi()` 의 경로·메서드 집합과 일치합니다 (인증 7건, 표준 단어장 3건, 북마크 3건, 학습 7건, 설정 2건, 관리 6건 = 28건 + health).
+> 이 표는 `app.openapi()` 의 경로·메서드 집합과 일치합니다 (인증 7건, 표준 단어장 3건, 북마크 3건, 학습 7건, 설정 2건, 관리 7건 = 29건 + health).
 
 ---
 
@@ -343,7 +345,7 @@
 
 ---
 
-### 3.8 관리 API (REQ-160, REQ-161)
+### 3.8 관리 API (REQ-160~162)
 
 모두 관리자(REQ-159) 전용입니다. 비로그인 401, 일반 사용자 403 `{"detail": "관리자만 사용할 수 있습니다."}`.
 
@@ -359,6 +361,12 @@
 
 **#25 DELETE `/api/admin/words/{word_id}`** — 204. 모든 사용자의 그 단어 이력·진도·북마크가 함께 지워집니다.
 
+**#26 POST `/api/admin/vocabularies/{vocabulary_id}/words/import`** — CSV 일괄 등록(REQ-162). 본문은 **CSV 파일 원문**이며 `Content-Type: text/csv` 입니다(`multipart` 가 아닙니다). 200 `{"created": n, "skipped": n}`. 중복 표제어는 오류가 아니라 `skipped` 에 셉니다.
+
+- 400 + `X-Error-Code: CSV_INVALID`: `{"detail": "문자열", "errors": [{"row": 3, "message": "뜻이 비어 있습니다."}]}`. `row` 는 첫 줄이 1인 행 번호이고 최대 20건입니다. 인코딩·행 수 초과처럼 파일 전체의 문제면 `errors` 는 빈 배열입니다. 422 의 `detail` 은 입력 필드 오류 배열이라 쓰지 않았습니다.
+- 413 + `X-Error-Code: CSV_TOO_LARGE`: 512KB 초과. `Content-Length` 가 없어도 읽는 도중에 멈춥니다.
+- 415: `Content-Type` 이 `text/csv` 가 아님.
+
 - 표준(시드) 콘텐츠의 수정·삭제: 403 + `X-Error-Code: SEED_READ_ONLY`
 - 표제어 중복(대소문자·악센트 무시): 409 + `X-Error-Code: TERM_TAKEN`
 - 없는 단어장·단어: 404
@@ -373,6 +381,7 @@
 | 401 | 인증 필요 또는 세션 만료 | §5.2 정책 적용 (로그인 화면 이동). 로그인 요청 자체의 401은 제외 |
 | 404 | 대상 없음 또는 접근 불가 (없는 단어장·단어·세션, 타인 세션) | "찾을 수 없습니다" 안내. 타인 자원과 구분하지 않음 |
 | 409 | 충돌 (닉네임 중복, 답 변경 시도, 이미 끝난 세션, 단어 삭제, 출제할 단어 없음) | `X-Error-Code` 로 분기 (§6.3). 닉네임 중복은 입력 칸 아래에 안내 |
+| 413, 415 | 업로드 크기 초과, 본문 형식 오류 (#26) | 등록 모달에 `detail` 을 그대로 표시 |
 | 422 | 입력 검증 실패 | `loc` 마지막 요소로 필드를 찾아 해당 입력 아래에 표시 |
 | **429** | 로그인 시도 과다 | §5.4 정책 적용 (Retry-After 카운트다운, 버튼 비활성) |
 | 503 | 서버 또는 DB 이상 | 재시도 안내. 서버 오류 화면 |
@@ -413,13 +422,14 @@
  * @property {'GET'|'POST'|'PUT'|'PATCH'|'DELETE'} [method]
  * @property {Record<string, string|number|boolean|null|undefined>} [query]
  * @property {unknown} [body]
+ * @property {string} [contentType]  지정하면 body 를 JSON 으로 바꾸지 않고 그대로 보낸다 (파일 업로드)
  * @property {AbortSignal} [signal]
  */
 
 /**
  * 백엔드 API 호출 래퍼.
  * - credentials: 'include' 로 쿠키를 보낸다.
- * - 본문은 JSON, 204 는 null 을 반환한다.
+ * - 본문은 JSON(contentType 을 주면 원문), 204 는 null 을 반환한다.
  * - 실패는 ApiError 로 던진다 (status, detail, retryAfter).
  */
 export async function api(path, opts = {}) { /* 설계 */ }
@@ -543,3 +553,4 @@ POST /api/study/sessions  ─►  items[0..N-1]
 | v2.2 개정 | 2026-11-26 | 단어 목록(#6)에 검색어 `q` 파라미터 추가 (REQ-163). 하위 호환 | Claude |
 | v2.2 개정 | 2026-11-26 | 비밀번호 변경 `PUT /api/auth/me/password`(#4c, REQ-164) 추가, `UserOut.is_admin` 추가, `admin` 예약 닉네임, 관리자 탈퇴 403 (REQ-159) | Claude |
 | v2.2 개정 | 2026-11-26 | 관리 API #20~#25 추가(§3.8, REQ-160·161), 단어장·단어 응답에 `source` 추가 | Claude |
+| v2.2 개정 | 2026-11-26 | CSV 일괄 등록 `#26` 추가(REQ-162), 400 `CSV_INVALID`·413·415, 래퍼의 `contentType` 옵션 | Claude |

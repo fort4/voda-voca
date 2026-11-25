@@ -54,9 +54,9 @@
 
 | 대상 | 파일 수 | 케이스 수 | 측정 결과 |
 | :--- | :-: | :-: | :--- |
-| 백엔드 `pytest -q` (전체) | 49 | **823** | **820 통과, 3 skip, 실패 0** (약 36초). skip 3건은 마이그레이션 파일 3개의 스캔을 건너뛰는 항목(마이그레이션은 별도 테스트가 검사). 이 중 `no_db` 313건은 DB 서버 없이 약 7초 |
-| 프론트엔드 `node --test tests/` (전체) | 50 | **577** | **577 통과, 실패 0** |
-| 합계 | 99 | 1,400 | 전체 통과 (2026-11-26 REQ-160·161 반영 후 재측정) |
+| 백엔드 `pytest -q` (전체) | 51 | **873** | **870 통과, 3 skip, 실패 0** (약 39초). skip 3건은 마이그레이션 파일 3개의 스캔을 건너뛰는 항목(마이그레이션은 별도 테스트가 검사). 이 중 `no_db` 347건은 DB 서버 없이 약 8초 |
+| 프론트엔드 `node --test tests/` (전체) | 51 | **587** | **587 통과, 실패 0** |
+| 합계 | 102 | 1,460 | 전체 통과 (2026-11-26 REQ-162 반영 후 재측정) |
 
 **측정 조건**
 - 2026-11-25, SQLite 전환(ADR-010) 후 측정. 임시 SQLite 파일에 마이그레이션 `0001` 과 시드가 적용된 상태다. `alembic check` 는 `No new upgrade operations detected.` 이다.
@@ -98,7 +98,8 @@
 | TC-158 | REQ-158 가입 입력 확인 | 자동 | `test_auth_api.py`(이메일 필드·컬럼 없음, 확인란 불일치 422·계정 미생성, 확인란 누락 422, 닉네임 중복 409+`X-Error-Code`, 대소문자 무시), `test_auth_schemas.py`(`password_confirm` 일치·필수, 비밀번호 복잡도 규칙 없음, 로그인 입력), `test_availability_api.py`(사용 가능/불가, 대소문자·공백 무시, 규칙 위반 422, IP 당 30회 후 429+`Retry-After`, 다른 IP·로그인 제한과 분리, 창이 지나면 해제, `check-email` 404), `test_login_rate_limit_api.py`(계정 키 대소문자·공백 무시), `availability.test.js`(확인한 값에만 유효, 고치면 무효, 오래된 응답 무시, 제출 가능 판정), `validate.test.js`(`passwordConfirmState`), `signup-ui.test.js`(확인 버튼 44px·`type="button"`·`aria-live`, 이메일 입력 없음, 중복 확인 API 호출, 확인 전 가입 비활성, 안내 줄 없음, 버튼 이름), `dark-theme.test.js`(새 색 클래스) | 소스 검사 수준이며 브라우저 실물(모바일 폭에서 입력 칸과 확인 버튼이 한 줄에 맞는지, 다크 모드)은 수동 |
 | TC-159 | REQ-159 관리자 계정 | 자동 | `test_admin_account_api.py`(계정 생성·로그인·기본 단어장, 재실행 시 보존, 동시 생성 1개, 앱 시작 시 준비, 예약 닉네임, 일반 사용자 `is_admin` false, 탈퇴 403, 권한 의존성 401/403/200) | 관리 API 의 권한은 TC-160·161 |
 | TC-160 | REQ-160 관리자 단어장 | 자동 | `test_admin_vocabulary_api.py`(권한 401/403, 생성·수정·삭제, 검증, 표준 단어장 403, 404, 삭제 연쇄와 활성 선택 해제, 빈 단어장), `admin-model.test.js`, `admin-ui.test.js` | 브라우저 실물(모바일 폭, 다크 모드, 입력 모달)은 수동 |
-| TC-161 | REQ-161 관리자 단어 | 자동 | `test_admin_word_api.py`(권한, 등록·수정·삭제, 중복(대소문자·악센트)과 동시 등록, 표준 단어 403, 이력 삭제, 진행 중 세션 409, 단어 수), `test_system_seed_admin_words.py`(관리자 단어 보존·시드 우선), `test_migration_0003.py`(데이터·이력·`NOCASE` 보존, downgrade), `admin-model.test.js`, `admin-ui.test.js`, `word-search-model.test.js`(다시 불러오기) | 위와 같음 |
+| TC-161 | REQ-161 관리자 단어 | 자동 | `test_admin_word_api.py`(권한, 등록·수정·삭제, 중복(대소문자·악센트)과 동시 등록, 표준 단어 403, 이력 삭제, 진행 중 세션 409, 단어 수), `test_system_seed_admin_words.py`(관리자 단어 보존·시드 우선), `test_migration_0003.py`(데이터·이력·`NOCASE` 보존, downgrade), `admin-model.test.js`, `admin-ui.test.js`(관리자의 "단어 관리" 버튼 이름 포함), `word-search-model.test.js`(다시 불러오기) | 위와 같음 |
+| TC-162 | REQ-162 CSV 일괄 등록 | 자동 | `test_csv_import_units.py`(인코딩, 열 이름, 빈 줄, 따옴표, 길이, 행 번호와 20행 제한, 500행 경계), `test_admin_csv_import_api.py`(권한, 등록·중복 건너뛰기·재업로드, 파일 전체 거부, 512KB 경계와 `Content-Length` 없는 전송, 415, 404, 업로드 중 다른 쓰기 가능), `csv-import.test.js`(원문 전송, 파일 확인, 결과·오류 문구, 모달 배선) | 브라우저 실물(모바일 폭, 다크 모드, 파일 선택, 오류 목록)은 수동 |
 | TC-163 | REQ-163 단어 검색 | 자동 | `test_vocabulary_search_api.py`(표제어·뜻 부분 일치, 예문 제외, 대소문자 무시, 와일드카드, 빈 검색어·공백, 단어장 범위, 페이지와 `total`, 북마크, 100자 경계, 401·404), `word-search-model.test.js`(검색어 정리, 페이지 이어 붙이기, 중복 요청 방지, 늦은 응답·실패 무시, 재시도, 하단 안내), `word-search-ui.test.js`(입력 속성, `q` 파라미터, 지연·취소, 조합 중 Enter, `aria-live`) | 브라우저 실물(모바일 폭에서 키보드가 올라온 시트, 다크 모드, 한글 입력)은 수동 |
 | TC-164 | REQ-164 비밀번호 변경 | 자동 | `test_password_change_api.py`(401, 변경 성공, 400 과 `X-Error-Code`, 새 비밀번호 규칙 422, 다른 세션만 만료, 실패 시 세션 유지, 429 와 성공 시 초기화), `mypage-model.test.js`(계정 표시·입력 판정·오류 배치), `mypage-ui.test.js`(메뉴 항목·라우트·세 입력 칸·중복 제출 방지·관리자 탈퇴 숨김), `routes.test.js` | 브라우저 실물(모바일 폭, 다크 모드, 비밀번호 관리자 자동 완성)은 수동 |
 | TC-157 | REQ-157 출제 방향·형식 | 자동 | `test_quiz_variants_units.py`(영→한/한→영 4지선다 선지·정답 위치, OX 참·거짓 분포와 `correct_index`, 섞기가 문항마다 실제 방향을 정함, 보기 부족 시 None, 옛 `_build_question` 호환), `test_quiz_variants_api.py`(기본값, 422, 세션 컬럼 저장, 한→영 `term`·`context` 비노출과 채점, OX 채점과 범위 밖 선지 400, 섞기 로그에 실제 방향 기록, 플래시카드 무시, 북마크 복습에 적용), `quiz-variants.test.js`(시작 요청 본문, 다시 시작 승계, 문제 문구, OX 키, 시작 경로, 선택 기억, OX 한글·영문 글자 크기 규칙, 플래시카드 전환 키프레임이 투명도만 바꿈), `test_sqlite_schema.py`(마이그레이션 선형 체인) | 마이그레이션 0002 는 `alembic upgrade`→`check`→`downgrade`→`upgrade` 왕복으로 확인. 화면 실물(OX 버튼 배치·다크 모드)은 수동 |
@@ -272,6 +273,7 @@
 | v1.2 개정 | 2026-11-26 | **TC-163 신설**(단어 검색), 기준선 pytest 745건(743 통과·2 skip)·node 552건·합계 1,297건 | Claude |
 | v1.2 개정 | 2026-11-26 | **TC-159·164 신설**(관리자 계정, 비밀번호 변경), 기준선 pytest 769건(767 통과·2 skip)·node 562건·합계 1,331건 | Claude |
 | v1.2 개정 | 2026-11-26 | **TC-160·161 신설**(관리자 단어장·단어), TC-122 갱신, 기준선 pytest 823건(820 통과·3 skip)·node 577건·합계 1,400건 | Claude |
+| v1.2 개정 | 2026-11-26 | **TC-162 신설**(CSV 일괄 등록), TC-161 보강, 기준선 pytest 873건(870 통과·3 skip)·node 587건·합계 1,460건 | Claude |
 | v1.2 개정 | 2026-11-25 | **TC-154·155·156 신설**(자주 틀리는 단어, 시험 성적 추이, 비밀번호 토글). 기준선 재측정: 백엔드 686건(685 통과·1 skip, +17), 프론트엔드 492건(+14), 합계 1,178건. `alembic check` 는 `No new upgrade operations detected.` (스키마 변경 없음) | Claude |
 | v1.1 개정 | 2026-11-25 | 앱 컨테이너화 반영: TC-116·117 개정, TC-152 신설, 시나리오 S10, 기준선 백엔드 587건(`no_db` 206건)·합계 1,060건 | Claude |
 | v1.1 개정 | 2026-11-24 | 외부 자원 자체 호스팅(REQ-151) 반영: TC-151 추가, 기준선 node 473건·합계 1,030건 | Claude |

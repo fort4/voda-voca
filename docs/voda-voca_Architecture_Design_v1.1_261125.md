@@ -127,7 +127,7 @@ core/             config, deps(get_current_user, get_admin_user), rate_limit, ad
 | :--- | :--- | :--- |
 | `/api/auth` | 가입, 로그인, 로그아웃, 내 정보, 탈퇴 | `auth`, `password`, `session` |
 | `/api/vocabularies`, `/api/users/me` | 표준 단어장 목록, 단어 목록, 활성 단어장 지정 | `system_vocab` |
-| `/api/admin` | 관리자 단어장·단어 생성·수정·삭제 (라우터 전체에 관리자 검사) | `admin_content` |
+| `/api/admin` | 관리자 단어장·단어 생성·수정·삭제, CSV 일괄 등록 (라우터 전체에 관리자 검사) | `admin_content`, `csv_import`(DB 없는 파싱·검증, ADR-013) |
 | `/api/study/sessions` | 학습 세션 생성, 문항별 답 기록 | `learning_session`, `session_picker`, `progress`, `srs` |
 | `/api/study` | 오답 단어, 통계, 학습 이력 | `stats`, `study_log`, `study` |
 | `/api/bookmarks` | 북마크 추가·삭제·목록 | `bookmark` |
@@ -267,6 +267,7 @@ POST /api/study/sessions/{id}/answer
 | :--- | :--- | :--- | :--- |
 | **v1.1** | 2026-11-25 | **SQLite 전환·과제 서버 규격(ADR-010, REQ-153)**: §3 배치도, §4 토폴로지·설정 주입, §4.2 서버 접두사 대응 신설, 4.1 이미지(루트 Dockerfile, uid 10001, entrypoint), §5·§8 DB 표기. A11(백업은 DB 파일 복사로 단순화) | Claude |
 | v1.1 개정 | 2026-11-26 | §5 에 관리 라우터·서비스와 시드의 관리자 등록분 처리 추가 (REQ-160·161, ADR-012) | Claude |
+| v1.1 개정 | 2026-11-26 | §5 에 CSV 파싱 서비스 `csv_import` 추가 (REQ-162, ADR-013) | Claude |
 | v1.1 개정 | 2026-11-26 | §4 기동 순서에 관리자 계정 준비 추가 (REQ-159, ADR-011). 스키마 변경 없음 | Claude |
 | v1.0 개정 | 2026-11-25 | 앱 컨테이너화 반영: P3, §3 배치도, §4 토폴로지·설정 주입·4.1 신설, §8 테스트 구조, A2 해소, A10·A11 추가 (ADR-009) | Claude |
 | v1.0 개정 | 2026-11-24 | 외부 CDN 자체 호스팅 반영: P1, §3 배치도·외부 시스템, §5 디렉터리, A4 해소 | Claude |

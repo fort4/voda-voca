@@ -26,7 +26,7 @@
 | 영역 | ID | 상태 |
 | :--- | :--- | :---: |
 | 단어 등록·수정·삭제 | VOCA-FR-001, 002 | 🟡 (관리자 전용. 수정·삭제는 관리자 등록분만) |
-| CSV 일괄 등록 | VOCA-FR-003 | ❌ |
+| CSV 일괄 등록 | VOCA-FR-003 | 🟡 (관리자 전용, 1회 500행. 중복은 건너뛰고 건수 보고) |
 | 단어 검색 | VOCA-FR-004 | ✅ (단어장 안에서 표제어·뜻 검색) |
 | 암기 | VOCA-FR-012, 013 | ✅ |
 | 암기 | VOCA-FR-011, 014 | 🟡 (일차 개념 없음, 간격 반복으로 대체) |
@@ -209,25 +209,25 @@ curl http://localhost:8080/health
 
 ## 4. 테스트 실행
 
-### 4.1 백엔드 (pytest, 823건)
+### 4.1 백엔드 (pytest, 873건)
 Docker 도 DB 서버도 필요 없습니다. 테스트가 임시 SQLite 파일을 만들어 마이그레이션과 시드를 적용합니다.
 ```bash
 .venv/bin/python -m pytest -q
 ```
 - 통합 테스트는 세션 단위 임시 SQLite 파일에 연결하며 개발자의 실제 DB(`DB_PATH`)는 건드리지 않습니다. 테스트 계정은 `tvoda-` 접두사를 씁니다.
-- 최근 검증 결과: 668 passed, 1 skipped (2026-11-25, 약 36초). 커버리지는 98%(2026-11-19 측정, SQLite 전환 전)입니다 (`--cov=backend`, 설정은 `.coveragerc`).
-- **DB 없이 빠르게**: 순수 단위 테스트에는 `no_db` 표시가 붙어 있어 `.venv/bin/python -m pytest -q -m no_db` (287건, 약 9초)로 돌립니다. 새 순수 단위 테스트에는 `pytestmark = pytest.mark.no_db` 를 붙이세요 (표시가 거짓이면 `test_no_db_guard.py` 가 실패합니다).
+- 최근 검증 결과: 870 passed, 3 skipped (2026-11-26, 약 39초). 커버리지는 98%(2026-11-19 측정, SQLite 전환 전)입니다 (`--cov=backend`, 설정은 `.coveragerc`).
+- **DB 없이 빠르게**: 순수 단위 테스트에는 `no_db` 표시가 붙어 있어 `.venv/bin/python -m pytest -q -m no_db` (347건, 약 8초)로 돌립니다. 새 순수 단위 테스트에는 `pytestmark = pytest.mark.no_db` 를 붙이세요 (표시가 거짓이면 `test_no_db_guard.py` 가 실패합니다).
 - **푸시 전 마이그레이션 검사**: `.venv/bin/alembic -c src/backend/alembic.ini check` 가 `No new upgrade operations detected.` 를 내야 합니다 (모델은 바꿨는데 마이그레이션을 빼먹은 경우를 잡습니다).
 - 개발 중에는 지금 작업하는 테스트만 돌립니다 (예: `.venv/bin/python -m pytest -q src/backend/tests/test_bookmark_api.py`).
 
-### 4.2 프론트엔드 (node --test, 577건)
+### 4.2 프론트엔드 (node --test, 587건)
 ```bash
 cd src/frontend
 npm test            # 또는: node --test tests/
 ```
 - 외부 패키지를 설치하지 않습니다. 순수 로직(API 클라이언트, 라우터, 세션 러너, 콤보, 사운드, 저장소, 뷰모델)과, 화면 배선·디자인 토큰·다크 모드 누락을 소스 수준에서 검사하는 테스트를 돌립니다.
-- 최근 검증 결과: 577 passed (2026-11-26).
-- 누적 검증: 백엔드 820건 통과(3 skip), 프론트엔드 577건 통과.
+- 최근 검증 결과: 587 passed (2026-11-26).
+- 누적 검증: 백엔드 870건 통과(3 skip), 프론트엔드 587건 통과.
 
 ### 4.3 문법 검사 (프론트엔드)
 ```bash
@@ -245,7 +245,13 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 - 로그아웃은 확인 없이 바로 처리합니다. **회원 탈퇴**는 마이페이지에서 시작하며 경고를 확인한 뒤 닉네임을 직접 입력해야 진행되며, 계정과 북마크, 학습 기록, 진행도가 영구 삭제됩니다 (표준 단어장은 공용이라 영향이 없습니다).
 - **비밀번호 변경**: 계정 메뉴의 **마이페이지**에서 현재 비밀번호를 확인하고 바꿉니다. 바꾸면 다른 기기의 로그인은 해제됩니다 (REQ-164).
 - **관리자 계정**: 닉네임 `admin`, 초기 비밀번호 `admin1234` 입니다. 서버가 처음 시작할 때 만들며, **배포한 뒤에는 바로 로그인해 비밀번호를 바꾸세요.** 바꾼 비밀번호는 재시작해도 유지됩니다. `admin` 닉네임은 가입에 쓸 수 없고 관리자 계정은 탈퇴할 수 없습니다 (REQ-159).
-- **관리자의 단어 관리** (REQ-160·161): 탐색에서 "새 단어장"을 만들고, 미리보기의 "단어 추가"로 단어를 넣습니다(표준 단어장에도 가능). 관리자가 등록한 단어장·단어만 수정·삭제할 수 있고, 삭제하면 모든 사용자의 관련 학습 이력·북마크도 지워집니다. 같은 단어장의 표제어는 대소문자·악센트를 무시하고 중복될 수 없습니다.
+- **관리자의 단어 관리** (REQ-160·161): 탐색에서 "새 단어장"을 만들고, 카드의 "단어 관리"에서 "단어 추가"로 단어를 넣습니다(표준 단어장에도 가능). 관리자가 등록한 단어장·단어만 수정·삭제할 수 있고, 삭제하면 모든 사용자의 관련 학습 이력·북마크도 지워집니다. 같은 단어장의 표제어는 대소문자·악센트를 무시하고 중복될 수 없습니다.
+- **CSV 일괄 등록** (REQ-162): "단어 관리"의 "CSV 등록"에서 파일을 고릅니다.
+  - 첫 줄은 열 이름입니다. `term`, `meaning` 필수, `example`, `example_meaning` 선택. 쉼표가 들어간 값은 큰따옴표로 감쌉니다.
+  - UTF-8(엑셀의 "CSV UTF-8"), 한 번에 500행·512KB 까지입니다. 더 많으면 파일을 나눠 올립니다(2,000개는 4개 이상).
+  - 형식 오류가 하나라도 있으면 파일 전체를 등록하지 않고 오류 행 번호를 알려 줍니다.
+  - **중복 정책**: 같은 단어장에 이미 있거나 파일 안에서 겹치는 표제어(대소문자·악센트 무시)는 건너뛰고 건수를 알려 줍니다. 기존 단어는 바꾸지 않습니다.
+  - 표준 단어장에 올린 단어는 하나씩만 지울 수 있습니다. 시험할 때는 새 단어장을 만들어 올리세요(단어장 삭제로 한 번에 정리).
 
 ### 5.2 표준 단어장과 탐색 (REQ-140~142, REQ-145)
 - 서비스가 제공하는 단어장 5개, 단어 1,000개입니다. 각 단어에는 표제어, 뜻, 예문, 예문 해석, 발음기호, 품사가 있습니다.
@@ -309,7 +315,7 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 | 북마크 | `PUT·DELETE /bookmarks/{word_id}`, `GET /bookmarks` |
 | 복습·통계 | `GET /study/wrong-words`, `GET /study/stats`, `GET /study/logs` |
 | 사용자 설정 | `GET·PATCH /users/me/settings` |
-| 관리(관리자) | `POST·PATCH·DELETE /admin/vocabularies`, `POST /admin/vocabularies/{id}/words`, `PUT·DELETE /admin/words/{id}` |
+| 관리(관리자) | `POST·PATCH·DELETE /admin/vocabularies`, `POST /admin/vocabularies/{id}/words`, `POST /admin/vocabularies/{id}/words/import`, `PUT·DELETE /admin/words/{id}` |
 
 ---
 
@@ -344,7 +350,7 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 | API 연동 규격서 | `docs/voda-voca_API_Integration_Spec_v2.2_261119.md` | `docs/old/` |
 | UI/UX 설계서 | `docs/voda-voca_UIUX_Design_Spec_v2.2_261105.md` | `docs/old/` |
 | 시스템 아키텍처 설계서 | `docs/voda-voca_Architecture_Design_v1.1_261125.md` | `docs/old/` |
-| 아키텍처 결정 기록 (ADR-001~012) | `docs/voda-voca_Decision_Records_v1.1_261125.md` | `docs/old/` |
+| 아키텍처 결정 기록 (ADR-001~013) | `docs/voda-voca_Decision_Records_v1.1_261125.md` | `docs/old/` |
 | 테스트 명세서 | `docs/voda-voca_Test_Specification_v1.2_261125.md` | `docs/old/` |
 
 v2.2 진행 중에는 파일명을 바꾸지 않고 각 문서의 변경 이력 표에 개정 행을 추가합니다. 작업 일지와 결정 기록은 `ai-agent/claude/`에 있습니다.
