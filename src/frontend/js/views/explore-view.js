@@ -3,7 +3,7 @@
  * 파일 위치: src/frontend/js/views/explore-view.js
  */
 
-import { canEditContent } from "../core/admin-model.js";
+import { canEditContent, wordSheetEntry } from "../core/admin-model.js";
 import { api } from "../core/api.js";
 import { button, clear, h, icon, refreshIcons } from "../core/dom.js";
 import { categoryOptions, filterVocabularies, levelOptions, cardActionVariants, normalizeFilter, vocabularyCard } from "../core/explore-model.js";
@@ -65,6 +65,7 @@ class ExplorePanel {
   card(vocabulary) {
     const c = vocabularyCard(vocabulary);
     const actions = cardActionVariants(c);
+    const entry = wordSheetEntry(this.user);
     return h(
       "article",
       { class: "card rise-in space-y-3" },
@@ -76,7 +77,7 @@ class ExplorePanel {
       h(
         "div",
         { class: "grid grid-cols-2 gap-2" },
-        button({ variant: actions.preview, onClick: () => openWordSheet(vocabulary, { onWordsChanged: () => this.refresh() }) }, icon("eye", "h-4 w-4"), "미리보기"),
+        button({ variant: actions.preview, onClick: () => openWordSheet(vocabulary, { onWordsChanged: () => this.refresh() }) }, icon(entry.icon, "h-4 w-4"), entry.label),
         c.isActive ? button({ variant: actions.main, onClick: () => this.ctx.navigate("/") }, icon("check", "h-4 w-4"), "홈에서 학습") : button({ variant: actions.main, disabled: this.busyId !== null, onClick: () => this.activate(vocabulary) }, "이 단어장으로 학습"),
       ),
       canEditContent(this.user, vocabulary) ? this.adminActions(vocabulary) : null,

@@ -3,7 +3,7 @@
  * 파일 위치: src/frontend/js/views/components/word-sheet.js
  */
 
-import { canEditContent } from "../../core/admin-model.js";
+import { canEditContent, wordSheetEntry } from "../../core/admin-model.js";
 import { api } from "../../core/api.js";
 import { button, h, icon, refreshIcons } from "../../core/dom.js";
 import { INPUT_CLASS } from "../../core/form.js";
@@ -113,7 +113,7 @@ export function openWordSheet(vocabulary, { onWordsChanged = () => {} } = {}) {
 
   const panel = h(
     "div",
-    { class: "surface w-full max-w-lg overflow-y-auto rounded-b-none p-4", role: "dialog", "aria-modal": "true", "aria-label": `${vocabulary.title} 미리보기`, style: "max-height: 80dvh; padding-bottom: max(1rem, env(safe-area-inset-bottom))" },
+    { class: "surface w-full max-w-lg overflow-y-auto rounded-b-none p-4", role: "dialog", "aria-modal": "true", "aria-label": `${vocabulary.title} ${wordSheetEntry(user).label}`, style: "max-height: 80dvh; padding-bottom: max(1rem, env(safe-area-inset-bottom))" },
     h("div", { class: "mb-3 flex items-center justify-between gap-2" }, h("h2", { class: "min-w-0 truncate text-lg font-bold text-zinc-900" }, vocabulary.title), button({ variant: "ghost", "aria-label": "닫기", onClick: close }, icon("x", "h-5 w-5"))),
     h("div", { class: "mb-3 space-y-2" }, searchInput, addButtons),
     list,

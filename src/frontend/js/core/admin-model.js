@@ -37,6 +37,14 @@ export function canEditContent(user, item) {
   return user?.is_admin === true && item?.source === "admin";
 }
 
+/**
+ * 단어 시트를 여는 버튼의 이름과 아이콘. 관리자에게는 시트가 단어를 관리하는 곳이라 이름으로 알린다.
+ * @param {{is_admin?: boolean}|null} user
+ */
+export function wordSheetEntry(user) {
+  return user?.is_admin === true ? { label: "단어 관리", icon: "list-checks" } : { label: "미리보기", icon: "eye" };
+}
+
 /** 필수·길이 검사를 하고 공백을 지운 값(비면 null)을 돌려준다. */
 function checkTexts(values, names, required) {
   const errors = {};

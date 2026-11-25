@@ -6,6 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { wordSheetEntry } from "../js/core/admin-model.js";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const explore = read("js/views/explore-view.js");
@@ -44,4 +45,16 @@ test("입력 모달: 서버 관리 API 를 부르고, 실패하면 모달을 연
   assert.match(src, /showLoaderOnConfirm:\s*true/);
   assert.match(src, /confirmDialog\(\{[^}]*danger:\s*true/s, "삭제는 확인을 받는다");
   assert.doesNotMatch(src, /innerHTML/);
+});
+
+test("단어 시트 진입: 관리자에게는 '단어 관리', 그 밖에는 '미리보기'다", () => {
+  assert.deepEqual(wordSheetEntry({ is_admin: true }), { label: "단어 관리", icon: "list-checks" });
+  assert.deepEqual(wordSheetEntry({ is_admin: false }), { label: "미리보기", icon: "eye" });
+  assert.deepEqual(wordSheetEntry(null), { label: "미리보기", icon: "eye" });
+});
+
+test("탐색 카드의 버튼과 시트의 이름이 같은 진입 이름을 쓴다", () => {
+  assert.match(explore, /wordSheetEntry\(this\.user\)/);
+  assert.match(explore, /openWordSheet\([\s\S]{0,120}icon\(entry\.icon[\s\S]{0,40}entry\.label/);
+  assert.match(sheet, /"aria-label":\s*`\$\{vocabulary\.title\} \$\{wordSheetEntry\(user\)\.label\}`/);
 });
