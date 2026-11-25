@@ -64,6 +64,41 @@ export function feedbackTone(state) {
   };
 }
 
+/** 홈의 퀴즈 선택지와 서버가 받는 값 (VOCA-FR-023·024) */
+export const DIRECTION_OPTIONS = Object.freeze([
+  { id: "en_to_ko", label: "영→한" },
+  { id: "ko_to_en", label: "한→영" },
+  { id: "mixed", label: "섞기" },
+]);
+export const FORMAT_OPTIONS = Object.freeze([
+  { id: "choice", label: "4지선다" },
+  { id: "ox", label: "OX" },
+]);
+
+/**
+ * 퀴즈 문제 카드에 보일 문구. 옛 세션 문항(direction·format·prompt 없음)은 영→한 4지선다로 읽는다.
+ * @param {{term?: string|null, prompt?: string|null, direction?: string, format?: string, options?: string[]|null, proposed?: string|null}} item
+ * @returns {{hint: string, prompt: string, proposed: string|null, isOx: boolean, labels: string[], promptIsKorean: boolean, proposedIsKorean: boolean}}
+ */
+export function questionCopy(item) {
+  const toEnglish = item.direction === "ko_to_en";
+  const isOx = item.format === "ox";
+  const hint = isOx
+    ? toEnglish ? "이 뜻의 단어가 맞을까요?" : "이 단어의 뜻이 맞을까요?"
+    : toEnglish ? "알맞은 단어를 고르세요" : "알맞은 뜻을 고르세요";
+  // 한글은 같은 px 에서 영문보다 커 보이므로, 화면이 어느 쪽이 한글인지 알아야 크기를 맞출 수 있다.
+  // 한→영: 문제=뜻(한글), 제시 보기=단어(영문). 영→한: 문제=단어(영문), 제시 보기=뜻(한글).
+  return {
+    hint,
+    prompt: item.prompt ?? item.term ?? "",
+    proposed: isOx ? item.proposed ?? null : null,
+    isOx,
+    labels: item.options ?? [],
+    promptIsKorean: toEnglish,
+    proposedIsKorean: !toEnglish,
+  };
+}
+
 /**
  * 키 입력을 행동으로 바꾼다. 상태 머신 액션이거나 VIEW_ACTION 이며, 해당 없으면 null.
  * 입력 칸·모달 가드는 호출하는 쪽(shortcutsBlocked)이 맡는다.
@@ -84,6 +119,10 @@ export function sessionKeyAction(key, state, { flipped = false } = {}) {
   if (state.phase !== PHASE.QUESTION_ACTIVE || state.pending || state.error) return null;
 
   if (state.mode === "quiz") {
+    if (currentItem(state)?.format === "ox") {
+      const ox = { 1: 0, 2: 1, o: 0, O: 0, x: 1, X: 1 }[key];
+      return ox === undefined ? null : { type: ACTION.SUBMIT_ANSWER, choiceIndex: ox };
+    }
     return /^[1-4]$/.test(key) ? { type: ACTION.SUBMIT_ANSWER, choiceIndex: Number(key) - 1 } : null;
   }
   if (!flipped) return key === " " || key === "Enter" ? { type: VIEW_ACTION.FLIP } : null;

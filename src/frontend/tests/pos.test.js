@@ -61,6 +61,6 @@ test("퀴즈 문제 카드: 품사는 표제어 위에 놓인다 (힌트 → 품
   const session = read("js/views/study-session-view.js");
   const quiz = session.slice(session.indexOf("function renderQuizCard"), session.indexOf("function renderChoices"));
   const at = (s) => quiz.indexOf(s);
-  assert.ok(at("session-hint") >= 0 && at('"session-meta"') >= 0 && at('"session-term"') >= 0);
-  assert.ok(at("session-hint") < at('"session-meta"') && at('"session-meta"') < at('"session-term"'), "품사 줄이 표제어보다 앞에 있어야 한다");
+  assert.ok(at("session-hint") >= 0 && at('"session-meta"') >= 0 && at("session-term") >= 0);
+  assert.ok(at("session-hint") < at('"session-meta"') && at('"session-meta"') < at("session-term"), "품사 줄이 표제어보다 앞에 있어야 한다");
 });

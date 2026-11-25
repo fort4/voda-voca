@@ -102,6 +102,8 @@ export function initialState() {
     phase: PHASE.IDLE,
     requestId: 0,
     mode: "quiz",
+    direction: "en_to_ko", // 출제 방향(퀴즈): en_to_ko | ko_to_en | mixed
+    format: "choice", // 출제 형식(퀴즈): choice | ox
     source: "all", // 출제 풀: all(활성 단어장) | bookmarks | wrong
     sessionId: null,
     vocabularyTitle: "",
@@ -183,6 +185,8 @@ function sendAnswer(state, body) {
 }
 
 const SOURCES = new Set(["all", "bookmarks", "wrong", "due"]);
+const DIRECTIONS = new Set(["en_to_ko", "ko_to_en", "mixed"]);
+const FORMATS = new Set(["choice", "ox"]);
 const START_FROM = new Set([PHASE.IDLE, PHASE.SESSION_COMPLETE, PHASE.EXPIRED, PHASE.ERROR]);
 
 /**
@@ -198,15 +202,17 @@ export function reduce(state, action) {
       if (!START_FROM.has(state.phase)) return unchanged(state);
       const mode = action.mode === "flashcard" ? "flashcard" : "quiz";
       const source = SOURCES.has(action.source) ? action.source : SOURCES.has(state.source) ? state.source : "all"; // 다시 시작은 직전 풀을 잇는다
+      const direction = DIRECTIONS.has(action.direction) ? action.direction : DIRECTIONS.has(state.direction) ? state.direction : "en_to_ko";
+      const format = FORMATS.has(action.format) ? action.format : FORMATS.has(state.format) ? state.format : "choice";
       const requestId = state.requestId + 1;
       return {
-        state: { ...initialState(), phase: PHASE.LOADING, requestId, mode, source },
+        state: { ...initialState(), phase: PHASE.LOADING, requestId, mode, source, direction, format },
         effects: [
           {
             type: EFFECT.CREATE_SESSION,
             requestId,
             // count 를 생략하면 서버가 사용자 설정(모드별 문항 수)을 쓴다 (REQ-147)
-            body: { mode, ...(action.count === undefined ? {} : { count: action.count }), include_memorized: action.includeMemorized === true, source },
+            body: { mode, ...(action.count === undefined ? {} : { count: action.count }), include_memorized: action.includeMemorized === true, source, direction, format },
           },
         ],
       };

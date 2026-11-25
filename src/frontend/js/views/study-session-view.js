@@ -7,7 +7,7 @@ import { api } from "../core/api.js";
 import { button, clear, h, kbdHint, notice, refreshIcons, skeleton } from "../core/dom.js";
 import { createSessionDriver } from "../core/session-driver.js";
 import { ACTION, PHASE, currentItem, progressOf, summaryOf } from "../core/session-runner.js";
-import { VIEW_ACTION, choiceStates, errorCopy, flashcardFaces, sessionKeyAction } from "../core/session-view-model.js";
+import { VIEW_ACTION, choiceStates, errorCopy, flashcardFaces, questionCopy, sessionKeyAction } from "../core/session-view-model.js";
 import { isButtonTarget, modalIsOpen, shortcutsBlocked } from "../core/shortcuts.js";
 import { badgeView, soundCueFor } from "../core/combo-model.js";
 import { playCue } from "../core/sound.js";
@@ -51,7 +51,7 @@ export function studySessionView(root, ctx) {
     h(
       "div",
       { class: "bookmark-slot" },
-      bookmarkButton({ wordId: item.word_id, term: item.term, store: bookmarks, onError: () => toast("북마크를 바꾸지 못했어요. 잠시 후 다시 시도해 주세요.", "error") }),
+      bookmarkButton({ wordId: item.word_id, term: item.term ?? item.prompt ?? "", store: bookmarks, onError: () => toast("북마크를 바꾸지 못했어요. 잠시 후 다시 시도해 주세요.", "error") }),
     );
 
   const driver = createSessionDriver({
@@ -223,15 +223,18 @@ export function studySessionView(root, ctx) {
 
   function renderQuizCard(item) {
     const pos = posTag(item.pos);
+    const copy = questionCopy(item);
     return h(
       "section",
       { class: "session-card" },
       bookmarkFor(item),
-      h("p", { class: "session-hint" }, "알맞은 뜻을 고르세요"),
+      h("p", { class: "session-hint" }, copy.hint),
       // 품사는 문제 화면에도 보이며 표제어 위에 둔다. 발음기호는 채점 후 해설 시트에서만 보인다 (서버가 출제 응답에서 null 로 막는다)
       pos ? h("p", { class: "session-meta" }, pos) : null,
-      h("p", { class: "session-term" }, item.term),
-      item.context ? h("p", { class: "session-context" }, item.context) : null,
+      // OX 에서는 영문 쪽을 크게, 한글 쪽을 작게 둬 두 글자의 시각적 크기를 맞춘다
+      h("p", { class: `session-term${copy.isOx && copy.promptIsKorean ? " session-term--ko" : ""}` }, copy.prompt),
+      copy.isOx ? h("p", { class: `session-proposed${copy.proposedIsKorean ? "" : " session-proposed--en"}` }, copy.proposed) : null,
+      item.context ? h("p", { class: "session-context" }, item.context) : null, // 한→영은 서버가 예문을 싣지 않는다
     );
   }
 
@@ -240,7 +243,7 @@ export function studySessionView(root, ctx) {
     const locked = state.phase !== PHASE.QUESTION_ACTIVE || Boolean(state.pending) || Boolean(state.error);
     return h(
       "div",
-      { class: "choice-list", role: "group", "aria-label": "선택지" },
+      { class: `choice-list${item.format === "ox" ? " choice-list--ox" : ""}`, role: "group", "aria-label": "선택지" },
       item.options.map((option, index) =>
         h(
           "button",
@@ -251,8 +254,9 @@ export function studySessionView(root, ctx) {
             disabled: locked,
             onclick: () => act({ type: ACTION.SUBMIT_ANSWER, choiceIndex: index }),
           },
-          h("span", { class: "choice-no", "aria-hidden": "true" }, String(index + 1)),
-          h("span", { class: "min-w-0 flex-1 break-words" }, option),
+          // OX 는 O/X 글자가 곧 선택지라 번호 배지를 달지 않는다
+          item.format === "ox" ? null : h("span", { class: "choice-no", "aria-hidden": "true" }, String(index + 1)),
+          h("span", { class: item.format === "ox" ? "" : "min-w-0 flex-1 break-words" }, option),
         ),
       ),
     );
@@ -343,7 +347,7 @@ export function studySessionView(root, ctx) {
 
   document.addEventListener("keydown", onKeydown);
   resetSpeechNotice(); // 새 학습 세션: 재생 불가 안내를 다시 한 번 허용한다
-  driver.dispatch({ type: ACTION.START, mode, source: ctx.query.source, includeMemorized: ctx.query.include_memorized === "1" });
+  driver.dispatch({ type: ACTION.START, mode, source: ctx.query.source, direction: ctx.query.direction, format: ctx.query.format, includeMemorized: ctx.query.include_memorized === "1" });
 
   return () => {
     document.removeEventListener("keydown", onKeydown);

@@ -6,6 +6,10 @@
 import { FALLBACK_SETTINGS } from "./settings-model.js";
 
 const MODE_KEY = "voda.study.mode";
+const QUIZ_OPTIONS_KEY = "voda.study.quiz-options";
+const DEFAULT_QUIZ_OPTIONS = Object.freeze({ direction: "en_to_ko", format: "choice" });
+const DIRECTIONS = ["en_to_ko", "ko_to_en", "mixed"];
+const FORMATS = ["choice", "ox"];
 const KO = "ko-KR";
 
 /** @param {unknown} mode @returns {"quiz"|"flashcard"} 알 수 없는 값은 quiz */
@@ -44,9 +48,44 @@ export function homeModel({ active, stats, settings = FALLBACK_SETTINGS }) {
  * @param {string} mode
  * @param {"all"|"bookmarks"|"wrong"|"due"} [source]
  */
-export function startPath(mode, source = "all") {
+export function startPath(mode, source = "all", options = DEFAULT_QUIZ_OPTIONS) {
+  const normalized = normalizeMode(mode);
   const suffix = source === "bookmarks" || source === "wrong" || source === "due" ? `&source=${source}` : "";
-  return `/study/session?mode=${normalizeMode(mode)}${suffix}`;
+  // 방향·형식은 퀴즈에만 적용하고, 기본값이면 쿼리를 늘리지 않는다
+  const quiz = normalized === "quiz" ? quizQuery(options) : "";
+  return `/study/session?mode=${normalized}${suffix}${quiz}`;
+}
+
+function quizQuery(options) {
+  const { direction, format } = normalizeQuizOptions(options);
+  return `${direction === DEFAULT_QUIZ_OPTIONS.direction ? "" : `&direction=${direction}`}${format === DEFAULT_QUIZ_OPTIONS.format ? "" : `&format=${format}`}`;
+}
+
+/** @param {unknown} value @returns {{direction: string, format: string}} 알 수 없는 값은 기본(영→한, 4지선다) */
+function normalizeQuizOptions(value) {
+  const raw = value && typeof value === "object" ? value : {};
+  return {
+    direction: DIRECTIONS.includes(raw.direction) ? raw.direction : DEFAULT_QUIZ_OPTIONS.direction,
+    format: FORMATS.includes(raw.format) ? raw.format : DEFAULT_QUIZ_OPTIONS.format,
+  };
+}
+
+/** @param {{getItem(key: string): string|null}|undefined} storage 마지막으로 고른 퀴즈 방향·형식. 조회 실패·깨진 값은 기본값 */
+export function loadQuizOptions(storage) {
+  try {
+    return normalizeQuizOptions(JSON.parse(storage?.getItem(QUIZ_OPTIONS_KEY) ?? "null"));
+  } catch {
+    return { ...DEFAULT_QUIZ_OPTIONS };
+  }
+}
+
+/** @param {{setItem(key: string, value: string): void}|undefined} storage @param {{direction: string, format: string}} options */
+export function saveQuizOptions(storage, options) {
+  try {
+    storage?.setItem(QUIZ_OPTIONS_KEY, JSON.stringify(normalizeQuizOptions(options)));
+  } catch {
+    // 저장소를 못 써도 화면은 그대로 동작한다
+  }
 }
 
 /** @param {{getItem(key: string): string|null}|undefined} storage @returns {"quiz"|"flashcard"} 조회 실패·깨진 값은 quiz */

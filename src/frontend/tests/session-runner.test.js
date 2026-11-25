@@ -120,13 +120,13 @@ test("START: LOADING 으로 가고 세션 생성 효과를 낸다 (기본 15문�
   const { state, effects } = reduce(initialState(), { type: ACTION.START });
   assert.equal(state.phase, PHASE.LOADING);
   assert.deepEqual(effects, [
-    { type: EFFECT.CREATE_SESSION, requestId: state.requestId, body: { mode: "quiz", include_memorized: false, source: "all" } },
+    { type: EFFECT.CREATE_SESSION, requestId: state.requestId, body: { mode: "quiz", include_memorized: false, source: "all", direction: "en_to_ko", format: "choice" } },
   ]);
 });
 
 test("START: 모드, 문항 수, 숙련 단어 포함 옵션을 요청 본문에 싣는다", () => {
   const { effects } = reduce(initialState(), { type: ACTION.START, mode: "flashcard", count: 5, includeMemorized: true });
-  assert.deepEqual(effects[0].body, { mode: "flashcard", count: 5, include_memorized: true, source: "all" });
+  assert.deepEqual(effects[0].body, { mode: "flashcard", count: 5, include_memorized: true, source: "all", direction: "en_to_ko", format: "choice" });
 });
 
 test("START: 북마크·오답·오늘 복습은 source 를 서버로 보내고 상태에 기억한다", () => {

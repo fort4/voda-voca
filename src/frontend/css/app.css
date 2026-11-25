@@ -393,16 +393,16 @@ a:focus-visible,
 .flip-card.is-flipped {
   transform: rotateY(180deg);
 }
-/* 카드 전환: 평가한 카드는 옆으로 빠지고, 다음 카드는 아래에서 살짝 올라오며 나타난다 */
+/* 카드 전환: 평가한 카드는 제자리에서 사라지고, 다음 카드는 제자리에서 나타난다 (이동·회전 없음) */
 @keyframes card-exit-known {
-  to { opacity: 0; transform: translateX(48px) rotate(3deg); }
+  to { opacity: 0; }
 }
 @keyframes card-exit-unsure {
-  to { opacity: 0; transform: translateX(-48px) rotate(-3deg); }
+  to { opacity: 0; }
 }
 @keyframes card-enter {
-  from { opacity: 0; transform: translateY(14px) scale(0.98); }
-  to { opacity: 1; transform: none; }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 .flip-scene.card-exit-known { animation: card-exit-known 180ms ease-in forwards; }
 .flip-scene.card-exit-unsure { animation: card-exit-unsure 180ms ease-in forwards; }
@@ -842,6 +842,14 @@ html.dark {
 .session-hint { font-size: var(--fs-micro); font-weight: 600; letter-spacing: 0.04em; color: var(--accent); text-transform: uppercase; }
 
 .choice-list { display: flex; flex-direction: column; gap: 10px; }
+/* OX: 두 버튼을 한 줄에 나란히 (엄지로 누르기 좋게 큼직하게) */
+.choice-list--ox { flex-direction: row; }
+.choice-list--ox .choice-btn { min-height: 72px; justify-content: center; text-align: center; font-size: var(--fs-display); font-weight: 800; }
+/* OX 문제 카드가 제시하는 보기. 맞는지 틀린지 묻는 대상이라 표제어보다 한 단계 낮은 강조 */
+/* 한→영 OX: 한글 문제는 작게, 영문 제시 보기는 크게 (한글은 같은 px 에서 더 커 보인다) */
+.session-term--ko { font-size: var(--fs-heading); font-weight: 700; line-height: 1.4; }
+.session-proposed--en { font-size: var(--fs-display); font-weight: 800; line-height: 1.2; letter-spacing: -0.02em; }
+.session-proposed { padding: 8px 16px; border-radius: var(--radius-control); background: var(--accent-soft); color: var(--text); font-size: var(--fs-lead); font-weight: 700; overflow-wrap: anywhere; }
 .choice-btn {
   display: flex;
   align-items: center;

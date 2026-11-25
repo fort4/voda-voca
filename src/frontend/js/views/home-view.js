@@ -5,13 +5,14 @@
 
 import { api } from "../core/api.js";
 import { button, clear, h, icon, refreshIcons } from "../core/dom.js";
-import { homeModel, loadMode, saveMode } from "../core/home-model.js";
+import { homeModel, loadMode, loadQuizOptions, saveMode, saveQuizOptions } from "../core/home-model.js";
 import { startLabel } from "../core/settings-model.js";
 import { settingsStore } from "../core/settings-store.js";
 import { getUser } from "../core/state.js";
 import { progressBar } from "./components/progress-bar.js";
 import { mountLoader } from "./components/loader.js";
 import { renderModeToggle } from "./components/mode-toggle.js";
+import { renderQuizOptions } from "./components/quiz-options.js";
 import { openSession } from "./components/study-nav.js";
 
 /** 통계·설정은 없어도 홈이 동작해야 하므로 실패하면 null 로 둔다 (설정은 기본값 10 으로 폴백). */
@@ -32,13 +33,19 @@ async function loadHome() {
 export function homeView(root, ctx) {
   const storage = globalThis.localStorage;
   let mode = loadMode(storage);
+  let quizOptions = loadQuizOptions(storage);
   let unsubscribe = () => {};
   const stop = mountLoader(root, loadHome, (data) => {
     /** 설정이나 모드가 바뀌면 다시 그린다 (헤더의 설정 모달에서 바뀐 값도 여기로 온다). */
     function repaint() {
       clear(root);
-      root.append(renderHome({ ...data, settings: settingsStore.get() }, ctx, { mode, setMode }));
+      root.append(renderHome({ ...data, settings: settingsStore.get() }, ctx, { mode, setMode, quizOptions: () => quizOptions, setQuizOptions }));
       refreshIcons();
+    }
+
+    function setQuizOptions(next) {
+      quizOptions = next;
+      saveQuizOptions(storage, next); // 화면은 다시 그리지 않는다 (세그먼트가 스스로 갱신한다)
     }
 
     function setMode(next) {
@@ -57,7 +64,7 @@ export function homeView(root, ctx) {
   };
 }
 
-function renderHome(data, ctx, { mode, setMode }) {
+function renderHome(data, ctx, { mode, setMode, quizOptions, setQuizOptions }) {
   const m = homeModel(data);
   return h(
     "div",
@@ -80,7 +87,9 @@ function renderHome(data, ctx, { mode, setMode }) {
       "section",
       { class: "space-y-3" },
       renderModeToggle({ value: mode, onChange: setMode }),
-      button({ variant: "primary", full: true, disabled: !m.canStart, size: "lg", onClick: () => openSession(ctx.navigate, mode) }, icon("play", "h-5 w-5"), startLabel(settingsStore.get(), mode)),
+      // 방향·형식은 퀴즈에만 적용한다 (플래시카드에서는 숨긴다)
+      mode === "quiz" ? renderQuizOptions({ value: quizOptions(), onChange: setQuizOptions }) : null,
+      button({ variant: "primary", full: true, disabled: !m.canStart, size: "lg", onClick: () => openSession(ctx.navigate, mode, "all", quizOptions()) }, icon("play", "h-5 w-5"), startLabel(settingsStore.get(), mode)),
     ),
   );
 }
