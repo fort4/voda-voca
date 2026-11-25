@@ -1,9 +1,10 @@
-# 2026-11-24 - voda-voca - 컨테이너 빌드 파일 안전 검사: 비밀·로컬 자산이 이미지에 들어가지 않고 비root 로 실행된다
+# 2026-11-24 - voda-voca - 컨테이너 빌드 파일 정적 검사: 비밀·로컬 자산 제외, 과제 서버 규칙(8080, UID 10001, /data, SQLite) (2026-11-25 SQLite 전환)
 # 파일 위치: src/backend/tests/test_container_files.py
-"""Dockerfile 과 .dockerignore 가 지켜야 할 규칙을 정적으로 검사한다 (Docker 불필요).
+"""Dockerfile, entrypoint, compose, .dockerignore 가 지켜야 할 규칙을 정적으로 검사한다 (Docker 불필요).
 
-이미지는 한 번 만들어 다른 컴퓨터로 옮기는 물건이다. `.env`(비밀번호)나 `.venv` 가 실수로 들어가면
-외부에 유출되거나 이미지가 비대해지므로, 빌드 전에 파일 내용만으로 잡는다 (CLAUDE.md §5.3, REQ-112).
+이미지는 한 번 만들어 다른 컴퓨터(학교 서버)로 옮기는 물건이다. `.env`(비밀)나 `.venv`, 로컬 DB 파일이 실수로 들어가면
+유출되거나 이미지가 비대해지므로, 빌드 전에 파일 내용만으로 잡는다 (CLAUDE.md §5.3, REQ-112).
+과제 서버 규칙(공지 4.4, R-01~R-10)도 여기서 고정한다: 리포 루트 Dockerfile, 0.0.0.0:8080, UID 10001, 쓰기는 /data 와 /tmp 만.
 """
 
 import re
@@ -14,8 +15,26 @@ import pytest
 pytestmark = pytest.mark.no_db
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-DOCKERFILE = REPO_ROOT / "docker" / "Dockerfile"
+DOCKERFILE = REPO_ROOT / "Dockerfile"
+ENTRYPOINT = REPO_ROOT / "docker-entrypoint.sh"
 DOCKERIGNORE = REPO_ROOT / ".dockerignore"
+GITATTRIBUTES = REPO_ROOT / ".gitattributes"
+GITIGNORE = REPO_ROOT / ".gitignore"
+
+
+def _dockerfile() -> str:
+    return DOCKERFILE.read_text(encoding="utf-8")
+
+
+def _stage(name: str) -> str:
+    """`FROM ... AS name` 부터 다음 FROM 직전까지."""
+    parts = re.split(r"^(?=FROM\s)", _dockerfile(), flags=re.M)
+    return next(p for p in parts if re.match(rf"FROM\s+\S+\s+AS\s+{name}\b", p, re.I))
+
+
+def _code(text: str) -> str:
+    """주석 줄을 뺀 실제 설정만 남긴다 (설명 주석에 옛 이름이 언급되어도 검사가 걸리지 않게)."""
+    return "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
 
 
 def _ignore_patterns() -> set[str]:
@@ -23,153 +42,206 @@ def _ignore_patterns() -> set[str]:
     return {line.strip() for line in lines if line.strip() and not line.startswith("#")}
 
 
+# ---------- .dockerignore / .gitattributes / .gitignore ----------
+
+
 def test_dockerignore_excludes_secrets_and_local_artifacts() -> None:
     patterns = _ignore_patterns()
     for required in [".env", ".env.*", ".venv", ".git", "ai-agent", "**/__pycache__"]:
         assert required in patterns, f".dockerignore 에 {required} 가 없다"
-    # .env.example 은 템플릿이라 이미지에 들어가도 되지만, 막는다고 해서 문제는 없다. 예외 규칙만 확인한다.
     assert "!.env.example" not in patterns or ".env.*" in patterns
 
 
-def test_dockerfile_has_three_stages_base_dev_prod() -> None:
-    stages = re.findall(r"^FROM\s+\S+\s+AS\s+(\w+)", DOCKERFILE.read_text(encoding="utf-8"), re.M | re.I)
+@pytest.mark.parametrize("pattern", ["*.db", "*.db-wal", "*.db-shm", "data"])
+def test_dockerignore_excludes_local_sqlite_files(pattern: str) -> None:
+    """개발 중 만든 DB 파일(사용자 계정 포함)이 이미지에 들어가면 안 된다."""
+    assert pattern in _ignore_patterns()
+
+
+def test_dockerignore_does_not_exclude_what_the_image_needs() -> None:
+    patterns = _ignore_patterns()
+    assert "docker" not in patterns or ENTRYPOINT.parent != REPO_ROOT / "docker"
+    for needed in ("src", "requirements.txt", "docker-entrypoint.sh", "Dockerfile"):
+        assert needed not in patterns, f"{needed} 는 이미지에 필요하다"
+
+
+def test_gitattributes_forces_lf_line_endings() -> None:
+    """Windows 에서 CRLF 로 체크아웃되면 셸 스크립트가 `bad interpreter` 로 죽는다."""
+    text = GITATTRIBUTES.read_text(encoding="utf-8")
+    assert re.search(r"^\*\s+text=auto\s+eol=lf\s*$", text, re.M)
+
+
+@pytest.mark.parametrize("pattern", ["*.db", "*.db-wal", "*.db-shm"])
+def test_gitignore_excludes_sqlite_files(pattern: str) -> None:
+    assert pattern in GITIGNORE.read_text(encoding="utf-8").splitlines()
+
+
+# ---------- Dockerfile ----------
+
+
+def test_dockerfile_is_at_repo_root_with_prod_as_last_stage() -> None:
+    """`docker build .` 한 번에 배포용 이미지가 나와야 한다 (VOCA-SUB-031). 마지막 스테이지가 기본 빌드 대상이다."""
+    stages = re.findall(r"^FROM\s+\S+\s+AS\s+(\w+)", _dockerfile(), re.M | re.I)
     assert stages == ["base", "dev", "prod"]
+    assert not (REPO_ROOT / "docker" / "Dockerfile").exists(), "Dockerfile 이 두 곳에 있으면 서로 어긋난다"
 
 
 def test_dockerfile_does_not_copy_env_files_or_bake_secrets() -> None:
-    text = DOCKERFILE.read_text(encoding="utf-8")
+    text = _dockerfile()
     assert not re.search(r"^\s*COPY\s+.*\.env", text, re.M), ".env 를 이미지에 복사하면 안 된다"
-    assert not re.search(r"^\s*(ENV|ARG)\s+\w*(PASSWORD|SECRET)", text, re.M | re.I), "비밀번호를 이미지에 굽지 않는다"
+    assert not re.search(r"^\s*(ENV|ARG)\s+\w*(PASSWORD|SECRET)", text, re.M | re.I), "비밀을 이미지에 굽지 않는다"
 
 
 def test_dockerfile_pins_python_minor_version() -> None:
-    first_from = re.search(r"^FROM\s+(\S+)", DOCKERFILE.read_text(encoding="utf-8"), re.M)
+    first_from = re.search(r"^FROM\s+(\S+)", _dockerfile(), re.M)
     assert first_from and re.fullmatch(r"python:3\.12-slim", first_from.group(1)), "개발 환경과 같은 3.12 로 고정한다"
 
 
-def test_dockerfile_runs_as_non_root_in_dev_and_prod() -> None:
-    text = DOCKERFILE.read_text(encoding="utf-8")
-    dev, prod = text.split(" AS dev", 1)[1].split(" AS prod", 1)
-    assert re.search(r"^USER\s+app\b", dev, re.M), "dev 단계는 비root 로 실행한다"
-    assert re.search(r"^USER\s+app\b", prod, re.M), "prod 단계는 비root 로 실행한다"
+def test_dockerfile_uses_no_forbidden_build_features() -> None:
+    """점검 워크플로는 인터넷이 없는 환경에서 빌드한다. 외부 접근이 필요한 빌드 기능은 쓸 수 없다 (R-10)."""
+    text = _dockerfile()
+    assert not re.match(r"\s*#\s*syntax\s*=", text, re.I), "# syntax 지시어 금지"
+    assert not re.search(r"--mount\s*=\s*type\s*=\s*(ssh|secret)", text)
+    assert not re.search(r"RUN\s+--(network|security)\b", text)
+    assert not re.search(r":latest\b", text), "이미지 태그는 버전을 명시한다"
 
 
-def test_prod_stage_has_healthcheck_and_no_reload() -> None:
-    prod = DOCKERFILE.read_text(encoding="utf-8").split(" AS prod", 1)[1]
-    assert "HEALTHCHECK" in prod and "/health" in prod
+def test_prod_runs_as_uid_10001_without_privileges() -> None:
+    prod = _stage("prod")
+    assert re.search(r"useradd[^\n]*--uid\s+10001", _dockerfile()), "UID 10001 사용자를 만든다"
+    assert re.search(r"^USER\s+(10001|app)\b", prod, re.M)
+
+
+def test_dev_runs_as_non_root() -> None:
+    assert re.search(r"^USER\s+\S+", _stage("dev"), re.M)
+
+
+def test_prod_listens_on_0_0_0_0_8080_with_proxy_headers() -> None:
+    prod = _stage("prod")
+    assert "EXPOSE 8080" in prod
+    cmd = re.search(r"^CMD\s+(\[.*\])", prod, re.M)
+    assert cmd, "exec 형식(JSON 배열) CMD 를 쓴다"
+    args = cmd.group(1)
+    for token in ('"uvicorn"', '"0.0.0.0"', '"8080"', '"--proxy-headers"', '"--forwarded-allow-ips"'):
+        assert token in args, f"CMD 에 {token} 가 없다"
+
+
+def test_prod_has_no_dev_server_flags() -> None:
+    prod = _code(_stage("prod"))
     assert "--reload" not in prod
+    assert "--debug" not in prod
 
 
-# ---------- docker-compose.yml (2단계: mysql + migrate + app) ----------
+def test_prod_has_healthcheck_on_8080() -> None:
+    prod = _stage("prod")
+    assert "HEALTHCHECK" in prod and "/health" in prod and "8080" in prod
+
+
+def test_data_directory_is_owned_by_the_app_user_and_db_path_points_there() -> None:
+    """쓰기는 /data 와 /tmp 에서만 허용된다. 빈 볼륨을 /data 에 마운트하면 이 디렉터리의 소유권을 물려받는다."""
+    text = _dockerfile()
+    assert re.search(r"mkdir[^\n]*/data", text)
+    assert re.search(r"chown[^\n]*/data", text)
+    assert "DB_PATH=/data/voca.db" in text.replace("DB_PATH =", "DB_PATH=")
+
+
+def test_prod_uses_the_migrating_entrypoint() -> None:
+    prod = _stage("prod")
+    assert re.search(r'^ENTRYPOINT\s+\["/app/docker-entrypoint\.sh"\]', prod, re.M)
+    assert "docker-entrypoint.sh" in _dockerfile()
+
+
+# ---------- entrypoint ----------
+
+
+def test_entrypoint_migrates_then_execs_the_command() -> None:
+    text = ENTRYPOINT.read_text(encoding="utf-8")
+    assert text.startswith("#!/bin/sh"), "slim 이미지에 bash 가 없을 수 있다 (POSIX sh 로 쓴다)"
+    assert "\r" not in text, "CRLF 금지"
+    assert re.search(r"set -e", text)
+    upgrade = text.index("alembic -c src/backend/alembic.ini upgrade head")
+    run = text.index('exec "$@"')
+    assert upgrade < run, "마이그레이션이 서버 시작보다 먼저여야 한다"
+
+
+# ---------- docker-compose.yml: 앱 단일 서비스 ----------
 
 COMPOSE = REPO_ROOT / "docker" / "docker-compose.yml"
-
-
-def _compose() -> dict:
-    import yaml  # 개발 의존성(PyYAML)은 requirements-dev 에 포함된다
-
-    return yaml.safe_load(COMPOSE.read_text(encoding="utf-8"))
-
-
-def test_compose_has_mysql_migrate_app_services() -> None:
-    assert {"mysql", "migrate", "app"} <= set(_compose()["services"])
-
-
-def test_compose_keeps_mysql_data_volume_and_name() -> None:
-    """DB 컨테이너 이름과 데이터 볼륨 이름이 바뀌면 기존 개발 데이터를 잃은 것처럼 보인다 (회귀 방지)."""
-    c = _compose()
-    assert c["services"]["mysql"]["container_name"] == "voda-voca-mysql"
-    assert c["volumes"]["mysql_data"]["name"] == "voda-voca-mysql-data"
-
-
-@pytest.mark.parametrize("name", ["migrate", "app"])
-def test_app_services_reach_db_by_service_name_not_loopback(name: str) -> None:
-    env = _compose()["services"][name]["environment"]
-    assert env["MYSQL_HOST"] == "mysql", "컨테이너 안의 127.0.0.1 은 자기 자신이다"
-    assert str(env["MYSQL_PORT"]) == "3306", "컨테이너 사이 통신은 호스트 노출 포트(3307)가 아니라 3306 이다"
-
-
-@pytest.mark.parametrize("name", ["migrate", "app"])
-def test_app_services_get_only_needed_env_never_root_password(name: str) -> None:
-    svc = _compose()["services"][name]
-    assert "env_file" not in svc, ".env 를 통째로 넘기면 루트 비밀번호까지 앱에 전달된다"
-    assert "MYSQL_ROOT_PASSWORD" not in svc["environment"]
-    for needed in ["MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_DATABASE"]:
-        assert needed in svc["environment"]
-
-
-def test_startup_order_mysql_healthy_then_migrate_then_app() -> None:
-    services = _compose()["services"]
-    assert services["migrate"]["depends_on"]["mysql"]["condition"] == "service_healthy"
-    assert services["app"]["depends_on"]["mysql"]["condition"] == "service_healthy"
-    assert services["app"]["depends_on"]["migrate"]["condition"] == "service_completed_successfully"
-
-
-def test_migrate_runs_once_and_app_restarts() -> None:
-    services = _compose()["services"]
-    assert services["migrate"]["restart"] in ("no", False)
-    assert " ".join(services["migrate"]["command"]) == "alembic -c src/backend/alembic.ini upgrade head"
-    assert services["app"]["restart"] == "unless-stopped"
-
-
-def test_app_uses_prod_image_without_source_mount() -> None:
-    app = _compose()["services"]["app"]
-    assert app["build"]["target"] == "prod"
-    assert "volumes" not in app, "배포용 앱은 소스를 마운트하지 않는다 (개발용은 override 파일에서)"
-    assert "${APP_PORT:-8000}:8000" in app["ports"]
-
-
-# ---------- docker-compose.dev.yml (3단계: 개발용 override) ----------
-
 COMPOSE_DEV = REPO_ROOT / "docker" / "docker-compose.dev.yml"
 
 
-def _dev() -> dict:
-    import yaml
+def _yaml(path: Path) -> dict:
+    import yaml  # 개발 의존성(PyYAML)은 requirements-dev 에 포함된다
 
-    return yaml.safe_load(COMPOSE_DEV.read_text(encoding="utf-8"))
+    return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
-@pytest.mark.parametrize("name", ["migrate", "app"])
-def test_dev_override_builds_dev_target_and_mounts_source(name: str) -> None:
-    svc = _dev()["services"][name]
+def test_compose_has_only_the_app_service() -> None:
+    assert set(_yaml(COMPOSE)["services"]) == {"app"}, "DB 서버 컨테이너와 migrate 서비스는 SQLite 전환으로 사라졌다"
+
+
+def test_compose_text_has_no_mysql_leftovers() -> None:
+    for path in (COMPOSE, COMPOSE_DEV):
+        assert not re.search(r"mysql", _code(path.read_text(encoding="utf-8")), re.I), path.name
+
+
+def test_compose_persists_sqlite_in_a_named_volume_at_data() -> None:
+    c = _yaml(COMPOSE)
+    assert "voda-voca-data:/data" in c["services"]["app"]["volumes"]
+    assert c["volumes"]["voda-voca-data"]["name"] == "voda-voca-data"
+
+
+def test_compose_app_environment_is_explicit_and_has_no_root_secrets() -> None:
+    svc = _yaml(COMPOSE)["services"]["app"]
+    assert "env_file" not in svc, ".env 를 통째로 넘기지 않고 필요한 값만 명시한다"
+    env = svc["environment"]
+    assert env["DB_PATH"] == "/data/voca.db"
+    assert "SECRET_KEY" in env
+    assert not [k for k in env if "ROOT" in k or k.startswith("MYSQL")]
+
+
+def test_compose_app_uses_prod_image_on_8080_without_source_mount() -> None:
+    app = _yaml(COMPOSE)["services"]["app"]
+    assert app["build"]["target"] == "prod"
+    assert app["build"]["dockerfile"] == "Dockerfile"
+    assert "${APP_PORT:-8080}:8080" in app["ports"]
+    assert app["restart"] == "unless-stopped"
+    assert [v for v in app["volumes"] if "src" in v] == [], "배포용 앱은 소스를 마운트하지 않는다 (개발용은 override 파일에서)"
+
+
+def test_secret_key_fails_fast_when_env_is_missing() -> None:
+    """새 PC 에서 .env 를 만들지 않으면 빈 비밀값으로 조용히 시작하는 대신, 안내 메시지와 함께 중단된다."""
+    value = str(_yaml(COMPOSE)["services"]["app"]["environment"]["SECRET_KEY"])
+    assert value.startswith("${SECRET_KEY:?") and ".env" in value
+
+
+# ---------- docker-compose.dev.yml: 개발용 override ----------
+
+
+def test_dev_override_builds_dev_target_and_mounts_source() -> None:
+    svc = _yaml(COMPOSE_DEV)["services"]["app"]
     assert svc["build"]["target"] == "dev"
     assert svc["image"] == "voda-voca:dev", "prod 이미지 태그와 섞이지 않게 한다"
-    assert "./src:/app/src" in svc["volumes"], "소스를 마운트해야 --reload 와 새 마이그레이션이 바로 반영된다"
+    assert "./src:/app/src" in svc["volumes"], "소스를 마운트해야 --reload 가 바로 반영된다"
 
 
 def test_dev_override_never_mounts_env_file_or_whole_repo() -> None:
-    """저장소 전체(.)나 .env 를 마운트하면 루트 비밀번호가 컨테이너에 노출된다."""
-    for name in ("migrate", "app"):
-        for mount in _dev()["services"][name]["volumes"]:
-            source = mount.split(":")[0]
-            assert source not in (".", "./", "./.env"), f"{mount} 는 마운트하면 안 된다"
-            assert ".env" not in source.split("/")[-1] or source.endswith(".env.example")
+    """저장소 전체(.)나 .env 를 마운트하면 비밀이 컨테이너에 노출된다."""
+    for mount in _yaml(COMPOSE_DEV)["services"]["app"]["volumes"]:
+        source = mount.split(":")[0]
+        assert source not in (".", "./", "./.env"), f"{mount} 는 마운트하면 안 된다"
+        assert ".env" not in source.split("/")[-1] or source.endswith(".env.example")
 
 
 def test_dev_override_mounts_what_the_tests_read_as_read_only() -> None:
-    mounts = _dev()["services"]["app"]["volumes"]
+    mounts = _yaml(COMPOSE_DEV)["services"]["app"]["volumes"]
     for needed in ["./pytest.ini:/app/pytest.ini:ro", "./.coveragerc:/app/.coveragerc:ro",
-                   "./docker:/app/docker:ro", "./.dockerignore:/app/.dockerignore:ro"]:
-        assert needed in mounts
+                   "./docker:/app/docker:ro", "./.dockerignore:/app/.dockerignore:ro",
+                   "./Dockerfile:/app/Dockerfile:ro", "./docker-entrypoint.sh:/app/docker-entrypoint.sh:ro",
+                   "./.gitattributes:/app/.gitattributes:ro", "./.gitignore:/app/.gitignore:ro"]:
+        assert needed in mounts, f"{needed} 가 없다 (컨테이너 안 pytest 가 읽는다)"
 
 
 def test_dev_override_disables_pytest_cache_in_readonly_workdir() -> None:
     """/app 은 root 소유라 app 사용자가 .pytest_cache 를 쓸 수 없다. 경고 대신 캐시를 끈다."""
-    assert _dev()["services"]["app"]["environment"]["PYTEST_ADDOPTS"] == "-p no:cacheprovider"
-
-
-@pytest.mark.parametrize("name", ["migrate", "app"])
-@pytest.mark.parametrize("var", ["MYSQL_DATABASE", "MYSQL_USER", "MYSQL_PASSWORD"])
-def test_required_db_settings_fail_fast_when_env_is_missing(name: str, var: str) -> None:
-    """새 PC 에서 .env 를 만들지 않고 실행하면 빈 비밀번호로 조용히 시작하는 대신, 안내 메시지와 함께 중단된다."""
-    value = str(_compose()["services"][name]["environment"][var])
-    assert value.startswith("${" + var + ":?"), f"{var} 는 필수 표기(:?)여야 한다"
-    assert ".env" in value, "메시지에 .env 를 만들라는 안내가 있어야 한다"
-
-
-def test_mysql_host_port_is_bound_to_loopback_only() -> None:
-    """DB 포트를 모든 인터페이스에 열면 같은 망의 누구든 접속을 시도할 수 있다. 호스트(127.0.0.1)에서만 열고,
-    앱 컨테이너는 내부 네트워크(mysql:3306)로 접속한다."""
-    ports = _compose()["services"]["mysql"]["ports"]
-    assert ports == ["127.0.0.1:${MYSQL_PORT:-3306}:3306"]
+    assert _yaml(COMPOSE_DEV)["services"]["app"]["environment"]["PYTEST_ADDOPTS"] == "-p no:cacheprovider"

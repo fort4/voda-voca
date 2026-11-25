@@ -1,6 +1,6 @@
 # 2026-11-24 - voda-voca - Docker 빌드 컨텍스트 제외 목록 (비밀·로컬 자산·테스트를 이미지에 넣지 않는다)
 # 파일 위치: .dockerignore
-# 빌드 컨텍스트는 프로젝트 루트다: docker build -f docker/Dockerfile --target prod .
+# 빌드 컨텍스트는 프로젝트 루트다: docker build -t voda-voca .
 
 # --- 비밀: 환경 변수는 이미지가 아니라 실행할 때 주입한다 (REQ-112) ---
 .env
@@ -28,6 +28,12 @@ htmlcov
 # --- 테스트 코드: 운영 이미지에 필요 없다 (dev 는 소스를 마운트해 실행) ---
 src/backend/tests
 src/frontend/tests
+
+# --- 로컬 SQLite 파일: 개발 중 만든 계정·이력이 이미지에 들어가면 안 된다 ---
+data
+*.db
+*.db-wal
+*.db-shm
 
 # --- 기타 ---
 *:Zone.Identifier

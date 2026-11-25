@@ -1,4 +1,4 @@
-# 2026-11-25 - voda-voca - 개발용 compose override: dev 이미지, 소스 마운트(--reload), 컨테이너 안에서 pytest·alembic 실행
+# 2026-11-25 - voda-voca - 개발용 compose override: dev 이미지, 소스 마운트(--reload), 컨테이너 안에서 pytest·alembic 실행 (SQLite 전환)
 # 파일 위치: docker/docker-compose.dev.yml
 #
 # 기본 compose 파일 뒤에 겹쳐서 쓴다 (프로젝트 루트에서):
@@ -15,16 +15,14 @@ x-dev-volumes: &dev_volumes
   - ./pytest.ini:/app/pytest.ini:ro
   - ./.coveragerc:/app/.coveragerc:ro
   - ./docker:/app/docker:ro
+  - ./Dockerfile:/app/Dockerfile:ro
+  - ./docker-entrypoint.sh:/app/docker-entrypoint.sh:ro
   - ./.dockerignore:/app/.dockerignore:ro
+  - ./.gitattributes:/app/.gitattributes:ro
+  - ./.gitignore:/app/.gitignore:ro
+  - voda-voca-data:/data
 
 services:
-  # 마이그레이션도 마운트한 소스로 실행해, 새로 만든 마이그레이션 파일이 이미지를 다시 빌드하지 않아도 적용된다
-  migrate:
-    build:
-      target: dev
-    image: voda-voca:dev
-    volumes: *dev_volumes
-
   app:
     build:
       target: dev

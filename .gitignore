@@ -3,6 +3,12 @@
 .env.*
 !.env.example
 
+# 로컬 SQLite 파일 (계정·이력 포함, 커밋 금지)
+*.db
+*.db-wal
+*.db-shm
+data/
+
 # Python
 __pycache__/
 *.pyc
