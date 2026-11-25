@@ -146,7 +146,7 @@ def _integrity_error(message: str):
 
 @pytest.mark.asyncio
 async def test_commit_fk_failure_on_study_logs_becomes_word_missing_and_rolls_back() -> None:
-    db = _FakeSession(_integrity_error("Cannot add or update a child row: fk_study_logs_word"))
+    db = _FakeSession(_integrity_error("FOREIGN KEY constraint failed"))
 
     with pytest.raises(study_service.QuizWordMissingError):
         await study_service.commit_logs(db)
@@ -165,15 +165,12 @@ async def test_other_commit_integrity_errors_are_propagated_unchanged() -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("fk_name", ["fk_uwp_word", "fk_study_logs_word"])
-async def test_word_fk_failure_while_recording_becomes_word_missing(
-    monkeypatch: pytest.MonkeyPatch, fk_name: str
-) -> None:
+async def test_word_fk_failure_while_recording_becomes_word_missing(monkeypatch: pytest.MonkeyPatch) -> None:
     """진행도 갱신 중 단어가 지워져 FK 가 걸려도 같은 오류(409)로 다루고 롤백한다."""
     from backend.models.base import utcnow
 
     async def _boom(*_args, **_kwargs):
-        raise _integrity_error(f"Cannot add or update a child row: {fk_name}")
+        raise _integrity_error("FOREIGN KEY constraint failed")
 
     monkeypatch.setattr(study_service, "record_result", _boom)
     db = _FakeSession()

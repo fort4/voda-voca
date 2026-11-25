@@ -5,10 +5,10 @@ from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.db.errors import is_unique_violation
 from backend.models import SystemVocabulary, User
 from backend.services.password import get_dummy_hash, hash_password, verify_password
 
-UNIQUE_NICKNAME_CONSTRAINT = "uk_users_nickname"
 # 가입 직후 학습 단어장으로 지정할 표준 단어장 (초급 200제). 시드 파일의 slug 와 같아야 한다.
 DEFAULT_VOCABULARY_SLUG = "beginner-200"
 
@@ -49,7 +49,7 @@ async def signup(db: AsyncSession, password: str, nickname: str) -> User:
         await db.commit()
     except IntegrityError as exc:
         await db.rollback()
-        if UNIQUE_NICKNAME_CONSTRAINT in str(exc.orig):
+        if is_unique_violation(exc, "users", "nickname"):
             raise NicknameAlreadyExistsError from exc
         raise
     await db.refresh(user)

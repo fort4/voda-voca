@@ -27,6 +27,6 @@ def test_legacy_model_modules_are_gone(module: str) -> None:
 @pytest.mark.asyncio
 async def test_legacy_tables_do_not_exist_in_database() -> None:
     async with get_session_factory()() as db:
-        rows = await db.execute(text("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE()"))
+        rows = await db.execute(text("SELECT name FROM sqlite_master WHERE type = 'table'"))
         tables = {r[0] for r in rows}
     assert LEGACY_TABLES.isdisjoint(tables)

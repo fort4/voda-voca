@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.db.errors import is_foreign_key_violation
 from backend.models import QuizSession, StudyLog, SystemWord
 from backend.schemas.study import QUIZ_CHOICE_COUNT
 from backend.services.progress import ProgressState
@@ -28,9 +29,6 @@ def deadline_from(now: datetime) -> datetime:
 
 QUIZ_MIN_SOURCE_WORDS = 4  # 출제 원천 최소 단어 수 (REQ-014, REQ-019)
 DISTRACTOR_COUNT = QUIZ_CHOICE_COUNT - 1  # 오답 3개 + 정답 1개 = 4지선다
-
-# 단어가 삭제되면 어느 쪽 FK 가 먼저 걸리든 같은 오류로 다룬다.
-WORD_FK_NAMES = ("fk_study_logs_word", "fk_uwp_word")
 
 
 class StudyError(Exception):
@@ -149,7 +147,7 @@ async def record_one(
         return await record_result(db, user_id, word_id, is_correct, now, mode)
     except IntegrityError as exc:
         await db.rollback()
-        if any(name in str(exc.orig) for name in WORD_FK_NAMES):
+        if is_foreign_key_violation(exc):  # 인증된 사용자 기준이라 걸릴 수 있는 외래키는 단어뿐이다
             raise QuizWordMissingError from exc
         raise
 
@@ -160,7 +158,7 @@ async def commit_logs(db: AsyncSession) -> None:
         await db.commit()
     except IntegrityError as exc:
         await db.rollback()
-        if any(name in str(exc.orig) for name in WORD_FK_NAMES):
+        if is_foreign_key_violation(exc):  # 인증된 사용자 기준이라 걸릴 수 있는 외래키는 단어뿐이다
             raise QuizWordMissingError from exc
         raise
 

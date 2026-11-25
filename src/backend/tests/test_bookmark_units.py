@@ -44,14 +44,14 @@ def owned(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.asyncio
 async def test_unique_conflict_is_treated_as_idempotent_success(owned: None) -> None:
-    session = _FakeSession(_integrity("Duplicate entry '1-2' for key 'bookmarks.uk_bookmarks_user_word'"))
+    session = _FakeSession(_integrity("UNIQUE constraint failed: bookmarks.user_id, bookmarks.word_id"))
     await bookmark_service.set_bookmark(session, 1, 2)  # 예외 없이 끝나야 한다
     assert session.rolled_back is True
 
 
 @pytest.mark.asyncio
 async def test_foreign_key_conflict_becomes_word_not_found(owned: None) -> None:
-    session = _FakeSession(_integrity("a foreign key constraint fails (`bookmarks`, CONSTRAINT `fk_bookmarks_word`)"))
+    session = _FakeSession(_integrity("FOREIGN KEY constraint failed"))
     with pytest.raises(WordNotFoundError):
         await bookmark_service.set_bookmark(session, 1, 2)
 

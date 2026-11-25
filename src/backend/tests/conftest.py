@@ -1,21 +1,60 @@
-# 2026-11-02 - voda-voca - 테스트 공통 fixture: 엔진 정리, 빠른 bcrypt, 테스트 계정 정리
+# 2026-11-02 - voda-voca - 테스트 공통 fixture: 임시 SQLite DB(마이그레이션 적용), 엔진 정리, 빠른 bcrypt, 테스트 계정 정리 (2026-11-25 SQLite 전환)
 # 파일 위치: src/backend/tests/conftest.py
 
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterator, Mapping, Sequence
+import asyncio
+import os
 import uuid
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 import pytest
 import pytest_asyncio
+from alembic import command
+from alembic.config import Config
 from sqlalchemy import delete
 
 from backend.core.config import get_settings
 from backend.core.rate_limit import login_rate_limiter
+from backend.db import session as db_session_module
 from backend.db.session import dispose_engine, get_session_factory
 from backend.models import SystemVocabulary, SystemWord, User
+from backend.services.system_seed import init_system_seeds
 from backend.tests.helpers import TEST_VOCABULARY_SLUG_PREFIX, TestVocabulary
 
 # 테스트 계정 닉네임 패턴. 정리(cleanup) 시 이 패턴만 지운다.
 TEST_NICKNAME_LIKE = "tvoda-%"
+
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+
+
+@pytest.fixture(scope="session")
+def _test_database(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Path]:
+    """DB 를 쓰는 테스트가 공유하는 임시 SQLite 파일. Alembic 마이그레이션(운영과 같은 경로)으로 만든다.
+
+    개발자의 실제 DB(.env 의 DB_PATH)를 건드리지 않도록 항상 임시 경로로 덮어쓴다. Docker 도 필요 없다.
+    `no_db` 테스트는 이 fixture 를 요청하지 않아 DB 파일이 만들어지지 않는다.
+    """
+    db_file = tmp_path_factory.mktemp("db") / "voca-test.db"
+    previous = os.environ.get("DB_PATH")
+    os.environ["DB_PATH"] = str(db_file)
+    for cached in (get_settings, db_session_module.get_engine, db_session_module.get_session_factory):
+        cached.cache_clear()
+    config = Config(str(BACKEND_DIR / "alembic.ini"))
+    config.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
+    # env.py 가 asyncio.run 을 쓰므로, 이미 이벤트 루프가 도는 스레드(비동기 fixture 안)에서는 새 스레드에서 실행한다.
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        pool.submit(command.upgrade, config, "head").result()
+        # 실제 서버는 시작할 때 표준 단어장 시드를 적재한다 (lifespan). 테스트 DB 도 같은 상태로 맞춘다.
+        pool.submit(asyncio.run, init_system_seeds()).result()
+        pool.submit(asyncio.run, dispose_engine()).result()
+    yield db_file
+    if previous is None:
+        os.environ.pop("DB_PATH", None)
+    else:
+        os.environ["DB_PATH"] = previous
+    for cached in (get_settings, db_session_module.get_engine, db_session_module.get_session_factory):
+        cached.cache_clear()
 
 
 @pytest_asyncio.fixture(autouse=True)
@@ -47,7 +86,7 @@ def _fast_bcrypt(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 
 
 def _skips_db(request: pytest.FixtureRequest) -> bool:
-    """`no_db` 표시가 붙은 순수 단위 테스트는 DB 정리를 건너뛴다 (MySQL 이 꺼져 있어도 돌아가야 한다)."""
+    """`no_db` 표시가 붙은 순수 단위 테스트는 DB 정리를 건너뛴다 (DB 파일 없이도 돌아가야 한다)."""
     return request.node.get_closest_marker("no_db") is not None
 
 
@@ -57,6 +96,7 @@ async def _cleanup_test_users(request: pytest.FixtureRequest) -> AsyncIterator[N
     if _skips_db(request):
         yield
         return
+    request.getfixturevalue("_test_database")
     await _delete_test_users()
     yield
     await _delete_test_users()

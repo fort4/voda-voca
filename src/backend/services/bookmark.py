@@ -5,11 +5,10 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.db.errors import is_foreign_key_violation, is_unique_violation
 from backend.models import Bookmark, SystemVocabulary, SystemWord
 from backend.services.errors import WordNotFoundError
 
-UNIQUE_BOOKMARK_CONSTRAINT = "uk_bookmarks_user_word"
-FK_BOOKMARK_WORD = "fk_bookmarks_word"
 
 
 async def _ensure_word_exists(db: AsyncSession, word_id: int) -> None:
@@ -25,7 +24,7 @@ async def _ensure_word_exists(db: AsyncSession, word_id: int) -> None:
 async def set_bookmark(db: AsyncSession, user_id: int, word_id: int) -> None:
     """북마크를 등록한다. 이미 등록되어 있어도 성공으로 본다 (멱등, REQ-017).
 
-    동시에 두 요청이 들어와도 uk_bookmarks_user_word 가 행을 하나만 허용하고,
+    동시에 두 요청이 들어와도 (user_id, word_id) 유니크 제약이 행을 하나만 허용하고,
     뒤의 요청은 중복 위반을 받아 성공으로 처리된다.
     """
     await _ensure_word_exists(db, word_id)
@@ -34,11 +33,10 @@ async def set_bookmark(db: AsyncSession, user_id: int, word_id: int) -> None:
         await db.commit()
     except IntegrityError as exc:
         await db.rollback()
-        message = str(exc.orig)
-        if UNIQUE_BOOKMARK_CONSTRAINT in message:
+        if is_unique_violation(exc, "bookmarks", "user_id", "word_id"):
             return  # 이미 등록됨: 멱등 성공
-        if FK_BOOKMARK_WORD in message:
-            # 확인 후 등록 전에 단어가 삭제된 경우
+        if is_foreign_key_violation(exc):
+            # 확인 후 등록 전에 단어가 삭제된 경우 (사용자는 인증을 통과했으므로 걸릴 수 있는 외래키는 단어뿐이다)
             raise WordNotFoundError from exc
         raise
 

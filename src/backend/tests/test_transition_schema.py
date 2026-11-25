@@ -103,48 +103,33 @@ async def _scalar_rows(sql: str, **params):
     ],
 )
 async def test_database_foreign_keys(table: str, column: str, target: str, delete_rule: str) -> None:
-    rows = await _scalar_rows(
-        """
-        SELECT k.REFERENCED_TABLE_NAME, r.DELETE_RULE
-        FROM information_schema.KEY_COLUMN_USAGE k
-        JOIN information_schema.REFERENTIAL_CONSTRAINTS r
-          ON r.CONSTRAINT_SCHEMA = k.CONSTRAINT_SCHEMA AND r.CONSTRAINT_NAME = k.CONSTRAINT_NAME
-        WHERE k.TABLE_SCHEMA = DATABASE() AND k.TABLE_NAME = :t AND k.COLUMN_NAME = :c
-          AND k.REFERENCED_TABLE_NAME IS NOT NULL
-        """,
-        t=table,
-        c=column,
-    )
-    assert [tuple(r) for r in rows] == [(target, delete_rule)]
+    # PRAGMA foreign_key_list 열: id, seq, table, from, to, on_update, on_delete, match
+    rows = await _scalar_rows(f"PRAGMA foreign_key_list('{table}')")
+    assert [(r[2], r[6]) for r in rows if r[3] == column] == [(target, delete_rule)]
 
 
 @_ASYNC
 async def test_database_columns_and_old_tables() -> None:
-    columns = {
-        (r[0], r[1])
-        for r in await _scalar_rows(
-            "SELECT TABLE_NAME, COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE()"
-        )
-    }
-    assert ("quiz_sessions", "vocabulary_id") in columns
-    assert ("quiz_sessions", "wordbook_id") not in columns
-    assert ("quiz_sessions", "mode") in columns
-    assert ("study_logs", "mode") in columns
-    tables = {r[0] for r in await _scalar_rows("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE()")}
+    async def columns_of(table: str) -> set[str]:
+        return {r[1] for r in await _scalar_rows(f"PRAGMA table_info('{table}')")}
+
+    quiz_sessions = await columns_of("quiz_sessions")
+    assert "vocabulary_id" in quiz_sessions
+    assert "wordbook_id" not in quiz_sessions
+    assert "mode" in quiz_sessions
+    assert "mode" in await columns_of("study_logs")
+    tables = {r[0] for r in await _scalar_rows("SELECT name FROM sqlite_master WHERE type = 'table'")}
     assert {"words", "wordbooks"}.isdisjoint(tables)  # D-2 에서 삭제됨
 
 
 @_ASYNC
 async def test_bookmark_unique_key_exists_in_database() -> None:
-    rows = await _scalar_rows(
-        """
-        SELECT INDEX_NAME, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX)
-        FROM information_schema.STATISTICS
-        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'bookmarks' AND NON_UNIQUE = 0 AND INDEX_NAME <> 'PRIMARY'
-        GROUP BY INDEX_NAME
-        """
-    )
-    assert [tuple(r) for r in rows] == [("uk_bookmarks_user_word", "user_id,word_id")]
+    # PRAGMA index_list 열: seq, name, unique, origin, partial. 유니크 제약은 origin 'u' 로 나온다.
+    indexes = [r for r in await _scalar_rows("PRAGMA index_list('bookmarks')") if r[2] == 1 and r[3] == "u"]
+    unique_columns = [
+        tuple(c[2] for c in await _scalar_rows(f"PRAGMA index_info('{r[1]}')")) for r in indexes
+    ]
+    assert unique_columns == [("user_id", "word_id")]
 
 
 # ---------------------------------------------------------------------------

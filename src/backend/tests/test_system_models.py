@@ -6,8 +6,7 @@ from collections.abc import AsyncIterator
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import CheckConstraint, Enum, String, delete, text
-from sqlalchemy.dialects.mysql import BIGINT
+from sqlalchemy import CheckConstraint, Enum, Integer, String, delete, text
 from sqlalchemy.exc import DBAPIError, IntegrityError
 
 from backend.db.session import get_session_factory
@@ -37,12 +36,12 @@ def _table(name: str):
         ("users", ["active_vocabulary_id"]),
     ],
 )
-def test_pk_fk_columns_are_bigint_unsigned(table: str, columns: list[str]) -> None:
-    """모든 PK/FK 는 기존 스키마 규격인 BIGINT UNSIGNED 다 (INT 금지)."""
+def test_pk_fk_columns_are_plain_integer(table: str, columns: list[str]) -> None:
+    """모든 PK/FK 는 Integer 다. SQLite 는 `INTEGER PRIMARY KEY` 일 때만 rowid 별칭이 되어 자동 증가하므로
+    BigInteger(BIGINT) 로 두면 PK 가 자동 증가하지 않는다. 값 범위는 SQLite INTEGER(64비트)가 충분히 덮는다."""
     for name in columns:
         col_type = _table(table).c[name].type
-        assert isinstance(col_type, BIGINT), f"{table}.{name}"
-        assert col_type.unsigned is True, f"{table}.{name}"
+        assert type(col_type) is Integer, f"{table}.{name}"
 
 
 def test_category_is_free_string_with_index() -> None:
@@ -76,12 +75,15 @@ def test_phonetic_column_matches_the_v22_contract() -> None:
 
 
 def test_phonetic_column_is_created_by_exactly_one_migration() -> None:
-    """컬럼은 초기 마이그레이션에 이미 있다. 같은 컬럼을 다시 추가하는 마이그레이션이 생기면 Duplicate column 으로 깨진다."""
+    """컬럼은 초기 마이그레이션에 이미 있다. 같은 컬럼을 다시 추가하는 마이그레이션이 생기면 duplicate column 으로 깨진다."""
+    import re
     from pathlib import Path
 
     versions = Path(__file__).resolve().parents[1] / "alembic" / "versions"
-    creators = [f.name for f in versions.glob("*.py") if '"phonetic"' in f.read_text(encoding="utf-8")]
-    assert creators == ["b1e5c0a7d2f4_feat_중앙_제공형_단어장_테이블_추가.py"]
+    creators = [
+        f.name for f in versions.glob("*.py") if re.search(r"""['"]phonetic['"]""", f.read_text(encoding="utf-8"))
+    ]
+    assert creators == ["0001_feat_sqlite_초기_스키마.py"]
 
 
 def test_word_core_fields_keep_existing_names() -> None:
@@ -318,18 +320,12 @@ async def test_deleting_active_vocabulary_sets_user_column_to_null() -> None:
 
 
 @_ASYNC
-async def test_live_phonetic_column_is_varchar100_nullable_utf8mb4() -> None:
-    """실제 DB 의 컬럼 규격 고정 (마이그레이션이 적용된 상태). IPA 확장 문자를 저장하려면 utf8mb4 여야 한다."""
+async def test_live_phonetic_column_is_varchar100_nullable() -> None:
+    """실제 DB 의 컬럼 규격 고정 (마이그레이션이 적용된 상태). SQLite 는 TEXT(UTF-8)라 IPA 확장 문자도 그대로 저장된다."""
     async with get_session_factory()() as session:
-        row = (
-            await session.execute(
-                text(
-                    "SELECT COLUMN_TYPE, IS_NULLABLE, CHARACTER_SET_NAME FROM information_schema.COLUMNS "
-                    "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'system_words' AND COLUMN_NAME = 'phonetic'"
-                )
-            )
-        ).one()
-    assert (row[0], row[1], row[2]) == ("varchar(100)", "YES", "utf8mb4")
+        rows = (await session.execute(text("PRAGMA table_info('system_words')"))).all()
+    cid, name, col_type, notnull, default, pk = next(r for r in rows if r[1] == "phonetic")
+    assert (col_type, notnull, default) == ("VARCHAR(100)", 0, None)
 
 
 @_ASYNC
