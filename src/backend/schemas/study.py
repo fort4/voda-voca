@@ -10,6 +10,12 @@ from backend.schemas.common import to_utc_iso
 
 QUIZ_CHOICE_COUNT = 4
 STUDY_LOG_LIMIT = 100
+FREQUENT_WRONG_DEFAULT = 10  # 자주 틀리는 단어 기본 개수 (VOCA-FR-033)
+FREQUENT_WRONG_MAX = 50
+TREND_SESSIONS_DEFAULT = 20  # 성적 추이: 최근 시험 회차 수 (VOCA-FR-032)
+TREND_SESSIONS_MAX = 100
+TREND_DAYS_DEFAULT = 30  # 성적 추이: 날짜별 정답률을 거슬러 볼 일수
+TREND_DAYS_MAX = 90
 
 
 # --- 학습 통계 (이슈 #3) ---
@@ -87,3 +93,59 @@ class WrongWordPage(BaseModel):
 
 class StudyLogList(BaseModel):
     items: list[StudyLogOut]
+
+
+# --- 자주 틀리는 단어 상위 N (VOCA-FR-033) ---
+
+
+class FrequentWrongOut(BaseModel):
+    """오답 횟수가 많은 단어 한 건. 횟수는 study_logs 의 오답 행 수라 한 번 맞혀도 줄지 않는다."""
+
+    word_id: int
+    vocabulary_id: int
+    vocabulary_title: str
+    term: str
+    meaning: str
+    wrong_count: int = Field(description="누적 오답 횟수 (1 이상)")
+    answered_count: int = Field(description="그 단어를 푼 누적 횟수 (정답 포함)")
+    last_wrong_at: datetime = Field(description="가장 최근에 틀린 시각 (UTC)")
+
+    @field_serializer("last_wrong_at")
+    def _serialize_utc(self, value: datetime) -> str:
+        return to_utc_iso(value)
+
+
+class FrequentWrongList(BaseModel):
+    items: list[FrequentWrongOut]
+
+
+# --- 시험 성적 추이 (VOCA-FR-032) ---
+
+
+class SessionScoreOut(BaseModel):
+    """끝까지 푼 퀴즈 1회의 성적."""
+
+    round: int = Field(description="회차. 푼 순서대로 1부터, 최근 N회만 보여 줘도 전체 기준 번호를 유지한다")
+    session_id: int
+    taken_at: datetime = Field(description="출제 시각 (UTC)")
+    total: int
+    correct: int
+    accuracy: float = Field(description="정답률 (0~100, 소수 첫째 자리)")
+
+    @field_serializer("taken_at")
+    def _serialize_utc(self, value: datetime) -> str:
+        return to_utc_iso(value)
+
+
+class DailyScoreOut(BaseModel):
+    """한국 날짜별 퀴즈 정답률. 플래시카드는 시험이 아니므로 뺀다."""
+
+    date: DateType
+    answered: int
+    correct: int
+    accuracy: float = Field(description="정답률 (0~100, 소수 첫째 자리)")
+
+
+class ScoreTrendOut(BaseModel):
+    sessions: list[SessionScoreOut] = Field(description="회차별, 오래된 회차부터")
+    daily: list[DailyScoreOut] = Field(description="날짜별, 오래된 날부터. 기록이 있는 날만")

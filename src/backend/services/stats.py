@@ -11,8 +11,17 @@ from datetime import date, datetime, time, timedelta
 from sqlalchemy import Date, Integer, case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import Bookmark, StudyLog, SystemVocabulary, SystemWord, UserWordProgress
-from backend.schemas.study import DayActivityOut, StudyStatsOut, VocabularyProgressOut
+from backend.models import Bookmark, QuizSession, StudyLog, SystemVocabulary, SystemWord, UserWordProgress
+from backend.models.study_log import STUDY_MODE_QUIZ
+from backend.schemas.study import (
+    DailyScoreOut,
+    DayActivityOut,
+    FrequentWrongOut,
+    ScoreTrendOut,
+    SessionScoreOut,
+    StudyStatsOut,
+    VocabularyProgressOut,
+)
 from backend.services.srs import KST_OFFSET  # 학습일 경계(한국 시각 자정) 상수는 srs 와 공유한다
 
 WEEK_DAYS = 7
@@ -206,3 +215,98 @@ async def list_wrong_words(db: AsyncSession, user_id: int, page: int, size: int)
         .offset((page - 1) * size)
     )
     return [tuple(row) for row in rows.all()], total
+
+
+def _percent(correct: int, total: int) -> float:
+    """정답률(0~100, 소수 첫째 자리). total 이 0 이면 0.0 이다."""
+    return round(correct / total * 100, 1) if total else 0.0
+
+
+async def list_frequent_wrong(db: AsyncSession, user_id: int, limit: int) -> list[FrequentWrongOut]:
+    """자주 틀리는 단어 상위 limit 개 (VOCA-FR-033, 034). study_logs 의 오답 행 수로 센다.
+
+    오답 복습 목록(wrong_word_ids)은 "마지막 결과가 오답"이라 맞히면 빠지지만, 이 목록은 누적 횟수라 맞혀도 줄지 않는다.
+    횟수가 같으면 최근에 틀린 단어가 먼저, 그래도 같으면 단어 ID 순이다. 틀린 적 없는 단어는 넣지 않는다.
+    """
+    wrong = func.sum(case((StudyLog.is_correct.is_(False), 1), else_=0), type_=Integer)
+    last_wrong = func.max(case((StudyLog.is_correct.is_(False), StudyLog.created_at), else_=None))
+    rows = await db.execute(
+        select(SystemWord, SystemVocabulary.title, wrong, func.count(), last_wrong)
+        .join(StudyLog, StudyLog.word_id == SystemWord.id)
+        .join(SystemVocabulary, SystemVocabulary.id == SystemWord.vocabulary_id)
+        .where(StudyLog.user_id == user_id)
+        .group_by(SystemWord.id, SystemVocabulary.title)
+        .having(wrong > 0)
+        .order_by(wrong.desc(), last_wrong.desc(), SystemWord.id)
+        .limit(limit)
+    )
+    return [
+        FrequentWrongOut(
+            word_id=word.id,
+            vocabulary_id=word.vocabulary_id,
+            vocabulary_title=title,
+            term=word.term,
+            meaning=word.meaning,
+            wrong_count=int(wrong_count),
+            answered_count=int(answered),
+            last_wrong_at=last,
+        )
+        for word, title, wrong_count, answered, last in rows.all()
+    ]
+
+
+def _session_score(session: QuizSession) -> tuple[int, int] | None:
+    """(문항 수, 정답 수). 아직 끝까지 풀지 않은 세션이면 None.
+
+    끝났는지는 학습 세션 화면과 같은 기준(답한 문항 수 >= 문항 수)으로 정한다. 채점은 저장된 정답 번호와 고른 번호를 비교한다.
+    """
+    total = len(session.questions)
+    answers = session.answers or {}
+    if total == 0 or len(answers) < total:
+        return None
+    correct = sum(1 for q in session.questions if answers.get(str(q["question_id"])) == q["correct_index"])
+    return total, correct
+
+
+async def get_score_trend(db: AsyncSession, user_id: int, now: datetime, sessions: int, days: int) -> ScoreTrendOut:
+    """시험 성적 추이 (VOCA-FR-032, 034): 회차별(끝까지 푼 퀴즈)과 날짜별(퀴즈 문항 이력) 정답률.
+
+    회차 번호는 전체 이력의 오래된 순서이며, sessions 는 그중 최근 몇 회를 보여 줄지만 정한다.
+    날짜별은 오늘을 포함한 최근 days 일 중 기록이 있는 날만 오래된 날부터 돌려준다.
+    """
+    session_rows = await db.execute(
+        select(QuizSession)
+        .where(QuizSession.user_id == user_id, QuizSession.mode == STUDY_MODE_QUIZ)
+        .order_by(QuizSession.created_at, QuizSession.id)
+    )
+    finished = [(row, score) for row in session_rows.scalars() if (score := _session_score(row)) is not None]
+    rounds = [
+        SessionScoreOut(
+            round=number,
+            session_id=row.id,
+            taken_at=row.created_at,
+            total=total,
+            correct=correct,
+            accuracy=_percent(correct, total),
+        )
+        for number, (row, (total, correct)) in enumerate(finished, start=1)
+    ]
+
+    first = kst_today(now) - timedelta(days=days - 1)
+    day = _kst_day_of(StudyLog.created_at)
+    right = func.sum(case((StudyLog.is_correct.is_(True), 1), else_=0), type_=Integer)
+    daily_rows = await db.execute(
+        select(day, func.count(), right)
+        .where(
+            StudyLog.user_id == user_id,
+            StudyLog.mode == STUDY_MODE_QUIZ,
+            StudyLog.created_at >= datetime.combine(first, time.min) - KST_OFFSET,
+        )
+        .group_by(day)
+        .order_by(day)
+    )
+    daily = [
+        DailyScoreOut(date=d, answered=int(n), correct=int(c), accuracy=_percent(int(c), int(n)))
+        for d, n, c in daily_rows.all()
+    ]
+    return ScoreTrendOut(sessions=rounds[-sessions:], daily=daily)
