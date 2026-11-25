@@ -1,14 +1,18 @@
 /*
- * 2026-11-26 - voda-voca - 관리자 입력 모달: 단어장·단어 추가와 수정, 삭제 확인 (SweetAlert2, REQ-160, REQ-161)
+ * 2026-11-26 - voda-voca - 관리자 입력 모달: 단어장·단어 추가와 수정, CSV 일괄 등록, 삭제 확인 (SweetAlert2, REQ-160~162)
  * 파일 위치: src/frontend/js/views/components/admin-forms.js
  */
 
 import {
   ADMIN_LIMITS,
+  CSV_IMPORT,
   VOCABULARY_CATEGORIES,
   adminFailureMessage,
+  csvFileError,
   deleteVocabularyPrompt,
   deleteWordPrompt,
+  importFailure,
+  importResultText,
   vocabularyForm,
   wordForm,
 } from "../../core/admin-model.js";
@@ -115,6 +119,65 @@ export async function openWordForm({ vocabularyId, word }) {
   });
   if (saved) toast(word ? "단어를 고쳤어요" : `'${saved.term}' 단어를 추가했어요`);
   return saved;
+}
+
+/**
+ * CSV 파일로 단어를 한꺼번에 등록한다. 실패하면 모달을 연 채 이유와 오류 행을 보인다.
+ * @param {{vocabularyId: number}} options
+ * @returns {Promise<{created: number, skipped: number}|null>} 취소하면 null
+ */
+export async function openImportForm({ vocabularyId }) {
+  const Swal = globalThis.Swal;
+  if (!Swal) return null;
+  const input = /** @type {HTMLInputElement} */ (h("input", { id: "admin-csv", type: "file", accept: ".csv,text/csv", class: INPUT_CLASS }));
+  const problem = h("div", { class: "hidden max-h-40 space-y-1 overflow-y-auto break-words text-sm text-red-600", role: "alert" });
+  // 서버 문구에는 파일의 열 이름이 섞일 수 있어 글자 노드로만 넣는다
+  const showProblem = (message, rows = []) => {
+    problem.replaceChildren(...[message, ...rows].map((text) => h("p", {}, text)));
+    problem.classList.toggle("hidden", !message);
+  };
+  const send = async () => {
+    const file = input.files?.[0];
+    const fileProblem = csvFileError(file);
+    showProblem(fileProblem);
+    if (fileProblem) return false;
+    let data;
+    try {
+      data = await file.arrayBuffer(); // 고른 뒤 파일을 고쳐 저장하면 읽지 못한다
+    } catch {
+      showProblem("파일을 읽지 못했어요. 다시 골라 주세요.");
+      return false;
+    }
+    try {
+      return await api(`/admin/vocabularies/${vocabularyId}/words/import`, { method: "POST", body: data, contentType: CSV_IMPORT.contentType });
+    } catch (error) {
+      const { message, rows } = importFailure(error);
+      showProblem(message, rows);
+      return false;
+    }
+  };
+  const result = await Swal.fire({
+    title: "CSV 일괄 등록",
+    html: h(
+      "div",
+      { class: "space-y-3 text-left" },
+      h("p", { class: "text-sm text-zinc-600" }, "첫 줄은 열 이름입니다. term, meaning 은 필수이고 example, example_meaning 은 선택이에요."),
+      h("p", { class: "text-sm text-zinc-600" }, `UTF-8 파일, 한 번에 ${CSV_IMPORT.maxRows}행·${CSV_IMPORT.maxBytes / 1024}KB 까지. 이미 있는 표제어는 건너뛰어요.`),
+      h("div", { class: "space-y-1" }, h("label", { for: "admin-csv", class: "block text-sm font-medium text-zinc-700" }, "CSV 파일"), input),
+      problem,
+    ),
+    showCancelButton: true,
+    confirmButtonText: "등록",
+    cancelButtonText: "취소",
+    reverseButtons: true,
+    showLoaderOnConfirm: true,
+    allowOutsideClick: false,
+    preConfirm: send,
+  });
+  if (!result.isConfirmed) return null;
+  // 건수는 읽을 시간이 필요해 토스트가 아니라 확인 모달로 보인다
+  await Swal.fire({ title: "등록 결과", text: importResultText(result.value), icon: "success", confirmButtonText: "확인" });
+  return result.value;
 }
 
 /** 확인을 받고 지운다. @returns {Promise<boolean>} 지웠는지 */

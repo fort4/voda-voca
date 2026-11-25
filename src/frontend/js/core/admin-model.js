@@ -1,5 +1,5 @@
 /*
- * 2026-11-26 - voda-voca - 관리자 화면 모델: 관리 가능 판정, 단어장·단어 입력 검증, 오류 문구, 삭제 안내 (DOM 없는 순수 로직, REQ-160, REQ-161)
+ * 2026-11-26 - voda-voca - 관리자 화면 모델: 관리 가능 판정, 단어장·단어 입력 검증, 오류 문구, 삭제 안내, CSV 일괄 등록 (DOM 없는 순수 로직, REQ-160~162)
  * 파일 위치: src/frontend/js/core/admin-model.js
  */
 
@@ -87,4 +87,34 @@ export function deleteVocabularyPrompt(vocabulary) {
     title: `'${vocabulary.title}' 단어장을 삭제할까요?`,
     text: `${vocabulary.total_words}단어와 모든 사용자의 학습 이력, 진도, 북마크, 진행 중인 학습이 함께 지워져요. 되돌릴 수 없습니다.`,
   };
+}
+
+/** CSV 일괄 등록의 상한과 본문 형식. 서버(services/csv_import.py)와 같다. */
+export const CSV_IMPORT = Object.freeze({ maxBytes: 512 * 1024, maxRows: 500, contentType: "text/csv" });
+
+/**
+ * 보내기 전에 알 수 있는 파일 문제. 내용(인코딩, 열, 행)은 서버가 검사한다.
+ * @param {{name: string, size: number}|undefined|null} file
+ * @returns {string|null} 문제가 없으면 null
+ */
+export function csvFileError(file) {
+  if (!file) return "CSV 파일을 골라 주세요.";
+  if (!file.name.toLowerCase().endsWith(".csv")) return "CSV 파일(.csv)만 올릴 수 있어요. 엑셀에서는 'CSV UTF-8'로 저장해 주세요.";
+  if (file.size > CSV_IMPORT.maxBytes) return `파일은 ${CSV_IMPORT.maxBytes / 1024}KB 이하여야 합니다.`;
+  return null;
+}
+
+/** @param {{created: number, skipped: number}} result */
+export function importResultText({ created, skipped }) {
+  const done = created > 0 ? `${created}단어를 등록했어요.` : "새로 등록한 단어가 없어요.";
+  return skipped > 0 ? `${done} 이미 있는 표제어 ${skipped}건은 건너뛰었어요.` : done;
+}
+
+/**
+ * @param {{detail?: string, body?: {errors?: Array<{row: number, message: string}>}|null}} error
+ * @returns {{message: string, rows: string[]}} 안내 문구와 오류 행 목록
+ */
+export function importFailure(error) {
+  const rows = Array.isArray(error.body?.errors) ? error.body.errors.map((e) => `${e.row}행: ${e.message}`) : [];
+  return { message: error.detail ?? FALLBACK_ERROR, rows };
 }

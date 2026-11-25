@@ -1,7 +1,8 @@
-# 2026-11-26 - voda-voca - 관리자 콘텐츠 서비스: 관리자 단어장과 단어의 생성·수정·삭제. 시드 콘텐츠는 읽기 전용이다 (REQ-160, REQ-161)
+# 2026-11-26 - voda-voca - 관리자 콘텐츠 서비스: 관리자 단어장과 단어의 생성·수정·삭제, 일괄 등록. 시드 콘텐츠는 읽기 전용이다 (REQ-160~162)
 # 파일 위치: src/backend/services/admin_content.py
 
 import uuid
+from dataclasses import dataclass
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -90,6 +91,13 @@ async def _ensure_term_free(db: AsyncSession, vocabulary_id: int, term: str, exc
         raise DuplicateTermError
 
 
+async def _next_order_index(db: AsyncSession, vocabulary_id: int) -> int:
+    last = await db.scalar(
+        select(func.max(SystemWord.order_index)).where(SystemWord.vocabulary_id == vocabulary_id)
+    )
+    return 0 if last is None else last + 1
+
+
 async def refresh_total_words(db: AsyncSession, vocabulary: SystemVocabulary) -> None:
     await db.flush()
     total = await db.scalar(
@@ -102,12 +110,9 @@ async def add_word(db: AsyncSession, vocabulary_id: int, data: WordInput) -> Sys
     """단어를 단어장 끝에 더한다. 표준 단어장에도 더할 수 있다."""
     vocabulary = await _get_vocabulary(db, vocabulary_id)
     await _ensure_term_free(db, vocabulary_id, data.term)
-    last = await db.scalar(
-        select(func.max(SystemWord.order_index)).where(SystemWord.vocabulary_id == vocabulary_id)
-    )
     word = SystemWord(
         vocabulary_id=vocabulary_id,
-        order_index=0 if last is None else last + 1,
+        order_index=await _next_order_index(db, vocabulary_id),
         source=SOURCE_ADMIN,
         **data.model_dump(),
     )
@@ -115,6 +120,38 @@ async def add_word(db: AsyncSession, vocabulary_id: int, data: WordInput) -> Sys
     await refresh_total_words(db, vocabulary)
     await db.commit()
     return word
+
+
+@dataclass(frozen=True)
+class ImportResult:
+    created: int
+    skipped: int  # 이미 있거나 같은 파일에서 앞에 나온 표제어
+
+
+async def import_words(db: AsyncSession, vocabulary_id: int, words: list[WordInput]) -> ImportResult:
+    """여러 단어를 트랜잭션 하나로 단어장 끝에 더한다. 중복 표제어는 건너뛰고 기존 단어를 바꾸지 않는다 (REQ-162)."""
+    vocabulary = await _get_vocabulary(db, vocabulary_id)
+    terms = await db.scalars(select(SystemWord.term).where(SystemWord.vocabulary_id == vocabulary_id))
+    taken = {term_key(term) for term in terms}
+    order_index = await _next_order_index(db, vocabulary_id)
+    created = 0
+    for data in words:
+        key = term_key(data.term)
+        if key in taken:
+            continue
+        taken.add(key)
+        db.add(
+            SystemWord(
+                vocabulary_id=vocabulary_id,
+                order_index=order_index + created,
+                source=SOURCE_ADMIN,
+                **data.model_dump(),
+            )
+        )
+        created += 1
+    await refresh_total_words(db, vocabulary)
+    await db.commit()
+    return ImportResult(created=created, skipped=len(words) - created)
 
 
 async def update_word(db: AsyncSession, word_id: int, data: WordInput) -> SystemWord:

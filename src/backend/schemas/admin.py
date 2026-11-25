@@ -1,4 +1,4 @@
-# 2026-11-26 - voda-voca - 관리 API 요청 스키마: 단어장 생성·수정, 단어 등록·수정 (REQ-160, REQ-161)
+# 2026-11-26 - voda-voca - 관리 API 요청 스키마: 단어장 생성·수정, 단어 등록·수정, 일괄 등록 결과 (REQ-160~162)
 # 파일 위치: src/backend/schemas/admin.py
 
 from typing import Annotated
@@ -67,3 +67,10 @@ class WordInput(BaseModel):
         if self.example is None:
             self.example_meaning = None  # 예문이 없으면 예문 뜻도 두지 않는다 (시드와 같은 규칙)
         return self
+
+
+class WordImportOut(BaseModel):
+    """CSV 일괄 등록 결과 (REQ-162)."""
+
+    created: int = Field(description="새로 등록한 단어 수")
+    skipped: int = Field(description="이미 있거나 파일 안에서 겹쳐 건너뛴 행 수")

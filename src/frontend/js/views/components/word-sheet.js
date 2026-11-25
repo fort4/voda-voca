@@ -1,5 +1,5 @@
 /*
- * 2026-11-05 - voda-voca - 단어 미리보기 바텀시트: 단어장의 단어를 페이지씩 보여 주고 표제어·뜻으로 검색한다. 관리자는 단어를 추가·수정·삭제한다 (Esc·바깥 탭·✕ 로 닫기)
+ * 2026-11-05 - voda-voca - 단어 미리보기 바텀시트: 단어장의 단어를 페이지씩 보여 주고 표제어·뜻으로 검색한다. 관리자는 단어를 추가·수정·삭제하고 CSV 로 일괄 등록한다 (Esc·바깥 탭·✕ 로 닫기)
  * 파일 위치: src/frontend/js/views/components/word-sheet.js
  */
 
@@ -10,7 +10,7 @@ import { INPUT_CLASS } from "../../core/form.js";
 import { getUser } from "../../core/state.js";
 import { stopSpeaking } from "../../core/tts.js";
 import { SEARCH_DEBOUNCE_MS, SEARCH_MAX_LENGTH, createWordPager, pagerFooter } from "../../core/word-search-model.js";
-import { confirmDeleteWord, openWordForm } from "./admin-forms.js";
+import { confirmDeleteWord, openImportForm, openWordForm } from "./admin-forms.js";
 import { phoneticLine } from "./phonetic-line.js";
 import { posTag } from "./pos-tag.js";
 import { speakButton } from "./speak-button.js";
@@ -57,8 +57,13 @@ export function openWordSheet(vocabulary, { onWordsChanged = () => {} } = {}) {
     ];
   }
 
-  const addButton = user?.is_admin
-    ? button({ variant: "secondary", full: true, onClick: async () => (await openWordForm({ vocabularyId: vocabulary.id })) && afterChange() }, icon("plus", "h-4 w-4"), "단어 추가")
+  const addButtons = user?.is_admin
+    ? h(
+        "div",
+        { class: "grid grid-cols-2 gap-2" },
+        button({ variant: "secondary", onClick: async () => (await openWordForm({ vocabularyId: vocabulary.id })) && afterChange() }, icon("plus", "h-4 w-4"), "단어 추가"),
+        button({ variant: "secondary", onClick: async () => (await openImportForm({ vocabularyId: vocabulary.id })) && afterChange() }, icon("upload", "h-4 w-4"), "CSV 등록"),
+      )
     : null;
 
   function paintFooter() {
@@ -110,7 +115,7 @@ export function openWordSheet(vocabulary, { onWordsChanged = () => {} } = {}) {
     "div",
     { class: "surface w-full max-w-lg overflow-y-auto rounded-b-none p-4", role: "dialog", "aria-modal": "true", "aria-label": `${vocabulary.title} 미리보기`, style: "max-height: 80dvh; padding-bottom: max(1rem, env(safe-area-inset-bottom))" },
     h("div", { class: "mb-3 flex items-center justify-between gap-2" }, h("h2", { class: "min-w-0 truncate text-lg font-bold text-zinc-900" }, vocabulary.title), button({ variant: "ghost", "aria-label": "닫기", onClick: close }, icon("x", "h-5 w-5"))),
-    h("div", { class: "mb-3 space-y-2" }, searchInput, addButton),
+    h("div", { class: "mb-3 space-y-2" }, searchInput, addButtons),
     list,
     footer,
   );

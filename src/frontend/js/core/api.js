@@ -150,7 +150,8 @@ export async function api(path, options = {}) {
 }
 
 /**
- * @typedef {{method?: string, query?: Record<string, unknown>, body?: unknown, signal?: AbortSignal, timeoutMs?: number, skipAuthRedirect?: boolean, fetchImpl?: typeof fetch}} ApiOptions
+ * contentType 을 주면 body 를 JSON 으로 바꾸지 않고 그 형식으로 그대로 보낸다 (파일 업로드).
+ * @typedef {{method?: string, query?: Record<string, unknown>, body?: unknown, contentType?: string, signal?: AbortSignal, timeoutMs?: number, skipAuthRedirect?: boolean, fetchImpl?: typeof fetch}} ApiOptions
  */
 
 /**
@@ -169,6 +170,7 @@ export async function apiResponse(path, options = {}) {
     method = "GET",
     query,
     body,
+    contentType,
     signal,
     timeoutMs = DEFAULT_TIMEOUT_MS,
     skipAuthRedirect = false,
@@ -179,8 +181,8 @@ export async function apiResponse(path, options = {}) {
   const headers = { Accept: "application/json" };
   const init = { method, headers, credentials: "include" };
   if (body !== undefined) {
-    headers["Content-Type"] = "application/json";
-    init.body = JSON.stringify(body);
+    headers["Content-Type"] = contentType ?? "application/json";
+    init.body = contentType ? body : JSON.stringify(body);
   }
 
   const timeout = new AbortController();
