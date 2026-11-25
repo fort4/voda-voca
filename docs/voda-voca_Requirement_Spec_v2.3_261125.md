@@ -73,11 +73,12 @@
 
 | ID | 요구사항 | 우선순위 | 상세 기준 (Acceptance Criteria) |
 | :--- | :--- | :---: | :--- |
-| REQ-001 | 회원 가입 | M | 계정은 **닉네임(2~30자, 중복 불가)과 비밀번호**만으로 만든다. 이메일은 받지 않는다. 닉네임은 로그인 식별자이며 대소문자와 무관하게 유일하다. 비밀번호는 8자 이상, UTF-8 기준 **72바이트 이하**만 허용한다 (bcrypt 입력 한계, ADR-002). 가입이 끝나면 초급 표준 단어장(`beginner-200`)이 학습 단어장으로 자동 지정된다 (REQ-142). 인증은 **HttpOnly, SameSite=Lax 세션 쿠키** 방식을 사용한다 (Q1 확정). |
+| REQ-001 | 회원 가입 | M | 계정은 **닉네임(2~30자, 중복 불가)과 비밀번호**만으로 만든다. 이메일은 받지 않는다. 닉네임은 로그인 식별자이며 대소문자와 무관하게 유일하다. 비밀번호는 8자 이상, UTF-8 기준 **72바이트 이하**만 허용한다 (bcrypt 입력 한계, ADR-002). 가입이 끝나면 초급 표준 단어장(`beginner-200`)이 학습 단어장으로 자동 지정된다 (REQ-142). 인증은 **HttpOnly, SameSite=Lax 세션 쿠키** 방식을 사용한다 (Q1 확정). 가입 화면은 비밀번호를 한 번 더 입력받아 같을 때만 가입시키고, 닉네임은 가입 전에 "중복 확인" 버튼으로 확인할 수 있다 (REQ-158). |
 | REQ-002 | 로그인 / 로그아웃 | M | 올바른 자격 증명 시 세션을 `sessions` 테이블에 생성하고 세션 쿠키를 발급한다. 세션 수명은 로그인 후 **14일**(절대 만료)이다 `[기본값]`. 로그아웃 시 해당 세션 행을 삭제하여 즉시 무효화한다. 실패 시 어떤 항목이 틀렸는지 노출하지 않는다. (ADR-001) |
 | REQ-003 | 사용자별 데이터 격리 | M | 로그인한 사용자는 본인의 북마크·학습 이력·학습 진행도·학습 세션만 조회·수정·삭제할 수 있다. 타 사용자 리소스(세션 등) 접근 시 404를 반환한다 (존재 여부를 구분하지 않는다). 표준 단어장·단어는 모든 사용자가 공유하는 읽기 전용 콘텐츠다. |
 | REQ-122 | 회원 탈퇴 | M | 로그인한 사용자는 계정을 탈퇴할 수 있다 (`DELETE /api/auth/me`). 탈퇴하면 계정, 세션, 북마크, 학습 이력, 학습 진행도, 학습 세션을 **모두 영구 삭제**하고 세션 쿠키를 만료시킨다 (204). **표준 단어장과 단어는 공용 콘텐츠이므로 삭제되지 않는다.** 탈퇴 전에 경고 확인과 닉네임 직접 입력 확인을 거친다. 탈퇴한 닉네임은 다시 사용할 수 있다. |
-| REQ-156 | 비밀번호 보기/숨기기 | S | (2026-11-25 신설) 로그인·회원가입 화면의 비밀번호 칸에서 입력한 값을 확인할 수 있다. ① **기본은 숨김**(`type="password"`)이고 칸 오른쪽 안쪽의 토글 버튼을 누르면 `type="text"` 로 바뀌며 다시 누르면 숨긴다. ② **접근성·터치**: 버튼은 44×44px 이상, `aria-pressed` 와 `aria-label`("비밀번호 보기"/"비밀번호 숨기기")을 갖고, 아이콘은 `eye`/`eye-off` 다. 버튼은 `type="button"` 이라 폼을 제출하지 않는다. ③ **로그인 실패(401)** 로 비밀번호를 비울 때 숨김 상태로 되돌린다. ④ **범위 밖**: 비밀번호 찾기와 소셜(Google OAuth) 로그인은 하지 않는다. 과제 서버는 실행 중 인터넷이 차단되어(VOCA-SUB-036) 메일 발송과 OAuth 인증 서버 통신이 불가능하다 (사용자 결정, 2026-11-25). |
+| REQ-156 | 비밀번호 보기/숨기기 | S | (2026-11-25 신설) 로그인·회원가입 화면의 비밀번호 칸에서 입력한 값을 확인할 수 있다. ① **기본은 숨김**(`type="password"`)이고 칸 오른쪽 안쪽의 토글 버튼을 누르면 `type="text"` 로 바뀌며 다시 누르면 숨긴다. ② **접근성·터치**: 버튼은 44×44px 이상, `aria-pressed` 와 `aria-label`("비밀번호 보기"/"비밀번호 숨기기")을 갖고, 아이콘은 `eye`/`eye-off` 다. 버튼은 `type="button"` 이라 폼을 제출하지 않는다. ③ **로그인 실패(401)** 로 비밀번호를 비울 때 숨김 상태로 되돌린다. ④ **범위 밖**: 비밀번호 찾기와 소셜(Google OAuth) 로그인은 하지 않는다. 이메일도 받지 않는다 (REQ-158, 사용자 결정 2026-11-26). 과제 서버는 실행 중 인터넷이 차단되어(VOCA-SUB-036) 메일 발송과 OAuth 인증 서버 통신이 불가능하다 (사용자 결정, 2026-11-25). |
+| REQ-158 | 가입 입력 확인 (비밀번호 확인·닉네임 중복 확인) | S | (2026-11-26 신설, 이슈 #27) ① **이메일·소셜 로그인 없음**: 계정은 닉네임과 비밀번호만으로 만든다 (사용자 결정). 이메일 고유 식별자와 Google OAuth 를 검토했으나 채택하지 않았다(서버 인터넷 차단 VOCA-SUB-036, 간편성). 그래서 DB 스키마 변경은 없다. ② **비밀번호 확인**: `POST /api/auth/signup` 이 `password_confirm` 을 받고 `password` 와 다르면 422 (오류 위치 `password_confirm`). 화면은 확인란에 입력하는 즉시 같으면 "비밀번호가 동일합니다.", 다르면 "비밀번호가 일치하지 않습니다."를 `aria-live` 로 보인다. 비밀번호 복잡도 정규식은 두지 않는다(길이 8자 이상·72바이트 이하만, REQ-001). ③ **닉네임 중복 확인**: `GET /api/auth/check-nickname?nickname=` → `{"available": bool}`. 로그인 없이 부르고, 대소문자·앞뒤 공백을 무시하며, 규칙(2~30자) 위반은 422. 계정 존재 여부가 드러나므로 **IP 당 1분 30회**로 제한한다(초과 시 429 + `Retry-After`, 로그인 실패 제한(REQ-121)과 따로 집계, 프로세스 메모리). ④ **가입하기 활성화**: 닉네임·비밀번호가 규칙을 지키고, 비밀번호가 같고, **현재 닉네임이** "중복 확인"에서 사용 가능으로 나온 뒤에만 켠다. 확인한 뒤 닉네임을 고치면 확인이 무효가 되고, 확인 중에 값이 바뀌어 늦게 온 응답은 무시한다. 가입하기 버튼 아래에는 안내 문구 줄을 두지 않는다(오류는 각 입력 칸 아래에만). ⑤ **서버 재검사**: 서버는 확인 여부와 무관하게 가입 때 UNIQUE 제약으로 다시 막고, 중복이면 409 와 `X-Error-Code: NICKNAME_TAKEN` 을 돌려준다(확인 후 가입 사이의 경쟁). 화면은 닉네임 칸에 표시하고 확인 상태를 되돌린다. ⑥ **알려진 한계**: 중복 확인 API 는 닉네임 존재 여부를 드러낸다(가입 화면의 일반적인 절충, 호출 제한으로 완화). |
 
 ### 4.2 표준 단어장 (System Vocabulary, 읽기 전용)
 
@@ -261,7 +262,7 @@ v1.0의 질의 사항 Q1~Q8에 대한 결정이다. 사용자가 명시적으로
 
 | 요구사항 ID | 요구사항 요약 | 우선순위 | 설계 산출물 (예정) | 구현 위치 (예정) | 테스트 ID (예정) | 상태 |
 | :--- | :--- | :---: | :--- | :--- | :--- | :---: |
-| REQ-001 | 회원 가입 | M | API Integration Spec §3.1, Data Design §3.1 | `src/backend/routers/auth.py`, `services/auth.py` | TC-001 | 구현 완료 (닉네임 고유키) |
+| REQ-001 | 회원 가입 | M | API Integration Spec §3.1, Data Design §3.1 | `src/backend/routers/auth.py`, `services/auth.py` | TC-001 | 구현 완료 (닉네임 고유키, 비밀번호 확인·중복 확인은 REQ-158) |
 | REQ-002 | 로그인 / 로그아웃 | M | Integration Spec, Data Design(sessions) | `src/backend/routers/auth.py` | TC-002 | 설계 완료 |
 | REQ-003 | 사용자별 데이터 격리 | M | Architecture Design | `src/backend/services/` | TC-003 | 구현 완료 |
 | REQ-004 | 단어장 생성 | M | — | (삭제됨) | — | 폐기 (→ REQ-140) |
@@ -308,6 +309,7 @@ v1.0의 질의 사항 Q1~Q8에 대한 결정이다. 사용자가 명시적으로
 | REQ-155 | 시험 성적 추이 | S | API 규격서 §3.5 #19, UI/UX 설계서 §3.5 | `routers/study.py`, `services/stats.py`(`get_score_trend`), `schemas/study.py`, `core/analytics-model.js`, `views/stats-view.js` | TC-155 (`test_study_analytics_api.py`, `tests/analytics-model.test.js`) | 구현 완료 |
 | REQ-156 | 비밀번호 보기/숨기기 | S | UI/UX 설계서 §3.1 | `core/password-toggle.js`, `core/form.js`(`passwordField`), `views/login.js`, `views/signup.js`, `css/app.css` | TC-156 (`tests/password-toggle.test.js`) | 구현 완료 |
 | REQ-157 | 출제 방향·형식 | S | API 규격서 §3.4 #11, Data 설계서 §3.6·3.7, UI/UX 설계서 §3.2·3.6 | `services/study.py`(`build_quiz_question`), `services/learning_session.py`, `schemas/learning_session.py`, `models/quiz_session.py`·`study_log.py`, `alembic/versions/0002_*`, `core/session-view-model.js`(`questionCopy`), `core/home-model.js`, `views/components/quiz-options.js`, `views/study-session-view.js` | TC-157 (`test_quiz_variants_units.py`, `test_quiz_variants_api.py`, `tests/quiz-variants.test.js`) | 구현 완료 |
+| REQ-158 | 가입 입력 확인 (비밀번호 확인·닉네임 중복 확인) | S | API 규격서 §3.1 #1·#1b, UI/UX 설계서 §3.1 | `schemas/auth.py`(`SignupRequest.password_confirm`, `AvailabilityOut`), `routers/auth.py`(`check_nickname`), `services/auth.py`(`is_nickname_available`), `core/rate_limit.py`(`availability_rate_limiter`), `core/availability.js`, `core/validate.js`(`passwordConfirmState`), `core/form.js`(`checkField`), `views/signup.js` | TC-158 (`test_auth_api.py`, `test_auth_schemas.py`, `test_availability_api.py`, `tests/availability.test.js`, `tests/signup-ui.test.js`, `tests/validate.test.js`) | 구현 완료 |
 | REQ-118 | pytest 자동화 테스트 | M | Test Specification | `src/backend/tests/` | TC-118 | 초안 |
 | REQ-119 | 모바일 스크린샷 검증 | S | Test Specification | 검증 스크립트 | TC-119 | 초안 |
 | REQ-120 | 코드 추적성 (ID 명시) | M | 개발방법론 §3 | 모듈 헤더, 커밋 메시지 | 코드 리뷰 체크리스트 | 초안 |
@@ -354,6 +356,7 @@ v1.0의 질의 사항 Q1~Q8에 대한 결정이다. 사용자가 명시적으로
 | **v2.3** | 2026-11-25 | **SQLite 전환(ADR-010)**: §1.4, REQ-108·116·117·152 개정, REQ-153 신설, 콜레이션 확정 갱신. **기말과제 매핑 §11 신설**(VOCA-FR/NFR/SUB ↔ REQ, 구현 여부 표시). REQ-0xx/14x/150 의 의미는 변경 없음 | Claude |
 | v2.3 개정 | 2026-11-25 | **REQ-154·155·156 신설**: 자주 틀리는 단어 상위 N(`GET /api/study/frequent-wrong`), 시험 성적 추이(`GET /api/study/score-trend`, 회차별·날짜별 정답률), 로그인·가입 비밀번호 보기/숨기기. §11 의 VOCA-FR-032·033 을 ❌/🟡 에서 ✅ 로 갱신. 비밀번호 찾기·Google OAuth 는 서버가 실행 중 인터넷을 쓸 수 없어 제외(사용자 결정). 스키마 변경 없음 | Claude |
 | v2.3 개정 | 2026-11-25 | **REQ-157 신설**: 퀴즈 출제 방향(영→한·한→영·섞기)과 형식(4지선다·OX). `POST /api/study/sessions` 에 `direction`·`format` 추가, 한→영 출제 응답의 `term`·`context` 비노출, `quiz_sessions`·`study_logs` 에 방향·형식 컬럼 추가(마이그레이션 0002). §11 의 VOCA-FR-023·024·026 을 ✅ 로 갱신. 단답형은 채점이 모호해 OX 로 대체(사용자 결정) | Claude |
+| v2.3 개정 | 2026-11-26 | **REQ-158 신설, REQ-001·156 보강**: 가입 화면에 비밀번호 확인(`password_confirm`, 불일치 422)과 닉네임 "중복 확인" 버튼(`GET /api/auth/check-nickname`, IP 당 1분 30회)을 추가했다. 이메일 고유 식별자와 Google OAuth 는 검토 후 **채택하지 않았다**(닉네임+비밀번호만, 스키마 변경 없음; 사용자 결정). 가입 409 는 `X-Error-Code: NICKNAME_TAKEN`. §11 VOCA-FR-041 에 REQ-158 연결 | Claude |
 | v0.1 | 2026-11-02 | 초안 작성 (요구사항 ID 체계 수립, 기능/비기능 목록, 추적 매트릭스) | Claude |
 | v1.0 | 2026-11-02 | 사용자 승인 후 `docs/`로 승격 (파일명 `Requirement_Spec` 규칙 적용) | Claude |
 | v2.2 개정 | 2026-11-25 | **REQ-152 신설, REQ-116·117 개정**: 앱 컨테이너화(Dockerfile, `migrate`·`app` 서비스, 개발용 override). 사용자 확정: HTTPS 제외, git clone 전달, DB 포트 loopback (ADR-009) | Claude |
@@ -432,7 +435,7 @@ v1.0의 질의 사항 Q1~Q8에 대한 결정이다. 사용자가 명시적으로
 | VOCA-FR-032 | 시험 성적 추이(회차별·날짜별 정답률) | 기본 | ✅ | REQ-155. 끝까지 푼 퀴즈의 회차별 정답률과 한국 날짜별 정답률(`GET /api/study/score-trend`). 중간에 그만둔 시험과 플래시카드는 회차에서 제외한다 |
 | VOCA-FR-033 | 자주 틀리는 단어 상위 N | 기본 | ✅ | REQ-154. 누적 오답 횟수 순 상위 N(`GET /api/study/frequent-wrong`, 기본 10). 이력(`study_logs`)에서 계산한다 |
 | VOCA-FR-034 | 통계는 DB 이력으로 계산 | 기본 | ✅ | 서버 집계(REQ-131~133, `services/stats.py`) |
-| VOCA-FR-041 | 회원가입·로그인·로그아웃 | 도전 | ✅ | REQ-001, 002, 003 |
+| VOCA-FR-041 | 회원가입·로그인·로그아웃 | 도전 | ✅ | REQ-001, 002, 003, 158. 닉네임+비밀번호 방식(이메일·OAuth 없음), 가입 시 비밀번호 확인·닉네임 중복 확인 |
 | VOCA-FR-042 | 비밀번호 해시 저장 | 도전 | ✅ | bcrypt (REQ-110, ADR-002) |
 | VOCA-FR-043 | 이력·통계 계정별 분리 | 도전 | ✅ | 모든 이력 테이블이 `user_id` FK, 본인 것만 조회(REQ-121~122) |
 | VOCA-FR-051~053 | 다른 계정 통계 조회·공개 설정·읽기 전용 | 도전 | ➖ | 선택하지 않음 |

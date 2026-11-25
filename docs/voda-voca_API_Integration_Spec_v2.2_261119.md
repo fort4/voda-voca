@@ -76,7 +76,8 @@
 
 | # | 메서드 | 경로 | 요구사항 | 인증 | 성공 | 주요 실패 |
 | :-: | :--- | :--- | :--- | :-: | :-: | :--- |
-| 1 | POST | `/api/auth/signup` | REQ-001, REQ-142 | — | 201 | 409, 422 |
+| 1 | POST | `/api/auth/signup` | REQ-001, REQ-142, REQ-158 | — | 201 | 409, 422 |
+| 1b | GET | `/api/auth/check-nickname` | REQ-158 | — | 200 | 422, **429** |
 | 2 | POST | `/api/auth/login` | REQ-001, REQ-121 | — | 200 | 401, **429**, 422 |
 | 3 | POST | `/api/auth/logout` | REQ-002 | 선택 | 204 | — |
 | 4 | GET | `/api/auth/me` | REQ-002 | 필수 | 200 | 401 |
@@ -107,11 +108,18 @@
 ### 3.1 인증
 
 **#1 POST `/api/auth/signup`**
-- 요청 본문: `{"nickname": string(2~30자, 공백 제거 후), "password": string(8자 이상, 72바이트 이하)}`. 이메일은 받지 않습니다 (v1.1).
+- 요청 본문: `{"nickname": string(2~30자, 공백 제거 후), "password": string(8자 이상, 72바이트 이하), "password_confirm": string}`. `password_confirm` 은 `password` 와 같아야 합니다 (**v2.2, REQ-158**). 이메일은 받지 않습니다 (v1.1). 보내도 무시됩니다.
 - 응답 201: `UserOut` = `{"id": number, "nickname": string, "created_at": string}`
-- 실패: 409 `{"detail": "이미 사용 중인 닉네임입니다."}`, 422 (형식 위반)
+- 실패: 409 `{"detail": "이미 사용 중인 닉네임입니다."}` + `X-Error-Code: NICKNAME_TAKEN`, 422 (형식 위반. `password_confirm` 불일치는 오류 위치가 `["body","password_confirm"]` 이고 메시지는 "비밀번호가 일치하지 않습니다.")
 - 부가 효과: 가입 시 초급 표준 단어장(`beginner-200`)이 `active_vocabulary_id` 로 자동 지정됩니다 (REQ-142). 단어장·단어를 복사하지 않습니다.
 - 프론트 처리: 성공 시 자동 로그인하지 않습니다. 로그인 화면으로 이동하고 성공 토스트를 띄웁니다 (2번 호출 필요).
+
+**#1b GET `/api/auth/check-nickname`** (v2.2, REQ-158)
+- 쿼리: `nickname` (필수, 공백 제거 후 2~30자). 로그인 없이 호출합니다.
+- 응답 200: `{"available": boolean}` — `true` 면 지금 가입에 쓸 수 있습니다. 대소문자와 앞뒤 공백은 무시하고 비교합니다 (가입의 유일성 규칙과 같음).
+- 실패: 422 (규칙 위반: 비어 있음·1자·31자 이상 등. "사용 가능/불가"로 답하지 않습니다), **429** `{"detail": "확인 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."}` + `Retry-After: <초>`.
+- 호출 제한: **IP 당 1분 30회**(규칙을 통과한 호출만 셈). 계정 존재 여부가 드러나므로 둔 완화책이며 로그인 실패 제한(§5.4)과 따로 집계합니다. 프로세스 메모리 기반이라 단일 프로세스 배포를 전제합니다.
+- 주의: 확인은 안내일 뿐입니다. 확인 뒤 다른 사람이 먼저 가입할 수 있으므로 최종 판정은 #1 의 409 입니다.
 
 **#2 POST `/api/auth/login`**
 - 요청 본문: `{"nickname": string, "password": string}`
@@ -492,3 +500,4 @@ POST /api/study/sessions  ─►  items[0..N-1]
 | v2.0 | 2026-11-02 | `example_meaning`, 학습 로그 `wordbook_id` 등 (`docs/old/voda-voca_API_Integration_Spec_v2.0_261102.md`) | Claude |
 | v1.2 이하 | 2026-11-02 | `docs/old/` 보관본 참조 | Claude |
 | v2.2 개정 | 2026-11-25 | `POST /api/study/sessions`(#11)에 `direction`·`format` 요청 필드와 `SessionItemOut` 의 `direction`·`format`·`prompt`·`proposed` 추가, 한→영 문항의 `term`·`context` null(REQ-157). 기본값이 기존 동작이라 하위 호환 | Claude |
+| v2.2 개정 | 2026-11-26 | 가입(#1)에 `password_confirm` 요청 필드 추가(불일치 422)와 409 의 `X-Error-Code: NICKNAME_TAKEN`, 닉네임 중복 확인 `GET /api/auth/check-nickname`(#1b, IP 당 1분 30회) 추가(REQ-158). 이메일·OAuth 는 받지 않는다. `password_confirm` 필수라 옛 클라이언트의 가입 요청은 422 가 된다(프론트는 함께 갱신) | Claude |
