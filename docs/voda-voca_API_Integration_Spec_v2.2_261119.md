@@ -83,7 +83,7 @@
 | 4 | GET | `/api/auth/me` | REQ-002 | 필수 | 200 | 401 |
 | 4b | DELETE | `/api/auth/me` | REQ-122 | 필수 | 204 | 401 |
 | 5 | GET | `/api/vocabularies` | REQ-140 | 필수 | 200 | 422, 401 |
-| 6 | GET | `/api/vocabularies/{vocabulary_id}/words` | REQ-141 | 필수 | 200 | 404, 422, 401 |
+| 6 | GET | `/api/vocabularies/{vocabulary_id}/words` | REQ-141, REQ-163 | 필수 | 200 | 404, 422, 401 |
 | 7 | POST | `/api/users/me/active-vocabulary` | REQ-142 | 필수 | 200 | 404, 422, 401 |
 | 8 | PUT | `/api/bookmarks/{word_id}` | REQ-017 | 필수 | 204 | 404, 401 |
 | 9 | DELETE | `/api/bookmarks/{word_id}` | REQ-017 | 필수 | 204 | 401 |
@@ -164,12 +164,13 @@
 - 프론트 처리: 탐색 화면의 카테고리·레벨 칩은 이 목록에서 만듭니다.
 - **카테고리 값 (v2.2)**: `ELEMENTARY`, `SECONDARY`, `CSAT`, `EXAM`(시험 대비 핵심 200, `exam-core-200`), `BUSINESS`(실무 비즈니스 영단어 200, `business-practical-200`). 정렬은 `sort_order` 순(1~5)이고 `?category=EXAM` 처럼 거를 수 있습니다. 새 카테고리는 시드만으로 늘고 API 형태는 그대로입니다 (하위 호환).
 
-**#6 GET `/api/vocabularies/{vocabulary_id}/words?page=&size=`**
+**#6 GET `/api/vocabularies/{vocabulary_id}/words?page=&size=&q=`**
 - 응답 200: `{"vocabulary_id", "items": [{"word_id", "term", "meaning", "example": string|null, "example_meaning": string|null, "phonetic": string|null, "pos": string|null, "bookmarked": boolean}], "total", "page", "size"}`
 - `phonetic` (`VocabularyWordOut`, v2.2): 슬래시 없는 미국식 IPA (예: `"ˈæpəl"`), 없으면 null. 화면이 `/…/` 를 입힙니다. 추가 필드이므로 하위 호환입니다.
 - **`pos`(품사, `VocabularyWordOut`, v2.2, REQ-146)**: 영문 소문자 문자열(`noun`, `verb`, `adjective`, `adverb`, `preposition`, `conjunction`, `pronoun`, `interjection`) 또는 null. 시드 1,000단어는 모두 값이 있습니다. 화면이 한글 라벨을 입힙니다. 추가 필드이므로 하위 호환입니다.
 - 정렬: `order_index`, `id`. `bookmarked` 는 요청한 사용자의 북마크 여부입니다.
-- 실패: 404 (없는 단어장), 422 (`page`/`size` 범위)
+- **`q`(검색어, 선택, 100자 이하, REQ-163)**: 표제어나 뜻에 이 문자열이 든 단어만 줍니다. 영문 대소문자는 무시하고 `%`·`_`·`\` 는 일반 문자입니다. 앞뒤 공백은 무시하며 빈 값은 전체 목록입니다. `total` 은 조건에 맞는 단어 수입니다. 추가 파라미터라 하위 호환입니다.
+- 실패: 404 (없는 단어장), 422 (`page`/`size` 범위, `q` 100자 초과)
 
 **#7 POST `/api/users/me/active-vocabulary`**
 - 요청: `{"vocabulary_id": number(>0)}`
@@ -501,3 +502,4 @@ POST /api/study/sessions  ─►  items[0..N-1]
 | v1.2 이하 | 2026-11-02 | `docs/old/` 보관본 참조 | Claude |
 | v2.2 개정 | 2026-11-25 | `POST /api/study/sessions`(#11)에 `direction`·`format` 요청 필드와 `SessionItemOut` 의 `direction`·`format`·`prompt`·`proposed` 추가, 한→영 문항의 `term`·`context` null(REQ-157). 기본값이 기존 동작이라 하위 호환 | Claude |
 | v2.2 개정 | 2026-11-26 | 가입(#1)에 `password_confirm` 요청 필드 추가(불일치 422)와 409 의 `X-Error-Code: NICKNAME_TAKEN`, 닉네임 중복 확인 `GET /api/auth/check-nickname`(#1b, IP 당 1분 30회) 추가(REQ-158). 이메일·OAuth 는 받지 않는다. `password_confirm` 필수라 옛 클라이언트의 가입 요청은 422 가 된다(프론트는 함께 갱신) | Claude |
+| v2.2 개정 | 2026-11-26 | 단어 목록(#6)에 검색어 `q` 파라미터 추가 (REQ-163). 하위 호환 | Claude |
