@@ -21,6 +21,10 @@ class SessionCreate(BaseModel):
         description="요청 문항 수. 생략하면 내 설정(mode 별 quiz_count/flashcard_count)을 쓴다. 단어가 적으면 줄어든다",
     )
     include_memorized: bool = Field(default=False, description="true 면 숙련한 단어도 출제 대상에 넣는다 (source 가 all 일 때만 적용)")
+    direction: Literal["en_to_ko", "ko_to_en", "mixed"] = Field(
+        default="en_to_ko", description="출제 방향(퀴즈만). en_to_ko: 단어→뜻, ko_to_en: 뜻→단어, mixed: 문항마다 무작위 (FR-023)"
+    )
+    format: Literal["choice", "ox"] = Field(default="choice", description="출제 형식(퀴즈만). choice: 4지선다, ox: 제시한 보기가 맞는지 O/X (FR-024)")
     source: Literal["all", "bookmarks", "wrong", "due"] = Field(
         default="all",
         description="all: 활성 단어장 워터폴 출제, bookmarks: 내 북마크 복습, wrong: 단어별 마지막 결과가 오답인 단어 복습, due: SRS 복습 시각이 도래한 단어(오늘 복습)",
@@ -40,9 +44,13 @@ class SessionItemOut(BaseModel):
 
     question_id: int
     word_id: int
-    term: str
+    term: str | None = Field(description="표제어. 한→영 퀴즈는 정답이므로 null (채점 응답에서 공개)")
+    direction: str = Field(default="en_to_ko", description="이 문항의 실제 방향 en_to_ko | ko_to_en (섞기도 문항마다 하나)")
+    format: str = Field(default="choice", description="choice | ox")
+    prompt: str | None = Field(default=None, description="문제로 보일 문구. 영→한은 단어, 한→영은 뜻. 옛 세션은 term 으로 채운다")
+    proposed: str | None = Field(default=None, description="OX 문항이 맞는지 묻는 보기(뜻 또는 단어). 4지선다는 null")
     context: str | None = Field(description="문맥으로 보여 줄 예문. 없는 단어는 null")
-    options: list[str] | None = Field(default=None, description="퀴즈의 4지선다 뜻. 플래시카드는 null")
+    options: list[str] | None = Field(default=None, description="퀴즈의 선택지. 4지선다는 4개, OX 는 [\"O\", \"X\"]. 플래시카드는 null")
     meaning: str | None = Field(default=None, description="플래시카드 뒷면의 뜻. 퀴즈는 null")
     example_meaning: str | None = Field(default=None, description="플래시카드 뒷면의 예문 뜻. 퀴즈는 null")
     phonetic: str | None = Field(default=None, description="플래시카드 앞면의 발음기호(IPA). 퀴즈는 항상 null (채점 응답에서 공개)")
@@ -75,7 +83,7 @@ class SessionAnswerIn(BaseModel):
     """퀴즈 세션은 choice_index, 플래시카드 세션은 known 으로 답한다. 둘 중 정확히 하나만 보낸다."""
 
     question_id: int = Field(ge=0)
-    choice_index: int | None = Field(default=None, ge=0, le=CHOICE_MAX_INDEX)
+    choice_index: int | None = Field(default=None, ge=0, le=CHOICE_MAX_INDEX, description="선지 번호. OX 는 0(O), 1(X)")
     known: bool | None = Field(default=None, description="플래시카드: true=알아요, false=헷갈려요")
 
     @model_validator(mode="after")

@@ -24,6 +24,8 @@ class StudyLog(Base):
         Index("idx_study_logs_user_created", "user_id", "created_at"),
         Index("idx_study_logs_word", "word_id"),
         CheckConstraint("mode IN ('quiz', 'flashcard')", name="ck_study_logs_mode"),
+        CheckConstraint("direction IN ('en_to_ko', 'ko_to_en')", name="ck_study_logs_direction"),
+        CheckConstraint("format IN ('choice', 'ox')", name="ck_study_logs_format"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -40,6 +42,9 @@ class StudyLog(Base):
     is_correct: Mapped[bool] = mapped_column(Boolean, nullable=False)
     # 학습 모드. 플래시카드의 '알아요/헷갈려요'는 정답/오답으로 기록하되 모드로 구분한다 (이슈 #17).
     mode: Mapped[str] = mapped_column(String(20), nullable=False, server_default=STUDY_MODE_QUIZ)
+    # 문항 단위 방향·형식 (VOCA-FR-026). 섞기 세션도 이 문항의 실제 방향을 적는다. 플래시카드는 기본값이다.
+    direction: Mapped[str] = mapped_column(String(10), nullable=False, server_default="en_to_ko")
+    format: Mapped[str] = mapped_column(String(10), nullable=False, server_default="choice")
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=UTC_NOW_DEFAULT
     )

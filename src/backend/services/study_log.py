@@ -32,6 +32,8 @@ async def record_result(
     is_correct: bool,
     now: datetime,
     mode: str = STUDY_MODE_QUIZ,
+    direction: str = "en_to_ko",
+    fmt: str = "choice",
 ) -> ProgressState:
     """답 1건을 기록한다: 학습 이력 한 줄과 사용자×단어 진행도(숙련 판정)를 같은 트랜잭션에 반영한다 (커밋은 호출자).
 
@@ -42,7 +44,7 @@ async def record_result(
     모든 트랜잭션이 BEGIN IMMEDIATE 로 시작해 쓰기가 한 번에 하나씩 처리되므로(db/session.py), 같은 사용자·단어에 대한
     동시 기록도 순서대로 정확히 센다.
     """
-    db.add(StudyLog(user_id=user_id, word_id=word_id, is_correct=is_correct, mode=mode))
+    db.add(StudyLog(user_id=user_id, word_id=word_id, is_correct=is_correct, mode=mode, direction=direction, format=fmt))
     await db.execute(
         sqlite_insert(UserWordProgress)
         .values(user_id=user_id, word_id=word_id)

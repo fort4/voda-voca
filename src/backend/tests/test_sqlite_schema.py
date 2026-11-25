@@ -152,11 +152,17 @@ def _alembic_config(db_path: Path) -> Config:
     return cfg
 
 
-def test_migration_history_is_single_sqlite_initial_revision() -> None:
-    versions = [p for p in (BACKEND_DIR / "alembic" / "versions").glob("*.py")]
-    assert len(versions) == 1, [p.name for p in versions]
-    source = versions[0].read_text(encoding="utf-8")
-    assert not re.search(r"dialects import mysql|mysql_|UTC_TIMESTAMP|JSON_OBJECT", source)
+def test_migration_history_is_a_linear_sqlite_chain_without_mysql() -> None:
+    """MySQL 시절 12개 리비전은 0001 하나로 재작성됐다(ADR-010). 이후 리비전은 0001 에서 한 줄로 이어지고 MySQL 문법이 없어야 한다."""
+    versions = sorted((BACKEND_DIR / "alembic" / "versions").glob("*.py"))
+    assert versions and versions[0].name.startswith("0001_"), [p.name for p in versions]
+    revisions, parents = [], []
+    for path in versions:
+        source = path.read_text(encoding="utf-8")
+        assert not re.search(r"dialects import mysql|mysql_|UTC_TIMESTAMP|JSON_OBJECT", source), path.name
+        revisions.append(re.search(r"^revision: str = '(\w+)'", source, re.M).group(1))
+        parents.append(re.search(r"^down_revision: [^=]+= (.+)$", source, re.M).group(1).strip("'"))
+    assert parents == ["None", *revisions[:-1]], (revisions, parents)  # 가지 없이 한 줄
 
 
 def test_migration_upgrade_on_empty_db_matches_models(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

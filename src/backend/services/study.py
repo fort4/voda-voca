@@ -73,23 +73,89 @@ def _pick_distractors(
     primary: list[SystemWord],
     fallback: list[SystemWord],
     rng: random.Random,
+    field: str = "meaning",
+    count: int = DISTRACTOR_COUNT,
 ) -> list[str] | None:
-    """정답 단어와 다른 뜻 3개를 고른다.
+    """정답 단어와 다른 값(field: 영→한은 meaning, 한→영은 term) count 개를 고른다.
 
     1순위는 primary(원본 표준 단어장), 부족하면 fallback(모든 표준 단어)에서 보충한다.
-    뜻이 같은 단어는 건너뛰어 선지가 중복되지 않게 한다. 3개를 못 채우면 None.
+    값이 같은 단어는 건너뛰어 선지가 중복되지 않게 한다. count 개를 못 채우면 None.
     """
-    used_meanings = {word.meaning}
+    used = {getattr(word, field)}
     picked: list[str] = []
     for pool in (primary, fallback):
         for other in rng.sample(pool, len(pool)):
-            if other.id == word.id or other.meaning in used_meanings:
+            value = getattr(other, field)
+            if other.id == word.id or value in used:
                 continue
-            used_meanings.add(other.meaning)
-            picked.append(other.meaning)
-            if len(picked) == DISTRACTOR_COUNT:
+            used.add(value)
+            picked.append(value)
+            if len(picked) == count:
                 return picked
     return None
+
+
+# 출제 방향(FR-023)과 형식(FR-024). mixed 는 요청 값이고, 문항에는 항상 실제 방향이 저장된다.
+DIRECTION_EN_TO_KO = "en_to_ko"
+DIRECTION_KO_TO_EN = "ko_to_en"
+DIRECTION_MIXED = "mixed"
+FORMAT_CHOICE = "choice"
+FORMAT_OX = "ox"
+OX_CHOICES = ["O", "X"]  # 답은 choice_index 0(O), 1(X)
+
+
+def build_quiz_question(
+    word: SystemWord,
+    by_vocabulary: dict[int, list[SystemWord]],
+    all_words: list[SystemWord],
+    rng: random.Random,
+    direction: str = DIRECTION_EN_TO_KO,
+    fmt: str = FORMAT_CHOICE,
+) -> dict | None:
+    """단어 하나에 대한 문항을 만든다. 보기를 못 채우면 None.
+
+    - 방향: en_to_ko 는 단어를 보고 뜻을, ko_to_en 은 뜻을 보고 단어를 답한다. mixed 는 문항마다 무작위로 정한다.
+    - 형식: choice 는 4지선다, ox 는 제시한 보기가 맞는지(O) 틀린지(X) 답한다. OX 는 50% 확률로 참을 제시한다.
+    - prompt 는 화면에 보일 문제 문구, term·meaning 은 채점 응답과 결과 화면용 정답이다.
+    """
+    if direction == DIRECTION_MIXED:
+        direction = rng.choice([DIRECTION_EN_TO_KO, DIRECTION_KO_TO_EN])
+    en_to_ko = direction == DIRECTION_EN_TO_KO
+    field = "meaning" if en_to_ko else "term"
+    primary = by_vocabulary.get(word.vocabulary_id, [])
+    answer = getattr(word, field)
+
+    question = {
+        "word_id": word.id,
+        "term": word.term,
+        "meaning": word.meaning,
+        "direction": direction,
+        "format": fmt,
+        "prompt": word.term if en_to_ko else word.meaning,
+        "example": word.example,
+        "example_meaning": word.example_meaning,
+        "phonetic": word.phonetic,  # 퀴즈 출제 응답에는 싣지 않고, 채점 응답에서만 공개한다
+        "pos": word.pos,  # 품사: 출제·채점 응답 모두에 싣는다 (v2.2)
+    }
+    if fmt == FORMAT_OX:
+        is_true = rng.random() < 0.5
+        if is_true:
+            proposed = answer
+        else:
+            wrong = _pick_distractors(word, primary, all_words, rng, field, count=1)
+            if wrong is None:
+                return None
+            proposed = wrong[0]
+        question.update(choices=list(OX_CHOICES), correct_index=0 if is_true else 1, proposed=proposed)
+        return question
+
+    distractors = _pick_distractors(word, primary, all_words, rng, field)
+    if distractors is None:
+        return None
+    choices = distractors + [answer]
+    rng.shuffle(choices)
+    question.update(choices=choices, correct_index=choices.index(answer))
+    return question
 
 
 def _build_question(
@@ -98,27 +164,8 @@ def _build_question(
     all_words: list[SystemWord],
     rng: random.Random,
 ) -> dict | None:
-    """단어 하나에 대한 4지선다 문항을 만든다. 오답 보기를 못 채우면 None."""
-    distractors = _pick_distractors(
-        word,
-        primary=by_vocabulary.get(word.vocabulary_id, []),
-        fallback=all_words,
-        rng=rng,
-    )
-    if distractors is None:
-        return None
-    choices = distractors + [word.meaning]
-    rng.shuffle(choices)
-    return {
-        "word_id": word.id,
-        "term": word.term,
-        "choices": choices,
-        "correct_index": choices.index(word.meaning),
-        "example": word.example,
-        "example_meaning": word.example_meaning,
-        "phonetic": word.phonetic,  # 퀴즈 출제 응답에는 싣지 않고, 채점 응답에서만 공개한다
-        "pos": word.pos,  # 품사: 출제·채점 응답 모두에 싣는다 (v2.2)
-    }
+    """영→한 4지선다 문항 (옛 호출부 호환)."""
+    return build_quiz_question(word, by_vocabulary, all_words, rng)
 
 
 # --- 세션 잠금·답 기록 보조 (세션 러너 services/learning_session.py 가 사용) ---
@@ -140,11 +187,18 @@ def recorded_answers(row: QuizSession) -> dict[int, int]:
 
 
 async def record_one(
-    db: AsyncSession, user_id: int, word_id: int, is_correct: bool, now: datetime, mode: str
+    db: AsyncSession,
+    user_id: int,
+    word_id: int,
+    is_correct: bool,
+    now: datetime,
+    mode: str,
+    direction: str = DIRECTION_EN_TO_KO,
+    fmt: str = FORMAT_CHOICE,
 ) -> ProgressState:
     """답 하나를 기록하되, 확인 후 단어가 지워진 경쟁 상황의 FK 위반을 QuizWordMissingError 로 바꾼다."""
     try:
-        return await record_result(db, user_id, word_id, is_correct, now, mode)
+        return await record_result(db, user_id, word_id, is_correct, now, mode, direction, fmt)
     except IntegrityError as exc:
         await db.rollback()
         if is_foreign_key_violation(exc):  # 인증된 사용자 기준이라 걸릴 수 있는 외래키는 단어뿐이다

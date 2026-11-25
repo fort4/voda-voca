@@ -21,6 +21,8 @@ from backend.schemas.learning_session import (
 from backend.services.progress import ProgressState
 from backend.services.session_picker import WordCandidate, select_session_words, split_pools
 from backend.services.study import (
+    DIRECTION_EN_TO_KO,
+    FORMAT_CHOICE,
     QUIZ_MIN_SOURCE_WORDS,
     QuizAlreadySubmittedError,
     QuizAnswerError,
@@ -29,7 +31,7 @@ from backend.services.study import (
     QuizSourceTooSmallError,
     QuizWordMissingError,
     StudyError,
-    _build_question,
+    build_quiz_question,
     commit_logs,
     deadline_from,
     lock_session,
@@ -97,11 +99,16 @@ def _item(question: dict, mode: str, bookmarked: bool = False) -> SessionItemOut
             pos=question.get("pos"),
             bookmarked=bookmarked,
         )
+    direction = question.get("direction", DIRECTION_EN_TO_KO)  # 옛 세션 스냅샷에는 키가 없다: 영→한 4지선다
     return SessionItemOut(
         question_id=question["question_id"],
         word_id=question["word_id"],
-        term=question["term"],
-        context=question.get("example"),
+        term=question["term"] if direction == DIRECTION_EN_TO_KO else None,  # 한→영은 term 이 정답이다
+        direction=direction,
+        format=question.get("format", FORMAT_CHOICE),
+        prompt=question.get("prompt", question["term"]),
+        proposed=question.get("proposed"),
+        context=question.get("example") if direction == DIRECTION_EN_TO_KO else None,  # 한→영은 예문에 정답 단어가 들어 있다
         options=question["choices"],
         pos=question.get("pos"),  # 품사는 퀴즈 문제 화면에도 보인다 (옛 세션 스냅샷은 키가 없을 수 있다)
         bookmarked=bookmarked,
@@ -118,7 +125,15 @@ async def _bookmarked_ids(db: AsyncSession, user: User, questions: list[dict]) -
 
 
 async def _create_review_session(
-    db: AsyncSession, user: User, mode: str, count: int, source: str, now: datetime, rng: random.Random
+    db: AsyncSession,
+    user: User,
+    mode: str,
+    count: int,
+    source: str,
+    now: datetime,
+    rng: random.Random,
+    direction: str = DIRECTION_EN_TO_KO,
+    fmt: str = FORMAT_CHOICE,
 ) -> SessionOut:
     """북마크, 오답, 오늘 복습(SRS) 단어만으로 세션을 만든다. 활성 단어장은 바꾸지 않는다.
 
@@ -147,7 +162,11 @@ async def _create_review_session(
     for word in rng.sample(pool, len(pool)):
         if len(questions) >= count:
             break
-        question = _flashcard_question(word) if mode == STUDY_MODE_FLASHCARD else _build_question(word, by_vocabulary, [], rng)
+        question = (
+            _flashcard_question(word)
+            if mode == STUDY_MODE_FLASHCARD
+            else build_quiz_question(word, by_vocabulary, [], rng, direction, fmt)
+        )
         if question is None:
             continue
         question["question_id"] = len(questions)
@@ -160,6 +179,8 @@ async def _create_review_session(
         vocabulary_id=None,
         source=source,
         mode=mode,
+        direction=direction,
+        format=fmt,
         questions=questions,
         answers={},
         is_submitted=False,
@@ -191,14 +212,18 @@ async def create_session(
     now: datetime,
     rng: random.Random | None = None,
     source: str = "all",
+    direction: str = DIRECTION_EN_TO_KO,
+    fmt: str = FORMAT_CHOICE,
 ) -> SessionOut:
     """source 가 all 이면 활성 단어장에서 count 문항을 골라 세션을 만든다 (오답 30% 상한, 복습 10% 선확보, 나머지 미학습, 부족하면 복습).
 
     bookmarks, wrong 이면 해당 단어만으로 복습 세션을 만든다 (_create_review_session).
     """
     rng = rng or random.Random()
+    if mode == STUDY_MODE_FLASHCARD:  # 방향·형식은 퀴즈에만 적용한다
+        direction, fmt = DIRECTION_EN_TO_KO, FORMAT_CHOICE
     if source in REVIEW_TITLES:
-        return await _create_review_session(db, user, mode, count, source, now, rng)
+        return await _create_review_session(db, user, mode, count, source, now, rng, direction, fmt)
     vocabulary = await _active_vocabulary(db, user)
 
     rows = (
@@ -231,7 +256,7 @@ async def create_session(
         question = (
             _flashcard_question(word)
             if mode == STUDY_MODE_FLASHCARD
-            else _build_question(word, by_vocabulary, [], rng)  # 오답 보기는 같은 단어장에서만
+            else build_quiz_question(word, by_vocabulary, [], rng, direction, fmt)  # 오답 보기는 같은 단어장에서만
         )
         if question is None:
             continue
@@ -245,6 +270,8 @@ async def create_session(
         vocabulary_id=vocabulary.id,
         source=QUIZ_SOURCE_VOCABULARY,
         mode=mode,
+        direction=direction,
+        format=fmt,
         questions=questions,
         answers={},
         is_submitted=False,
@@ -294,7 +321,7 @@ def _answer_out(row: QuizSession, question: dict, value: int, progress: Progress
         selected_index=None if flashcard else value,
         known=(value == FLASHCARD_KNOWN) if flashcard else None,
         term=question["term"],
-        meaning=question["meaning"] if flashcard else question["choices"][question["correct_index"]],
+        meaning=question["meaning"] if flashcard else question.get("meaning") or question["choices"][question["correct_index"]],
         example=question.get("example"),
         example_meaning=question.get("example_meaning"),
         phonetic=question.get("phonetic"),
@@ -326,6 +353,8 @@ async def record_session_answer(
     if question is None:
         raise QuizAnswerError("알 수 없는 문항입니다.")
     value = _stored_value(row, answer)
+    if row.mode == STUDY_MODE_QUIZ and value >= len(question["choices"]):  # OX 는 선지가 둘뿐이다
+        raise QuizAnswerError("선택지 번호가 범위를 벗어났습니다.")
 
     recorded = recorded_answers(row)
     if answer.question_id in recorded:
@@ -347,7 +376,16 @@ async def record_session_answer(
     if (await db.execute(select(SystemWord.id).where(SystemWord.id == question["word_id"]))).scalar_one_or_none() is None:
         raise QuizWordMissingError
 
-    state = await record_one(db, user_id, question["word_id"], _judge(row, question, value), now, row.mode)
+    state = await record_one(
+        db,
+        user_id,
+        question["word_id"],
+        _judge(row, question, value),
+        now,
+        row.mode,
+        question.get("direction", DIRECTION_EN_TO_KO),
+        question.get("format", FORMAT_CHOICE),
+    )
     row.answers = {**(row.answers or {}), str(answer.question_id): value}
     row.expires_at = deadline_from(now)
     if len(row.answers) >= len(row.questions):

@@ -104,7 +104,8 @@ async def create_session(
     count = body.count if body.count is not None else (user.quiz_count if body.mode == "quiz" else user.flashcard_count)
     try:
         return await session_service.create_session(
-            db, user, body.mode, count, body.include_memorized, now=_now(), source=body.source
+            db, user, body.mode, count, body.include_memorized, now=_now(), source=body.source,
+            direction=body.direction, fmt=body.format,
         )
     except session_service.NoWordsToStudyError as exc:
         raise HTTPException(

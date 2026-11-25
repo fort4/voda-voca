@@ -34,6 +34,8 @@ class QuizSession(Base):
             name="ck_quiz_sessions_source",
         ),
         CheckConstraint("mode IN ('quiz', 'flashcard')", name="ck_quiz_sessions_mode"),
+        CheckConstraint("direction IN ('en_to_ko', 'ko_to_en', 'mixed')", name="ck_quiz_sessions_direction"),
+        CheckConstraint("format IN ('choice', 'ox')", name="ck_quiz_sessions_format"),
         Index("idx_quiz_sessions_user", "user_id"),
     )
 
@@ -50,6 +52,9 @@ class QuizSession(Base):
     )
     source: Mapped[str] = mapped_column(String(16), nullable=False)
     mode: Mapped[str] = mapped_column(String(20), nullable=False, server_default="quiz")
+    # 출제 방향(요청 값, mixed 는 문항마다 무작위)과 형식 (VOCA-FR-023·024). 플래시카드는 기본값을 쓴다.
+    direction: Mapped[str] = mapped_column(String(10), nullable=False, server_default="en_to_ko")
+    format: Mapped[str] = mapped_column(String(10), nullable=False, server_default="choice")
     questions: Mapped[list[dict]] = mapped_column(JSON, nullable=False)
     answers: Mapped[dict] = mapped_column(JSON, nullable=False, server_default=text("'{}'"))
     is_submitted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
