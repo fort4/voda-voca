@@ -1,4 +1,4 @@
-# 2026-11-02 - voda-voca - .env 기반 DB 접속 설정 로드 및 비동기 접속 URL 생성
+# 2026-11-02 - voda-voca - .env 기반 설정 로드 및 비동기 SQLite 접속 URL 생성 (2026-11-25 MySQL → SQLite 전환, ADR-010)
 # 파일 위치: src/backend/core/config.py
 
 from functools import lru_cache
@@ -15,21 +15,19 @@ ENV_FILE = Path(__file__).resolve().parents[3] / ".env"
 class Settings(BaseSettings):
     """애플리케이션 설정. 값은 .env 또는 OS 환경 변수에서 주입한다 (REQ-112).
 
-    변수명은 기존 .env / .env.example / docker-compose 와 맞춰 MYSQL_* 를 사용한다.
+    DB 는 SQLite 파일 하나다 (과제 서버 규칙: 쓰기는 /data 와 /tmp 에만 허용). 경로는 DB_PATH 로 주입한다.
     대소문자는 구분하지 않는다.
     """
 
     model_config = SettingsConfigDict(
         env_file=ENV_FILE,
         env_file_encoding="utf-8",
-        extra="ignore",  # TZ, MYSQL_ROOT_PASSWORD 등 이 모듈이 쓰지 않는 값은 무시
+        extra="ignore",  # TZ 등 이 모듈이 쓰지 않는 값은 무시
     )
 
-    mysql_host: str = "127.0.0.1"
-    mysql_port: int = 3306
-    mysql_user: str
-    mysql_password: SecretStr
-    mysql_database: str
+    db_path: str = "/data/voca.db"
+    # 서버 배포 규칙(VOCA-NFR-004)상 비밀값은 환경 변수로 받는다. 세션은 DB 토큰 방식이라 아직 쓰지 않지만 주입은 허용한다.
+    secret_key: SecretStr | None = None
 
     # --- 인증 (REQ-001, REQ-002) ---
     # 세션 수명(일). 로그인 시점부터 절대 만료 (기본 14일, ADR-001).
@@ -41,20 +39,8 @@ class Settings(BaseSettings):
 
     @property
     def database_url(self) -> URL:
-        """비동기 드라이버(asyncmy) 접속 URL.
-
-        문자열을 직접 조립하지 않고 URL.create 로 만든다.
-        그래야 비밀번호에 '@', ':', '/' 같은 특수문자가 있어도 안전하게 인코딩된다.
-        """
-        return URL.create(
-            drivername="mysql+asyncmy",
-            username=self.mysql_user,
-            password=self.mysql_password.get_secret_value(),
-            host=self.mysql_host,
-            port=self.mysql_port,
-            database=self.mysql_database,
-            query={"charset": "utf8mb4"},
-        )
+        """비동기 드라이버(aiosqlite) 접속 URL. 경로 문자열을 직접 이어 붙이지 않고 URL.create 로 만든다."""
+        return URL.create(drivername="sqlite+aiosqlite", database=self.db_path)
 
 
 @lru_cache

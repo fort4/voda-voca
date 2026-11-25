@@ -1,8 +1,11 @@
-# 2026-11-02 - voda-voca - 비동기 DB 엔진, 세션 팩토리, FastAPI 세션 의존성 제공
+# 2026-11-02 - voda-voca - 비동기 DB 엔진(SQLite), 세션 팩토리, FastAPI 세션 의존성 제공 (2026-11-25 SQLite 전환)
 # 파일 위치: src/backend/db/session.py
 
 from collections.abc import AsyncIterator
 from functools import lru_cache
+from pathlib import Path
+
+from sqlalchemy import event
 
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -14,19 +17,44 @@ from sqlalchemy.ext.asyncio import (
 from backend.core.config import get_settings
 
 
+# 쓰기 충돌 시 즉시 실패하지 않고 기다리는 시간(ms). SQLite 는 쓰기를 한 번에 하나만 허용한다.
+BUSY_TIMEOUT_MS = 5000
+
+
+def _apply_sqlite_pragmas(dbapi_connection, _record) -> None:  # noqa: ANN001
+    """연결이 만들어질 때마다 SQLite 동작 설정을 건다 (PRAGMA 는 연결 단위 설정이다).
+
+    - foreign_keys=ON: 기본은 꺼져 있어 ON DELETE CASCADE 가 동작하지 않는다.
+    - journal_mode=WAL: 읽기가 쓰기를 막지 않는다. 동시 요청이 있는 웹 서버에 알맞다.
+    - synchronous=NORMAL: WAL 에서 안전하면서 쓰기가 빠르다.
+    - busy_timeout: 잠금 충돌 시 대기한다.
+    """
+    cursor = dbapi_connection.cursor()
+    try:
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.execute(f"PRAGMA busy_timeout={BUSY_TIMEOUT_MS}")
+    finally:
+        cursor.close()
+
+
 @lru_cache
 def get_engine() -> AsyncEngine:
     """비동기 엔진을 생성한다 (프로세스당 1개).
 
-    - pool_pre_ping=True: 체크아웃 전에 연결 상태를 확인해, MySQL의 wait_timeout 으로 끊긴
-      커넥션을 요청 중에 만나 실패하는 일을 줄인다.
+    - DB 파일의 상위 디렉터리가 없으면 만든다. 빈 DB 로 처음 실행할 수 있어야 한다 (VOCA-NFR-003).
+    - 서버가 없는 파일 DB 라 pool_pre_ping(끊긴 커넥션 확인)은 필요 없다.
     - echo=False: SQL 로그는 기본적으로 끈다. 디버깅 시 필요하면 일시적으로 켠다.
     """
-    return create_async_engine(
-        get_settings().database_url,
-        echo=False,
-        pool_pre_ping=True,
-    )
+    settings = get_settings()
+    try:
+        Path(settings.db_path).expanduser().parent.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        pass  # 만들 수 없으면 첫 연결에서 SQLAlchemyError 로 드러난다 (/health 가 503 으로 응답하도록 여기서는 예외를 내지 않는다)
+    engine = create_async_engine(settings.database_url, echo=False)
+    event.listen(engine.sync_engine, "connect", _apply_sqlite_pragmas)
+    return engine
 
 
 @lru_cache

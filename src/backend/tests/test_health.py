@@ -30,8 +30,8 @@ async def test_health_reports_db_connected(client: httpx.AsyncClient) -> None:
 async def test_health_returns_503_when_db_unreachable(
     client: httpx.AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    # 아무 프로세스도 듣지 않는 포트로 바꿔 연결을 실패시킨다.
-    monkeypatch.setenv("MYSQL_PORT", "1")
+    # 열 수 없는 경로로 바꿔 연결을 실패시킨다 (/proc 아래에는 파일을 만들 수 없다).
+    monkeypatch.setenv("DB_PATH", "/proc/no-such-dir/voca.db")
     get_settings.cache_clear()
     get_engine.cache_clear()
     get_session_factory.cache_clear()
