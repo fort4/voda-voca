@@ -66,7 +66,7 @@
 | SQLite DB | 앱과 같은 컨테이너의 `/data/voca.db` | `src/backend/db/session.py`, `docker/docker-compose.yml` | - | 볼륨 `voda-voca-data` 에 보관. WAL 이라 `-wal`, `-shm` 파일이 함께 생긴다 |
 | 정적 프론트엔드 | 위 FastAPI 프로세스 | `src/frontend/` | 8080 | `StaticFiles(html=True)` 를 `/` 에 마운트 |
 
-기동 순서(컨테이너): `docker compose up -d --build` 한 번이면 entrypoint 가 마이그레이션을 적용한 뒤(빈 DB 에서도 시작) 서버를 띄우고, 앱 시작(lifespan) 시 표준 단어장 시드를 DB 에 반영한다. 호스트 직접 실행: `alembic upgrade head` → `uvicorn`. 시작부터 `/health` 200 까지 약 4초(시드 1,000단어 포함)다.
+기동 순서(컨테이너): `docker compose up -d --build` 한 번이면 entrypoint 가 마이그레이션을 적용한 뒤(빈 DB 에서도 시작) 서버를 띄우고, 앱 시작(lifespan) 시 표준 단어장 시드를 DB 에 반영하고, 이어서 관리자 계정이 없으면 만든다 (REQ-159, ADR-011). 호스트 직접 실행: `alembic upgrade head` → `uvicorn`. 시작부터 `/health` 200 까지 약 4초(시드 1,000단어 포함)다.
 
 **설정 주입**: 모든 값은 루트 `.env` 또는 OS 환경 변수 → `core/config.py` 의 `Settings`(pydantic-settings). 저장소에는 `.env.example` 만 둔다 (REQ-112).
 
@@ -264,6 +264,7 @@ POST /api/study/sessions/{id}/answer
 | 버전 | 날짜 | 내용 | 작성 |
 | :--- | :--- | :--- | :--- |
 | **v1.1** | 2026-11-25 | **SQLite 전환·과제 서버 규격(ADR-010, REQ-153)**: §3 배치도, §4 토폴로지·설정 주입, §4.2 서버 접두사 대응 신설, 4.1 이미지(루트 Dockerfile, uid 10001, entrypoint), §5·§8 DB 표기. A11(백업은 DB 파일 복사로 단순화) | Claude |
+| v1.1 개정 | 2026-11-26 | §4 기동 순서에 관리자 계정 준비 추가 (REQ-159, ADR-011). 스키마 변경 없음 | Claude |
 | v1.0 개정 | 2026-11-25 | 앱 컨테이너화 반영: P3, §3 배치도, §4 토폴로지·설정 주입·4.1 신설, §8 테스트 구조, A2 해소, A10·A11 추가 (ADR-009) | Claude |
 | v1.0 개정 | 2026-11-24 | 외부 CDN 자체 호스팅 반영: P1, §3 배치도·외부 시스템, §5 디렉터리, A4 해소 | Claude |
 | v1.0 | 2026-11-19 | 최초 작성. 현행 구현(`a48958d`) 기준 기록 | Claude |

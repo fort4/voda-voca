@@ -108,7 +108,7 @@ voda-voca/
 │       ├── js/app.js        부트스트랩, 라우트, 하단 탭바, 계정 드롭다운
 │       ├── js/core/         API 클라이언트, 라우터, DOM, 세션 러너·드라이버, 콤보, 사운드, 테마, TTS,
 │       │                    설정·북마크 저장소, 복습함·통계·환경 설정 뷰모델, 토스트
-│       ├── js/views/        홈, 탐색, 학습 세션, 복습함, 통계, 로그인·가입, 학습 설정·환경 설정 모달
+│       ├── js/views/        홈, 탐색, 학습 세션, 복습함, 통계, 로그인·가입, 마이페이지, 학습 설정·환경 설정 모달
 │       ├── js/views/components/  북마크 버튼, 해설 시트, 단어 시트, 품사 태그, 발음기호, 발음 버튼 등
 │       └── tests/           node --test 단위 테스트
 ├── .env.example             환경 변수 템플릿 (.env 는 커밋하지 않는다)
@@ -123,7 +123,7 @@ voda-voca/
 - **프론트엔드**: 빌드 없는 ES 모듈입니다. 해시 라우팅(`#/…`)으로 화면을 바꾸고, 화면은 `views/`, DOM 없는 순수 로직은 `core/`에 둡니다.
 - **하단 탭 4개**: 홈 · 탐색 · 복습함 · 통계. 학습 세션(`#/study/session`)은 탭이 아니며 세션 중에는 탭바가 숨겨집니다.
 - **화면 흐름**: 로그인·가입 → 탐색에서 단어장을 고름 → 홈에서 "N문항 학습 시작" → 학습 세션(퀴즈 또는 플래시카드) → 결과. 복습함에서 북마크·틀린 단어로 같은 세션을 시작합니다.
-- **상단바**: 브랜드와 계정 칩이 있습니다. 계정 메뉴에 **학습 설정**, **환경 설정**, **로그아웃**, **회원 탈퇴**가 있습니다.
+- **상단바**: 브랜드와 계정 칩이 있습니다. 계정 메뉴에 **마이페이지**, **학습 설정**, **환경 설정**, **로그아웃**, **회원 탈퇴**가 있습니다.
 
 ---
 
@@ -238,10 +238,12 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 
 ## 5. 주요 기능
 
-### 5.1 계정 (REQ-001, REQ-002, REQ-121, REQ-122)
+### 5.1 계정 (REQ-001, REQ-002, REQ-121, REQ-122, REQ-159, REQ-164)
 - **닉네임과 비밀번호로 가입**합니다. 이메일은 받지 않습니다. 비밀번호를 한 번 더 입력해 확인하고, 닉네임은 "중복 확인" 버튼으로 가입 전에 확인합니다 (REQ-158). 닉네임은 2~30자이며 대소문자와 무관하게 유일합니다. 비밀번호는 8자 이상, UTF-8 기준 72바이트 이하입니다.
 - 로그인 실패가 IP 또는 닉네임 기준 1분에 5회 쌓이면 429로 잠시 막습니다 (무차별 대입 방어). 대기 시간은 카운트다운으로 보여 줍니다.
 - 로그아웃은 확인 없이 바로 처리합니다. **회원 탈퇴**는 경고를 확인한 뒤 닉네임을 직접 입력해야 진행되며, 계정과 북마크, 학습 기록, 진행도가 영구 삭제됩니다 (표준 단어장은 공용이라 영향이 없습니다).
+- **비밀번호 변경**: 계정 메뉴의 **마이페이지**에서 현재 비밀번호를 확인하고 바꿉니다. 바꾸면 다른 기기의 로그인은 해제됩니다 (REQ-164).
+- **관리자 계정**: 닉네임 `admin`, 초기 비밀번호 `admin1234` 입니다. 서버가 처음 시작할 때 만들며, **배포한 뒤에는 바로 로그인해 비밀번호를 바꾸세요.** 바꾼 비밀번호는 재시작해도 유지됩니다. `admin` 닉네임은 가입에 쓸 수 없고 관리자 계정은 탈퇴할 수 없습니다 (REQ-159).
 
 ### 5.2 표준 단어장과 탐색 (REQ-140~142, REQ-145)
 - 서비스가 제공하는 단어장 5개, 단어 1,000개입니다. 각 단어에는 표제어, 뜻, 예문, 예문 해석, 발음기호, 품사가 있습니다.
@@ -299,7 +301,7 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 
 | 영역 | 엔드포인트 |
 | :--- | :--- |
-| 인증 | `POST /auth/signup`, `POST /auth/login`, `POST /auth/logout`, `GET·DELETE /auth/me` |
+| 인증 | `POST /auth/signup`, `POST /auth/login`, `POST /auth/logout`, `GET·DELETE /auth/me`, `PUT /auth/me/password` |
 | 표준 단어장 | `GET /vocabularies`, `GET /vocabularies/{id}/words`, `POST /users/me/active-vocabulary` |
 | 학습 세션 | `POST /study/sessions`, `POST /study/sessions/{id}/answer` (`mode=quiz\|flashcard`, `source=all\|bookmarks\|wrong\|due`) |
 | 북마크 | `PUT·DELETE /bookmarks/{word_id}`, `GET /bookmarks` |
@@ -311,6 +313,7 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 ## 7. 보안과 운영 메모
 - 세션 쿠키는 JavaScript 에서 읽을 수 없습니다 (HttpOnly). 토큰 원문은 저장하지 않고 SHA-256 값만 DB 에 둡니다.
 - 비밀번호는 bcrypt 로 해시합니다. 평문은 저장하지 않습니다.
+- 관리자 초기 비밀번호는 공개 저장소에 있는 값입니다 (ADR-011). 바꾸기 전에는 누구나 관리자로 로그인할 수 있습니다.
 - 모든 SQL 은 파라미터 바인딩을 씁니다. 외래키 강제(`foreign_keys=ON`)와 쓰기 직렬화(`BEGIN IMMEDIATE`)는 연결 단계에서 설정합니다.
 - 북마크, 학습 기록, 진행도, 설정은 사용자별로 격리됩니다.
 - 로그인 무차별 대입 방어는 프로세스 메모리에서 동작합니다. 워커를 여러 개 띄우면 한도가 워커마다 따로 적용되므로, 그 경우 공유 저장소가 필요합니다.
@@ -338,7 +341,7 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 | API 연동 규격서 | `docs/voda-voca_API_Integration_Spec_v2.2_261119.md` | `docs/old/` |
 | UI/UX 설계서 | `docs/voda-voca_UIUX_Design_Spec_v2.2_261105.md` | `docs/old/` |
 | 시스템 아키텍처 설계서 | `docs/voda-voca_Architecture_Design_v1.1_261125.md` | `docs/old/` |
-| 아키텍처 결정 기록 (ADR-001~010) | `docs/voda-voca_Decision_Records_v1.1_261125.md` | `docs/old/` |
+| 아키텍처 결정 기록 (ADR-001~011) | `docs/voda-voca_Decision_Records_v1.1_261125.md` | `docs/old/` |
 | 테스트 명세서 | `docs/voda-voca_Test_Specification_v1.2_261125.md` | `docs/old/` |
 
 v2.2 진행 중에는 파일명을 바꾸지 않고 각 문서의 변경 이력 표에 개정 행을 추가합니다. 작업 일지와 결정 기록은 `ai-agent/claude/`에 있습니다.

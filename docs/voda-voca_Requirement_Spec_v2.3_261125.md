@@ -51,7 +51,7 @@
 | 일반 학습자 (Learner) | 표준 단어장으로 학습하는 주 사용자 | 모바일에서 빠른 학습, 틀린 단어 복습, 진행 상황 확인 |
 | 운영자/개발자 (Operator) | Docker 환경을 구성하고 서비스를 운영 | 컨테이너 기동, 마이그레이션, 로그 확인 |
 
-관리자(Admin) 역할은 1차 릴리스에서 제외한다 (기본값, Q8).
+관리자(Admin)는 고정 닉네임 `admin` 계정 하나다 (REQ-159, 2026-11-26 도입. 이전 기준 Q8 "1차 제외"를 대체).
 
 ---
 
@@ -76,10 +76,12 @@
 | REQ-001 | 회원 가입 | M | 계정은 **닉네임(2~30자, 중복 불가)과 비밀번호**만으로 만든다. 이메일은 받지 않는다. 닉네임은 로그인 식별자이며 대소문자와 무관하게 유일하다. 비밀번호는 8자 이상, UTF-8 기준 **72바이트 이하**만 허용한다 (bcrypt 입력 한계, ADR-002). 가입이 끝나면 초급 표준 단어장(`beginner-200`)이 학습 단어장으로 자동 지정된다 (REQ-142). 인증은 **HttpOnly, SameSite=Lax 세션 쿠키** 방식을 사용한다 (Q1 확정). 가입 화면은 비밀번호를 한 번 더 입력받아 같을 때만 가입시키고, 닉네임은 가입 전에 "중복 확인" 버튼으로 확인할 수 있다 (REQ-158). |
 | REQ-002 | 로그인 / 로그아웃 | M | 올바른 자격 증명 시 세션을 `sessions` 테이블에 생성하고 세션 쿠키를 발급한다. 세션 수명은 로그인 후 **14일**(절대 만료)이다 `[기본값]`. 로그아웃 시 해당 세션 행을 삭제하여 즉시 무효화한다. 실패 시 어떤 항목이 틀렸는지 노출하지 않는다. (ADR-001) |
 | REQ-003 | 사용자별 데이터 격리 | M | 로그인한 사용자는 본인의 북마크·학습 이력·학습 진행도·학습 세션만 조회·수정·삭제할 수 있다. 타 사용자 리소스(세션 등) 접근 시 404를 반환한다 (존재 여부를 구분하지 않는다). 표준 단어장·단어는 모든 사용자가 공유하는 읽기 전용 콘텐츠다. |
-| REQ-122 | 회원 탈퇴 | M | 로그인한 사용자는 계정을 탈퇴할 수 있다 (`DELETE /api/auth/me`). 탈퇴하면 계정, 세션, 북마크, 학습 이력, 학습 진행도, 학습 세션을 **모두 영구 삭제**하고 세션 쿠키를 만료시킨다 (204). **표준 단어장과 단어는 공용 콘텐츠이므로 삭제되지 않는다.** 탈퇴 전에 경고 확인과 닉네임 직접 입력 확인을 거친다. 탈퇴한 닉네임은 다시 사용할 수 있다. |
+| REQ-122 | 회원 탈퇴 | M | 로그인한 사용자는 계정을 탈퇴할 수 있다(관리자 계정은 제외, REQ-159) (`DELETE /api/auth/me`). 탈퇴하면 계정, 세션, 북마크, 학습 이력, 학습 진행도, 학습 세션을 **모두 영구 삭제**하고 세션 쿠키를 만료시킨다 (204). **표준 단어장과 단어는 공용 콘텐츠이므로 삭제되지 않는다.** 탈퇴 전에 경고 확인과 닉네임 직접 입력 확인을 거친다. 탈퇴한 닉네임은 다시 사용할 수 있다. |
 | REQ-156 | 비밀번호 보기/숨기기 | S | (2026-11-25 신설) 로그인·회원가입 화면의 비밀번호 칸에서 입력한 값을 확인할 수 있다. ① **기본은 숨김**(`type="password"`)이고 칸 오른쪽 안쪽의 토글 버튼을 누르면 `type="text"` 로 바뀌며 다시 누르면 숨긴다. ② **접근성·터치**: 버튼은 44×44px 이상, `aria-pressed` 와 `aria-label`("비밀번호 보기"/"비밀번호 숨기기")을 갖고, 아이콘은 `eye`/`eye-off` 다. 버튼은 `type="button"` 이라 폼을 제출하지 않는다. ③ **로그인 실패(401)** 로 비밀번호를 비울 때 숨김 상태로 되돌린다. ④ **범위 밖**: 비밀번호 찾기와 소셜(Google OAuth) 로그인은 하지 않는다. 이메일도 받지 않는다 (REQ-158, 사용자 결정 2026-11-26). 과제 서버는 실행 중 인터넷이 차단되어(VOCA-SUB-036) 메일 발송과 OAuth 인증 서버 통신이 불가능하다 (사용자 결정, 2026-11-25). |
 | REQ-158 | 가입 입력 확인 (비밀번호 확인·닉네임 중복 확인) | S | (2026-11-26 신설, 이슈 #27) ① **이메일·소셜 로그인 없음**: 계정은 닉네임과 비밀번호만으로 만든다 (사용자 결정). 이메일 고유 식별자와 Google OAuth 를 검토했으나 채택하지 않았다(서버 인터넷 차단 VOCA-SUB-036, 간편성). 그래서 DB 스키마 변경은 없다. ② **비밀번호 확인**: `POST /api/auth/signup` 이 `password_confirm` 을 받고 `password` 와 다르면 422 (오류 위치 `password_confirm`). 화면은 확인란에 입력하는 즉시 같으면 "비밀번호가 동일합니다.", 다르면 "비밀번호가 일치하지 않습니다."를 `aria-live` 로 보인다. 비밀번호 복잡도 정규식은 두지 않는다(길이 8자 이상·72바이트 이하만, REQ-001). ③ **닉네임 중복 확인**: `GET /api/auth/check-nickname?nickname=` → `{"available": bool}`. 로그인 없이 부르고, 대소문자·앞뒤 공백을 무시하며, 규칙(2~30자) 위반은 422. 계정 존재 여부가 드러나므로 **IP 당 1분 30회**로 제한한다(초과 시 429 + `Retry-After`, 로그인 실패 제한(REQ-121)과 따로 집계, 프로세스 메모리). ④ **가입하기 활성화**: 닉네임·비밀번호가 규칙을 지키고, 비밀번호가 같고, **현재 닉네임이** "중복 확인"에서 사용 가능으로 나온 뒤에만 켠다. 확인한 뒤 닉네임을 고치면 확인이 무효가 되고, 확인 중에 값이 바뀌어 늦게 온 응답은 무시한다. 가입하기 버튼 아래에는 안내 문구 줄을 두지 않는다(오류는 각 입력 칸 아래에만). ⑤ **서버 재검사**: 서버는 확인 여부와 무관하게 가입 때 UNIQUE 제약으로 다시 막고, 중복이면 409 와 `X-Error-Code: NICKNAME_TAKEN` 을 돌려준다(확인 후 가입 사이의 경쟁). 화면은 닉네임 칸에 표시하고 확인 상태를 되돌린다. ⑥ **알려진 한계**: 중복 확인 API 는 닉네임 존재 여부를 드러낸다(가입 화면의 일반적인 절충, 호출 제한으로 완화). |
+| REQ-159 | 관리자 계정 | M | (2026-11-26 신설, 이슈 #30) ① 닉네임이 `admin`(영문 대소문자·앞뒤 공백 무시)인 계정이 관리자다. ② 서버는 시작할 때 계정이 없으면 초기 비밀번호 `admin1234` 로 만든다. 이미 있으면 건드리지 않아 바꾼 비밀번호가 유지된다. ③ `admin` 닉네임은 예약어다. 가입은 409(`NICKNAME_TAKEN`), 중복 확인은 사용 불가다. ④ 관리자 계정은 탈퇴할 수 없다(403). ⑤ 관리 API 는 비로그인 401, 일반 사용자 403 이며 서버가 요청마다 판정한다. 내 정보에 `is_admin` 을 싣는다. ⑥ 알려진 위험: 초기 비밀번호가 공개 저장소에 있어 바꾸기 전에는 누구나 관리자로 로그인할 수 있다 (ADR-011). |
 | REQ-163 | 단어 검색 | M | (2026-11-26 신설, VOCA-FR-004, 이슈 #29) ① 로그인한 사용자는 단어장 안에서 표제어 또는 뜻의 일부로 단어를 찾는다 (`GET /api/vocabularies/{id}/words?q=`). 예문은 찾지 않는다. ② 영문 대소문자를 구분하지 않는다. 악센트는 구분한다(`cafe` 로 `café` 를 찾지 않는다). ③ `%`, `_`, `\` 는 일반 문자다 (REQ-113). ④ 앞뒤 공백을 무시하고, 빈 검색어는 전체 목록이다. 100자를 넘으면 422. ⑤ 정렬·페이지 나눔·북마크 표시는 목록(REQ-141)과 같고 `total` 은 검색 결과 수다. ⑥ 화면은 단어 미리보기 시트의 검색 칸이며, 입력이 300ms 멈추거나 Enter 를 누르면 검색한다. 늦게 온 이전 검색의 응답은 버린다. ⑦ 범위 밖: 전체 단어장 통합 검색. |
+| REQ-164 | 비밀번호 변경 | M | (2026-11-26 신설, 이슈 #30) ① 로그인한 **모든 사용자**가 계정 메뉴의 마이페이지에서 비밀번호를 바꾼다 (`PUT /api/auth/me/password`). ② 현재 비밀번호, 새 비밀번호, 새 비밀번호 확인을 받는다. 새 비밀번호 규칙은 가입(REQ-001)과 같고 현재 비밀번호와 달라야 한다(위반 422). ③ 현재 비밀번호가 틀리면 400 (`CURRENT_PASSWORD_MISMATCH`). ④ 계정별 1분 5회 시도를 넘으면 429 + `Retry-After` (성공하면 초기화). ⑤ 성공하면 지금 세션은 유지하고 본인의 다른 세션을 지운다. ⑥ 마이페이지에는 닉네임·역할·가입일(한국 날짜)을 보인다. |
 
 ### 4.2 표준 단어장 (System Vocabulary, 읽기 전용)
 
@@ -234,7 +236,7 @@ v1.0의 질의 사항 Q1~Q8에 대한 결정이다. 사용자가 명시적으로
 | Q5 | 학습 이력 1차 포함 여부 | **포함** (S). 문항별 기록, 최근 100건 최신순 조회 (통계·오답 판정은 전체 이력 서버 집계, v2.1) | 사용자 확정 | REQ-016 |
 | Q6 | 동시 접속 및 p95 목표 | 동시 사용자 50명, p95 **300ms 이하** | 사용자 확정 | REQ-102 |
 | Q7 | 시각 저장 기준 | DB **UTC** 저장, 화면에서 KST 변환 | 사용자 확정 | REQ-109 |
-| Q8 | 관리자 역할 | 1차 제외 | 기본값 적용 | §2 |
+| Q8 | 관리자 역할 | ~~1차 제외~~ → 고정 `admin` 계정 도입 (2026-11-26) | 사용자 확정 | §2, REQ-159 |
 
 **추가 확정 (데이터 설계 과정)**
 
@@ -311,7 +313,9 @@ v1.0의 질의 사항 Q1~Q8에 대한 결정이다. 사용자가 명시적으로
 | REQ-156 | 비밀번호 보기/숨기기 | S | UI/UX 설계서 §3.1 | `core/password-toggle.js`, `core/form.js`(`passwordField`), `views/login.js`, `views/signup.js`, `css/app.css` | TC-156 (`tests/password-toggle.test.js`) | 구현 완료 |
 | REQ-157 | 출제 방향·형식 | S | API 규격서 §3.4 #11, Data 설계서 §3.6·3.7, UI/UX 설계서 §3.2·3.6 | `services/study.py`(`build_quiz_question`), `services/learning_session.py`, `schemas/learning_session.py`, `models/quiz_session.py`·`study_log.py`, `alembic/versions/0002_*`, `core/session-view-model.js`(`questionCopy`), `core/home-model.js`, `views/components/quiz-options.js`, `views/study-session-view.js` | TC-157 (`test_quiz_variants_units.py`, `test_quiz_variants_api.py`, `tests/quiz-variants.test.js`) | 구현 완료 |
 | REQ-158 | 가입 입력 확인 (비밀번호 확인·닉네임 중복 확인) | S | API 규격서 §3.1 #1·#1b, UI/UX 설계서 §3.1 | `schemas/auth.py`(`SignupRequest.password_confirm`, `AvailabilityOut`), `routers/auth.py`(`check_nickname`), `services/auth.py`(`is_nickname_available`), `core/rate_limit.py`(`availability_rate_limiter`), `core/availability.js`, `core/validate.js`(`passwordConfirmState`), `core/form.js`(`checkField`), `views/signup.js` | TC-158 (`test_auth_api.py`, `test_auth_schemas.py`, `test_availability_api.py`, `tests/availability.test.js`, `tests/signup-ui.test.js`, `tests/validate.test.js`) | 구현 완료 |
+| REQ-159 | 관리자 계정 | M | API 규격서 §3.1, ADR-011 | `core/admin.py`, `services/admin.py`, `services/auth.py`, `core/deps.py`, `routers/auth.py`, `main.py` | TC-159 (`test_admin_account_api.py`) | 구현 완료 (관리 API 는 #31 에서 추가) |
 | REQ-163 | 단어 검색 | M | API 규격서 §3.2 #6, UI/UX 설계서 §3.3 | `routers/vocabulary.py`, `services/system_vocab.py`, `core/word-search-model.js`, `views/components/word-sheet.js` | TC-163 (`test_vocabulary_search_api.py`, `tests/word-search-model.test.js`, `tests/word-search-ui.test.js`) | 구현 완료 |
+| REQ-164 | 비밀번호 변경 | M | API 규격서 §3.1 #4c, UI/UX 설계서 §3.8 | `routers/auth.py`, `services/auth.py`, `schemas/auth.py`, `core/rate_limit.py`, `core/mypage-model.js`, `views/mypage-view.js`, `app.js`, `routes.js` | TC-164 (`test_password_change_api.py`, `tests/mypage-model.test.js`, `tests/mypage-ui.test.js`, `tests/routes.test.js`) | 구현 완료 |
 | REQ-118 | pytest 자동화 테스트 | M | Test Specification | `src/backend/tests/` | TC-118 | 초안 |
 | REQ-119 | 모바일 스크린샷 검증 | S | Test Specification | 검증 스크립트 | TC-119 | 초안 |
 | REQ-120 | 코드 추적성 (ID 명시) | M | 개발방법론 §3 | 모듈 헤더, 커밋 메시지 | 코드 리뷰 체크리스트 | 초안 |
@@ -360,6 +364,7 @@ v1.0의 질의 사항 Q1~Q8에 대한 결정이다. 사용자가 명시적으로
 | v2.3 개정 | 2026-11-25 | **REQ-157 신설**: 퀴즈 출제 방향(영→한·한→영·섞기)과 형식(4지선다·OX). `POST /api/study/sessions` 에 `direction`·`format` 추가, 한→영 출제 응답의 `term`·`context` 비노출, `quiz_sessions`·`study_logs` 에 방향·형식 컬럼 추가(마이그레이션 0002). §11 의 VOCA-FR-023·024·026 을 ✅ 로 갱신. 단답형은 채점이 모호해 OX 로 대체(사용자 결정) | Claude |
 | v2.3 개정 | 2026-11-26 | **REQ-158 신설, REQ-001·156 보강**: 가입 화면에 비밀번호 확인(`password_confirm`, 불일치 422)과 닉네임 "중복 확인" 버튼(`GET /api/auth/check-nickname`, IP 당 1분 30회)을 추가했다. 이메일 고유 식별자와 Google OAuth 는 검토 후 **채택하지 않았다**(닉네임+비밀번호만, 스키마 변경 없음; 사용자 결정). 가입 409 는 `X-Error-Code: NICKNAME_TAKEN`. §11 VOCA-FR-041 에 REQ-158 연결 | Claude |
 | v2.3 개정 | 2026-11-26 | **REQ-163 신설** (단어 검색, 이슈 #29): 단어장 안에서 표제어·뜻 부분 검색. REQ-009 후속 표기 갱신, §11 VOCA-FR-004 ✅ | Claude |
+| v2.3 개정 | 2026-11-26 | **REQ-159·164 신설** (이슈 #30): 고정 `admin` 관리자 계정, 모든 사용자의 마이페이지 비밀번호 변경. §2·Q8·REQ-122 개정, §11 VOCA-FR-041 에 REQ-164 연결, **VOCA-NFR-004 를 ✅ → 🟡**(관리자 초기 비밀번호가 코드 상수, ADR-011) | Claude |
 | v0.1 | 2026-11-02 | 초안 작성 (요구사항 ID 체계 수립, 기능/비기능 목록, 추적 매트릭스) | Claude |
 | v1.0 | 2026-11-02 | 사용자 승인 후 `docs/`로 승격 (파일명 `Requirement_Spec` 규칙 적용) | Claude |
 | v2.2 개정 | 2026-11-25 | **REQ-152 신설, REQ-116·117 개정**: 앱 컨테이너화(Dockerfile, `migrate`·`app` 서비스, 개발용 override). 사용자 확정: HTTPS 제외, git clone 전달, DB 포트 loopback (ADR-009) | Claude |
@@ -438,7 +443,7 @@ v1.0의 질의 사항 Q1~Q8에 대한 결정이다. 사용자가 명시적으로
 | VOCA-FR-032 | 시험 성적 추이(회차별·날짜별 정답률) | 기본 | ✅ | REQ-155. 끝까지 푼 퀴즈의 회차별 정답률과 한국 날짜별 정답률(`GET /api/study/score-trend`). 중간에 그만둔 시험과 플래시카드는 회차에서 제외한다 |
 | VOCA-FR-033 | 자주 틀리는 단어 상위 N | 기본 | ✅ | REQ-154. 누적 오답 횟수 순 상위 N(`GET /api/study/frequent-wrong`, 기본 10). 이력(`study_logs`)에서 계산한다 |
 | VOCA-FR-034 | 통계는 DB 이력으로 계산 | 기본 | ✅ | 서버 집계(REQ-131~133, `services/stats.py`) |
-| VOCA-FR-041 | 회원가입·로그인·로그아웃 | 도전 | ✅ | REQ-001, 002, 003, 158. 닉네임+비밀번호 방식(이메일·OAuth 없음), 가입 시 비밀번호 확인·닉네임 중복 확인 |
+| VOCA-FR-041 | 회원가입·로그인·로그아웃 | 도전 | ✅ | REQ-001, 002, 003, 158, 164. 닉네임+비밀번호 방식(이메일·OAuth 없음), 가입 시 비밀번호 확인·닉네임 중복 확인 |
 | VOCA-FR-042 | 비밀번호 해시 저장 | 도전 | ✅ | bcrypt (REQ-110, ADR-002) |
 | VOCA-FR-043 | 이력·통계 계정별 분리 | 도전 | ✅ | 모든 이력 테이블이 `user_id` FK, 본인 것만 조회(REQ-121~122) |
 | VOCA-FR-051~053 | 다른 계정 통계 조회·공개 설정·읽기 전용 | 도전 | ➖ | 선택하지 않음 |
@@ -452,7 +457,7 @@ v1.0의 질의 사항 Q1~Q8에 대한 결정이다. 사용자가 명시적으로
 | VOCA-NFR-001 | PC 크롬 동작 | ✅ | 모바일 우선 반응형이라 PC 에서도 동작 (REQ-111~115) |
 | VOCA-NFR-002 | 단어·이력·(도전)사용자·설정을 DB 저장. DB 는 SQLite | ✅ | SQLite 채택(REQ-108, ADR-010). 단, 사용자 등록 단어는 FR-001 미구현이라 저장 대상이 아니다 |
 | VOCA-NFR-003 | 처음 실행 시 테이블 자동 생성, 빈 DB 시작 | ✅ | 컨테이너 시작 때 `alembic upgrade head`(REQ-117, REQ-153) |
-| VOCA-NFR-004 | 비밀값은 환경 변수 | ✅ | `SECRET_KEY`, `DB_PATH`, `.env` 미커밋(REQ-112, CLAUDE.md §5.3) |
+| VOCA-NFR-004 | 비밀값은 환경 변수 | 🟡 | `SECRET_KEY`, `DB_PATH`, `.env` 미커밋(REQ-112, CLAUDE.md §5.3). **예외**: 관리자 초기 비밀번호는 코드 상수다 (REQ-159, ADR-011, 사용자 결정 2026-11-26) |
 | VOCA-NFR-005 | 서버 배포 요건(4.4) 준수 | ✅ | REQ-153. Actions 통과 확인 |
 
 ### 11.3 제출 요건 (VOCA-SUB)

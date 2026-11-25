@@ -76,12 +76,13 @@
 
 | # | 메서드 | 경로 | 요구사항 | 인증 | 성공 | 주요 실패 |
 | :-: | :--- | :--- | :--- | :-: | :-: | :--- |
-| 1 | POST | `/api/auth/signup` | REQ-001, REQ-142, REQ-158 | — | 201 | 409, 422 |
-| 1b | GET | `/api/auth/check-nickname` | REQ-158 | — | 200 | 422, **429** |
+| 1 | POST | `/api/auth/signup` | REQ-001, REQ-142, REQ-158, REQ-159 | — | 201 | 409, 422 |
+| 1b | GET | `/api/auth/check-nickname` | REQ-158, REQ-159 | — | 200 | 422, **429** |
 | 2 | POST | `/api/auth/login` | REQ-001, REQ-121 | — | 200 | 401, **429**, 422 |
 | 3 | POST | `/api/auth/logout` | REQ-002 | 선택 | 204 | — |
 | 4 | GET | `/api/auth/me` | REQ-002 | 필수 | 200 | 401 |
-| 4b | DELETE | `/api/auth/me` | REQ-122 | 필수 | 204 | 401 |
+| 4b | DELETE | `/api/auth/me` | REQ-122 | 필수 | 204 | 401, 403 |
+| 4c | PUT | `/api/auth/me/password` | REQ-164 | 필수 | 204 | 400, 401, 422, **429** |
 | 5 | GET | `/api/vocabularies` | REQ-140 | 필수 | 200 | 422, 401 |
 | 6 | GET | `/api/vocabularies/{vocabulary_id}/words` | REQ-141, REQ-163 | 필수 | 200 | 404, 422, 401 |
 | 7 | POST | `/api/users/me/active-vocabulary` | REQ-142 | 필수 | 200 | 404, 422, 401 |
@@ -109,8 +110,9 @@
 
 **#1 POST `/api/auth/signup`**
 - 요청 본문: `{"nickname": string(2~30자, 공백 제거 후), "password": string(8자 이상, 72바이트 이하), "password_confirm": string}`. `password_confirm` 은 `password` 와 같아야 합니다 (**v2.2, REQ-158**). 이메일은 받지 않습니다 (v1.1). 보내도 무시됩니다.
-- 응답 201: `UserOut` = `{"id": number, "nickname": string, "created_at": string}`
+- 응답 201: `UserOut` = `{"id": number, "nickname": string, "is_admin": boolean, "created_at": string}` (`is_admin` 은 REQ-159 추가 필드. 로그인·내 정보 응답도 같음)
 - 실패: 409 `{"detail": "이미 사용 중인 닉네임입니다."}` + `X-Error-Code: NICKNAME_TAKEN`, 422 (형식 위반. `password_confirm` 불일치는 오류 위치가 `["body","password_confirm"]` 이고 메시지는 "비밀번호가 일치하지 않습니다.")
+- **예약 닉네임(REQ-159)**: `admin`(대소문자·앞뒤 공백 무시)은 계정이 없어도 409 `NICKNAME_TAKEN` 이고, #1b 는 `{"available": false}` 입니다.
 - 부가 효과: 가입 시 초급 표준 단어장(`beginner-200`)이 `active_vocabulary_id` 로 자동 지정됩니다 (REQ-142). 단어장·단어를 복사하지 않습니다.
 - 프론트 처리: 성공 시 자동 로그인하지 않습니다. 로그인 화면으로 이동하고 성공 토스트를 띄웁니다 (2번 호출 필요).
 
@@ -143,7 +145,17 @@
 - 응답 204. 응답 헤더 `Set-Cookie: voda_session=""; Max-Age=0`으로 세션 쿠키를 만료시킵니다.
 - 효과: 계정을 지우면 세션, 북마크, 학습 이력, 학습 진행도, 학습 세션이 DB의 `ON DELETE CASCADE`로 함께 영구 삭제됩니다. **표준 단어장·단어는 공용이라 삭제되지 않습니다.** 되돌릴 수 없습니다. 탈퇴한 닉네임은 다시 가입할 수 있습니다.
 - 실패: 401 (쿠키가 없거나 만료됨). 아무것도 지우지 않습니다.
+- 실패(REQ-159): 관리자 계정은 403 `{"detail": "관리자 계정은 탈퇴할 수 없습니다."}`.
 - 프론트 처리: 경고 확인 후 닉네임을 직접 입력받아 최종 확인합니다. 성공하면 세션 저장소를 비우고 로그인 화면으로 이동합니다.
+
+**#4c PUT `/api/auth/me/password`** (REQ-164)
+- 요청 본문: `{"current_password": string, "new_password": string, "new_password_confirm": string}`
+- 응답 204. 지금 세션은 유지되고 같은 계정의 다른 세션은 만료됩니다.
+- 실패:
+  - 400 `{"detail": "현재 비밀번호가 올바르지 않습니다."}` + `X-Error-Code: CURRENT_PASSWORD_MISMATCH`. 401 이 아닌 이유는 프론트가 401 을 세션 만료로 처리하기 때문입니다.
+  - 422: 새 비밀번호가 8자 미만·72바이트 초과·현재와 같음(`new_password`), 확인 불일치(`new_password_confirm`)
+  - **429** + `Retry-After`: 계정별 1분 5회 시도 초과 (성공하면 초기화, 로그인 제한과 따로 집계)
+  - 401: 로그인하지 않음
 
 ### 3.2 표준 단어장 (읽기 전용, REQ-140~142)
 
@@ -503,3 +515,4 @@ POST /api/study/sessions  ─►  items[0..N-1]
 | v2.2 개정 | 2026-11-25 | `POST /api/study/sessions`(#11)에 `direction`·`format` 요청 필드와 `SessionItemOut` 의 `direction`·`format`·`prompt`·`proposed` 추가, 한→영 문항의 `term`·`context` null(REQ-157). 기본값이 기존 동작이라 하위 호환 | Claude |
 | v2.2 개정 | 2026-11-26 | 가입(#1)에 `password_confirm` 요청 필드 추가(불일치 422)와 409 의 `X-Error-Code: NICKNAME_TAKEN`, 닉네임 중복 확인 `GET /api/auth/check-nickname`(#1b, IP 당 1분 30회) 추가(REQ-158). 이메일·OAuth 는 받지 않는다. `password_confirm` 필수라 옛 클라이언트의 가입 요청은 422 가 된다(프론트는 함께 갱신) | Claude |
 | v2.2 개정 | 2026-11-26 | 단어 목록(#6)에 검색어 `q` 파라미터 추가 (REQ-163). 하위 호환 | Claude |
+| v2.2 개정 | 2026-11-26 | 비밀번호 변경 `PUT /api/auth/me/password`(#4c, REQ-164) 추가, `UserOut.is_admin` 추가, `admin` 예약 닉네임, 관리자 탈퇴 403 (REQ-159) | Claude |
