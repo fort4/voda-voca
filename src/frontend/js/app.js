@@ -103,7 +103,7 @@ function toggleAccountMenu(anchor) {
 
 /**
  * 프로필 칩 바로 아래에 붙는 플로팅 드롭다운을 연다. 바깥 클릭이나 ESC 로 닫힌다.
- * 로그아웃은 확인 없이 즉시 처리하고, 회원 탈퇴는 기존 두 단계 확인 흐름을 쓴다.
+ * 로그아웃은 확인 없이 즉시 처리한다. 회원 탈퇴는 마이페이지에 있다 (REQ-122).
  * @param {HTMLElement} anchor
  */
 function openAccountMenu(anchor) {
@@ -130,9 +130,6 @@ function openAccountMenu(anchor) {
     menuItem("settings", "환경 설정", openPreferencesFromMenu),
     h("div", { class: "dropdown-divider" }),
     menuItem("log-out", "로그아웃", logoutFromMenu),
-    // 관리자 계정은 탈퇴할 수 없다 (서버도 403 으로 거부한다)
-    user.is_admin ? null : h("div", { class: "dropdown-divider" }),
-    user.is_admin ? null : h("div", { class: "dropdown-danger-zone" }, menuItem("user-x", "회원 탈퇴", withdrawFromMenu, "danger")),
   );
 
   const rect = anchor.getBoundingClientRect();
@@ -163,15 +160,14 @@ function closeAccountMenu() {
  * @param {string} iconName
  * @param {string} label
  * @param {() => void} onSelect
- * @param {"default"|"danger"} [tone]
  */
-function menuItem(iconName, label, onSelect, tone = "default") {
+function menuItem(iconName, label, onSelect) {
   return h(
     "button",
     {
       type: "button",
       role: "menuitem",
-      class: tone === "danger" ? "dropdown-item dropdown-item--danger" : "dropdown-item",
+      class: "dropdown-item",
       onclick: onSelect,
     },
     icon(iconName, "h-5 w-5"),
@@ -197,11 +193,6 @@ function openPreferencesFromMenu() {
 function logoutFromMenu() {
   closeAccountMenu();
   return logout();
-}
-
-function withdrawFromMenu() {
-  closeAccountMenu();
-  return withdraw();
 }
 
 async function logout() {
@@ -288,7 +279,7 @@ const routes = buildRoutes({
   session: studySessionView,
   review: reviewView,
   stats: statsView,
-  mypage: myPageView,
+  mypage: (root, ctx) => myPageView(root, { ...ctx, withdraw }),
 });
 
 const router = createRouter({

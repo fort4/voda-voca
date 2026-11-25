@@ -1,5 +1,5 @@
 /*
- * 2026-11-26 - voda-voca - 마이페이지 배선 검사: 계정 메뉴 항목, 라우트, 변경 폼, 관리자 표시와 탈퇴 숨김 (REQ-159, REQ-164)
+ * 2026-11-26 - voda-voca - 마이페이지 배선 검사: 계정 메뉴 항목, 라우트, 변경 폼, 관리자 표시, 회원 탈퇴 위치 (REQ-122, REQ-159, REQ-164)
  * 파일 위치: src/frontend/tests/mypage-ui.test.js
  */
 
@@ -14,12 +14,21 @@ test("계정 메뉴: '마이페이지'가 학습 설정보다 위에 있고 /myp
   assert.match(app, /menuItem\("user", "마이페이지", openMyPageFromMenu\)/);
   assert.ok(app.indexOf('"마이페이지"') < app.indexOf('"학습 설정"'));
   assert.match(app, /router\.navigate\("\/mypage"\)/);
-  assert.match(app, /mypage:\s*myPageView/);
+  assert.match(app, /mypage:[^\n]*myPageView\(/);
 });
 
-test("계정 메뉴: 관리자는 '관리자'로 표시하고 회원 탈퇴를 보이지 않는다", () => {
-  assert.match(app, /user\.is_admin \? "관리자" : "학습자"|profileView\(user\)\.role/);
-  assert.match(app, /user\.is_admin \? null : [\s\S]{0,200}"회원 탈퇴"/);
+test("계정 메뉴: 관리자는 '관리자'로 표시하고, 회원 탈퇴 항목은 메뉴에 없다 (마이페이지로 옮김)", () => {
+  assert.match(app, /profileView\(user\)\.role/);
+  assert.doesNotMatch(app, /menuItem\([^)]*"회원 탈퇴"/);
+  assert.doesNotMatch(app, /withdrawFromMenu/);
+});
+
+test("마이페이지: 관리자가 아니면 회원 탈퇴 카드를 보이고, 두 단계 확인 흐름을 그대로 쓴다", () => {
+  const src = read("js/views/mypage-view.js");
+  assert.match(src, /user\.is_admin \? null : withdrawCard\(/);
+  assert.match(src, /variant:\s*"danger-soft"[\s\S]{0,200}"회원 탈퇴"/);
+  assert.match(app, /withdraw/, "확인 흐름은 app.js 가 맡는다");
+  assert.match(app, /nicknameConfirmationMatches\(/);
 });
 
 test("마이페이지: 현재·새·확인 세 칸이 보기 토글을 쓰고 autocomplete 가 맞다", () => {

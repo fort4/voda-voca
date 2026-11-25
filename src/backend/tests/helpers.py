@@ -7,9 +7,11 @@ from dataclasses import dataclass
 import httpx
 from sqlalchemy import delete, func, select
 
+from backend.core.admin import ADMIN_INITIAL_PASSWORD, ADMIN_NICKNAME
 from backend.core.deps import SESSION_COOKIE_NAME
 from backend.db.session import get_session_factory
 from backend.models import StudyLog, SystemVocabulary, SystemWord, User
+from backend.services.admin import ensure_admin_account
 
 PASSWORD = "correct-horse-1"
 
@@ -129,3 +131,22 @@ async def user_id_for_token(client: httpx.AsyncClient, token: str) -> int:
     me = (await client.get("/api/auth/me", headers=auth_headers(token))).json()
     async with get_session_factory()() as session:
         return (await session.execute(select(User.id).where(User.nickname == me["nickname"]))).scalar_one()
+
+
+async def admin_token(client: httpx.AsyncClient) -> str:
+    """관리자 계정을 준비하고 로그인한 세션 토큰. 쓰는 테스트는 delete_admin_content 로 정리한다."""
+    async with get_session_factory()() as db:
+        await ensure_admin_account(db)
+    login = await client.post("/api/auth/login", json=login_payload(ADMIN_NICKNAME, ADMIN_INITIAL_PASSWORD))
+    assert login.status_code == 200, login.text
+    token = login.cookies[SESSION_COOKIE_NAME]
+    client.cookies.clear()
+    return token
+
+
+async def delete_admin_content() -> None:
+    """공통 정리(tvoda-)에 걸리지 않는 관리자 계정과 관리자 단어장을 지운다."""
+    async with get_session_factory()() as db:
+        await db.execute(delete(User).where(User.nickname == ADMIN_NICKNAME))
+        await db.execute(delete(SystemVocabulary).where(SystemVocabulary.source == "admin"))
+        await db.commit()

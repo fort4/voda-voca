@@ -5,7 +5,6 @@ import hashlib
 import json
 import logging
 import re
-import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -13,8 +12,10 @@ from sqlalchemy import func, select
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.core.terms import term_key as _term_key
 from backend.db.session import get_session_factory
 from backend.models import SystemVocabulary, SystemWord
+from backend.models.base import SOURCE_SEED
 
 logger = logging.getLogger(__name__)
 
@@ -88,12 +89,6 @@ class SeedReport:
 # ---------------------------------------------------------------------------
 # 파일 로드·검증
 # ---------------------------------------------------------------------------
-
-
-def _term_key(term: str) -> str:
-    """대소문자와 악센트를 무시한 비교 키다 (DB 의 NOCASE 는 악센트를 접지 못해 앱이 정규화한다)."""
-    decomposed = unicodedata.normalize("NFKD", term.casefold())
-    return "".join(ch for ch in decomposed if unicodedata.category(ch) != "Mn")
 
 
 def _text(value: object, name: str, where: str, max_length: int, *, required: bool) -> str | None:
@@ -274,15 +269,18 @@ async def _seed_one(session: AsyncSession, data: SeedVocabularyData, report: See
             )
             continue
         new_values = (word.term, word.meaning, word.example, word.example_meaning, word.order_index, word.phonetic, word.pos)
-        if (row.term, row.meaning, row.example, row.example_meaning, row.order_index, row.phonetic, row.pos) != new_values:
+        old_values = (row.term, row.meaning, row.example, row.example_meaning, row.order_index, row.phonetic, row.pos)
+        # 관리자가 먼저 등록한 표제어가 시드에 들어오면 시드가 우선한다. 행 id 를 유지해 학습 이력을 보존한다.
+        if old_values != new_values or row.source != SOURCE_SEED:
             row.term, row.meaning, row.example, row.example_meaning, row.order_index, row.phonetic, row.pos = new_values
+            row.source = SOURCE_SEED
             updated += 1
     if inserted:
         await session.execute(sqlite_insert(SystemWord), inserted)
 
     # 시드에서 빠진 단어는 지우지 않는다 (학습 이력이 참조할 수 있다). 경고만 남긴다.
     for key, row in existing.items():
-        if key not in seed_keys:
+        if key not in seed_keys and row.source == SOURCE_SEED:  # 관리자 등록분은 시드에 없는 것이 정상이다
             report.warnings.append(f"{data.slug}: 시드에 없는 단어 '{row.term}' 를 DB 에 그대로 둡니다")
 
     await session.flush()

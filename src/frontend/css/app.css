@@ -577,11 +577,7 @@ html.dark .level-tag--user { background: #27272a; color: #d4d4d8; }
 }
 .dropdown-item:hover,
 .dropdown-item:focus-visible { background: var(--accent-soft); color: var(--text); outline: none; }
-.dropdown-item--danger { color: var(--danger); }
-.dropdown-item--danger:hover,
-.dropdown-item--danger:focus-visible { background: rgba(220, 38, 38, 0.08); color: var(--danger); }
 .dropdown-divider { margin: 0.25rem 0; border-top: 1px solid var(--border); }
-.dropdown-danger-zone { border-top: 1px solid var(--border); padding-top: 0.25rem; }
 @media (prefers-reduced-motion: reduce) {
   .dropdown-popover { animation: none; }
   .progress-fill, .weekly-chart .chart-bar { transition: none; }

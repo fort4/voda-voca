@@ -4,7 +4,7 @@
  */
 
 /** 서버 카테고리 코드의 표시 이름. 목록에 없는 새 카테고리는 코드를 그대로 보인다 (서버가 자유 문자열을 허용). */
-export const CATEGORY_LABELS = Object.freeze({ ELEMENTARY: "초등", SECONDARY: "중고등", CSAT: "수능", EXAM: "시험", BUSINESS: "비즈니스" });
+export const CATEGORY_LABELS = Object.freeze({ ELEMENTARY: "초등", SECONDARY: "중고등", CSAT: "수능", EXAM: "시험", BUSINESS: "비즈니스", ETC: "기타" });
 
 const ALL = "all";
 const KO = "ko-KR";
@@ -26,6 +26,18 @@ export function filterVocabularies(catalog, { category, level } = {}) {
   return catalog.filter(
     (v) => (isOff(category) || v.category === category) && (isOff(level) || v.level === Number(level)),
   );
+}
+
+/**
+ * 목록이 바뀐 뒤(단어장 삭제 등) 더는 고를 수 없는 필터를 '전체'로 되돌린다.
+ * @param {Array<{category: string, level: number}>} catalog
+ * @param {{category: string, level: string|number}} filter
+ */
+export function normalizeFilter(catalog, { category, level }) {
+  return {
+    category: catalog.some((v) => v.category === category) ? category : ALL,
+    level: catalog.some((v) => v.level === Number(level)) ? level : ALL,
+  };
 }
 
 /** @returns {Array<{value: string, label: string}>} 카탈로그에 실제 있는 카테고리만, 처음 나온 순서. 맨 앞에 '전체' */

@@ -59,6 +59,11 @@ export function createWordPager({ fetchPage, onChange = () => {} }) {
     const query = normalizeQuery(raw);
     // 같은 검색어를 이미 받았거나 받는 중이면 그대로 둔다. 실패했던 검색어는 다시 받는다.
     if (query === state.query && !state.error && (state.loading || state.page > 0)) return;
+    await restart(query);
+  }
+
+  /** @param {string} query */
+  async function restart(query) {
     generation += 1;
     state = initialState(query);
     onChange({ type: "reset" });
@@ -71,6 +76,8 @@ export function createWordPager({ fetchPage, onChange = () => {} }) {
     },
     loadMore,
     search,
+    /** 지금 검색어로 처음부터 다시 받는다 (단어를 추가·수정·삭제한 뒤). */
+    reload: () => restart(state.query),
   };
 }
 

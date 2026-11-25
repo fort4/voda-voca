@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.deps import get_current_user
 from backend.db.session import get_db_session
-from backend.models import User
+from backend.models import SystemWord, User
 from backend.schemas.vocabulary import ActiveVocabularyIn, VocabularyOut, VocabularyWordOut, VocabularyWordPage
 from backend.services import system_vocab
 from backend.services.errors import VocabularyNotFoundError
@@ -22,6 +22,21 @@ VOCABULARY_NOT_FOUND = HTTPException(
 WORD_PAGE_SIZE_DEFAULT = 50
 WORD_PAGE_SIZE_MAX = 200
 WORD_SEARCH_MAX = 100  # 표제어 길이 한도와 같다
+
+
+def word_out(word: SystemWord, *, bookmarked: bool) -> VocabularyWordOut:
+    """단어 한 건의 응답. 목록과 관리 API 가 같은 형식을 쓴다."""
+    return VocabularyWordOut(
+        word_id=word.id,
+        term=word.term,
+        meaning=word.meaning,
+        example=word.example,
+        example_meaning=word.example_meaning,
+        phonetic=word.phonetic,
+        pos=word.pos,
+        source=word.source,
+        bookmarked=bookmarked,
+    )
 
 
 @router.get("", response_model=list[VocabularyOut])
@@ -51,19 +66,7 @@ async def list_vocabulary_words(
         raise VOCABULARY_NOT_FOUND from exc
     return VocabularyWordPage(
         vocabulary_id=vocabulary_id,
-        items=[
-            VocabularyWordOut(
-                word_id=word.id,
-                term=word.term,
-                meaning=word.meaning,
-                example=word.example,
-                example_meaning=word.example_meaning,
-                phonetic=word.phonetic,
-                pos=word.pos,
-                bookmarked=bookmarked,
-            )
-            for word, bookmarked in rows
-        ],
+        items=[word_out(word, bookmarked=bookmarked) for word, bookmarked in rows],
         total=total,
         page=page,
         size=size,

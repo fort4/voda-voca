@@ -1,13 +1,16 @@
 /*
- * 2026-11-05 - voda-voca - 단어 미리보기 바텀시트: 단어장의 단어를 읽기 전용으로 페이지씩 보여 주고 표제어·뜻으로 검색한다 (Esc·바깥 탭·✕ 로 닫기)
+ * 2026-11-05 - voda-voca - 단어 미리보기 바텀시트: 단어장의 단어를 페이지씩 보여 주고 표제어·뜻으로 검색한다. 관리자는 단어를 추가·수정·삭제한다 (Esc·바깥 탭·✕ 로 닫기)
  * 파일 위치: src/frontend/js/views/components/word-sheet.js
  */
 
+import { canEditContent } from "../../core/admin-model.js";
 import { api } from "../../core/api.js";
 import { button, h, icon, refreshIcons } from "../../core/dom.js";
 import { INPUT_CLASS } from "../../core/form.js";
+import { getUser } from "../../core/state.js";
 import { stopSpeaking } from "../../core/tts.js";
 import { SEARCH_DEBOUNCE_MS, SEARCH_MAX_LENGTH, createWordPager, pagerFooter } from "../../core/word-search-model.js";
+import { confirmDeleteWord, openWordForm } from "./admin-forms.js";
 import { phoneticLine } from "./phonetic-line.js";
 import { posTag } from "./pos-tag.js";
 import { speakButton } from "./speak-button.js";
@@ -16,9 +19,11 @@ const PAGE_SIZE = 30;
 
 /**
  * @param {{id: number, title: string}} vocabulary
+ * @param {{onWordsChanged?: () => void}} [options] 관리자가 단어를 바꾼 뒤 부른다 (단어 수 갱신)
  * @returns {void}
  */
-export function openWordSheet(vocabulary) {
+export function openWordSheet(vocabulary, { onWordsChanged = () => {} } = {}) {
+  const user = getUser();
   const previousFocus = document.activeElement;
   const list = h("div", { class: "space-y-2" });
   const footer = h("div", { class: "pt-2", "aria-live": "polite" });
@@ -31,11 +36,30 @@ export function openWordSheet(vocabulary) {
         stopSpeaking(); // 재생 중인 단어의 버튼이 목록에서 사라진다
         list.replaceChildren();
       }
-      if (event.type === "page") list.append(...event.added.map(wordRow));
+      if (event.type === "page") list.append(...event.added.map((word) => wordRow(word, canEditContent(user, word) ? adminActions(word) : null)));
       paintFooter();
       refreshIcons();
     },
   });
+
+  /** 단어가 바뀌면 지금 검색어로 다시 받고, 바깥 화면에도 알린다. */
+  function afterChange() {
+    pager.reload();
+    onWordsChanged();
+  }
+
+  /** 관리자 등록 단어의 수정·삭제 버튼. */
+  function adminActions(word) {
+    const iconButton = (name, props) => h("button", { type: "button", class: "btn btn-ghost btn-icon focus-ring", ...props }, icon(name, "h-5 w-5"));
+    return [
+      iconButton("pencil", { "aria-label": `${word.term} 수정`, onclick: async () => (await openWordForm({ vocabularyId: vocabulary.id, word })) && afterChange() }),
+      iconButton("trash-2", { "aria-label": `${word.term} 삭제`, onclick: async () => (await confirmDeleteWord(word)) && afterChange() }),
+    ];
+  }
+
+  const addButton = user?.is_admin
+    ? button({ variant: "secondary", full: true, onClick: async () => (await openWordForm({ vocabularyId: vocabulary.id })) && afterChange() }, icon("plus", "h-4 w-4"), "단어 추가")
+    : null;
 
   function paintFooter() {
     const { kind, text } = pagerFooter(pager.state);
@@ -78,14 +102,15 @@ export function openWordSheet(vocabulary) {
     previousFocus?.focus?.();
   };
   const onKey = (event) => {
-    if (event.key === "Escape") close();
+    // 위에 입력·확인 모달이 열려 있으면 Esc 는 모달만 닫는다 (토스트는 모달이 아니다)
+    if (event.key === "Escape" && !document.querySelector(".swal2-popup:not(.swal2-toast)")) close();
   };
 
   const panel = h(
     "div",
     { class: "surface w-full max-w-lg overflow-y-auto rounded-b-none p-4", role: "dialog", "aria-modal": "true", "aria-label": `${vocabulary.title} 미리보기`, style: "max-height: 80dvh; padding-bottom: max(1rem, env(safe-area-inset-bottom))" },
     h("div", { class: "mb-3 flex items-center justify-between gap-2" }, h("h2", { class: "min-w-0 truncate text-lg font-bold text-zinc-900" }, vocabulary.title), button({ variant: "ghost", "aria-label": "닫기", onClick: close }, icon("x", "h-5 w-5"))),
-    h("div", { class: "mb-3" }, searchInput),
+    h("div", { class: "mb-3 space-y-2" }, searchInput, addButton),
     list,
     footer,
   );
@@ -97,8 +122,11 @@ export function openWordSheet(vocabulary) {
   panel.querySelector("button")?.focus(); // 닫기 버튼. 검색창에 바로 초점을 주면 모바일 키보드가 목록을 가린다
 }
 
-/** @param {{term: string, phonetic?: string|null, pos?: string|null, meaning: string, example: string|null}} word */
-function wordRow(word) {
+/**
+ * @param {{term: string, phonetic?: string|null, pos?: string|null, meaning: string, example: string|null}} word
+ * @param {HTMLElement[]|null} actions 관리자 버튼 (없으면 null)
+ */
+function wordRow(word, actions) {
   return h(
     "div",
     { class: "flex items-start gap-2 rounded-xl bg-zinc-50 px-3 py-2" },
@@ -114,6 +142,7 @@ function wordRow(word) {
       { class: "flex shrink-0 items-center" },
       // 미리보기는 단어를 훑어보는 용도라 표제어 듣기만 둔다 (예문 듣기는 학습 세션에서)
       speakButton({ text: word.term, kind: "word", key: `word:${word.term}` }),
+      ...(actions ?? []),
     ),
   );
 }

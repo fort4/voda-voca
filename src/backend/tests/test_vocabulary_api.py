@@ -63,7 +63,7 @@ async def test_catalog_lists_the_seeded_vocabularies_in_order(client: httpx.Asyn
     slugs = [i["slug"] for i in items]
     assert slugs[:3] == ["beginner-200", "intermediate-200", "advanced-200"]
     first = items[0]
-    assert set(first) == {"id", "slug", "title", "category", "level", "description", "total_words", "user_progress"}
+    assert set(first) == {"id", "slug", "title", "category", "level", "description", "total_words", "source", "user_progress"}
     assert (first["category"], first["level"], first["total_words"]) == ("ELEMENTARY", 1, 200)
     assert set(first["user_progress"]) == {"studied_words", "memorized_words", "progress_rate", "is_active"}
 
@@ -153,7 +153,7 @@ async def test_words_are_listed_in_order_with_bookmark_flag(client: httpx.AsyncC
     assert [i["term"] for i in body["items"]] == ["apple", "banana", "cherry"]
     assert {i["term"]: i["bookmarked"] for i in body["items"]} == {"apple": False, "banana": True, "cherry": False}
     item = body["items"][0]
-    assert set(item) == {"word_id", "term", "meaning", "example", "example_meaning", "phonetic", "pos", "bookmarked"}
+    assert set(item) == {"word_id", "term", "meaning", "example", "example_meaning", "phonetic", "pos", "source", "bookmarked"}
     assert item["word_id"] == vocab.word_ids["apple"] and item["meaning"] == "apple의 뜻"
 
 

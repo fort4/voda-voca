@@ -133,6 +133,24 @@ test("오류: 상태에 남기고, loadMore 로 같은 페이지를 다시 시�
   await retried;
 });
 
+test("reload: 같은 검색어로 처음부터 다시 받고, 진행 중이던 응답은 버린다 (REQ-161 수정 뒤 새로 고침)", async () => {
+  const { pager, calls, events } = setup();
+  const first = pager.search("a");
+  calls[0].resolve(reply(["a"], 1));
+  await first;
+  events.length = 0;
+
+  const stale = pager.loadMore();
+  const reloaded = pager.reload();
+  assert.equal(events.at(-2).type, "reset");
+  assert.deepEqual(calls.at(-1).params, { page: 1, query: "a" });
+  calls.at(-1).resolve(reply(["a2"], 1));
+  await reloaded;
+  calls[1].resolve(reply(["old"], 2));
+  await stale;
+  assert.deepEqual(pager.state.items, ["a2"]);
+});
+
 test("pagerFooter: 상태별 하단 안내", () => {
   const base = { query: "", items: [], total: 0, page: 0, loading: false, error: null };
   assert.deepEqual(pagerFooter({ ...base, loading: true }), { kind: "loading", text: "불러오는 중…" });

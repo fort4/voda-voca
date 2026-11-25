@@ -22,6 +22,7 @@ def _entry(
         level=vocabulary.level,
         description=vocabulary.description,
         total_words=total,
+        source=vocabulary.source,
         user_progress=UserProgressOut(
             studied_words=studied,
             memorized_words=memorized,
@@ -61,6 +62,17 @@ async def list_vocabularies(
     return [
         _entry(v, *progress.get(v.id, (0, 0)), active_vocabulary_id=user.active_vocabulary_id) for v in vocabularies
     ]
+
+
+async def vocabulary_entry(db: AsyncSession, user: User, vocabulary: SystemVocabulary) -> VocabularyOut:
+    """단어장 하나의 카탈로그 항목 (내 진행률 포함)."""
+    progress = await _progress_by_vocabulary(db, user.id, [vocabulary.id])
+    return _entry(vocabulary, *progress.get(vocabulary.id, (0, 0)), active_vocabulary_id=user.active_vocabulary_id)
+
+
+async def is_bookmarked(db: AsyncSession, user_id: int, word_id: int) -> bool:
+    found = await db.execute(select(Bookmark.id).where(Bookmark.user_id == user_id, Bookmark.word_id == word_id))
+    return found.scalar_one_or_none() is not None
 
 
 async def get_vocabulary(db: AsyncSession, vocabulary_id: int) -> SystemVocabulary:
@@ -110,5 +122,4 @@ async def set_active_vocabulary(db: AsyncSession, user: User, vocabulary_id: int
     vocabulary = await get_vocabulary(db, vocabulary_id)
     user.active_vocabulary_id = vocabulary.id
     await db.commit()
-    progress = await _progress_by_vocabulary(db, user.id, [vocabulary.id])
-    return _entry(vocabulary, *progress.get(vocabulary.id, (0, 0)), active_vocabulary_id=vocabulary.id)
+    return await vocabulary_entry(db, user, vocabulary)

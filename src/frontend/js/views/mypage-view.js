@@ -1,5 +1,5 @@
 /*
- * 2026-11-26 - voda-voca - 마이페이지 화면: 계정 정보와 비밀번호 변경 (계정 메뉴에서 연다, REQ-159, REQ-164)
+ * 2026-11-26 - voda-voca - 마이페이지 화면: 계정 정보, 비밀번호 변경, 회원 탈퇴 (계정 메뉴에서 연다, REQ-122, REQ-159, REQ-164)
  * 파일 위치: src/frontend/js/views/mypage-view.js
  */
 
@@ -13,8 +13,11 @@ import { passwordConfirmState } from "../core/validate.js";
 
 const CONFIRM_TONE_CLASS = { match: "text-emerald-700", mismatch: "text-red-600", empty: "text-zinc-500" };
 
-/** @param {HTMLElement} root */
-export function myPageView(root) {
+/**
+ * @param {HTMLElement} root
+ * @param {{withdraw: () => void}} ctx withdraw 는 확인 두 단계를 거쳐 탈퇴한다 (app.js)
+ */
+export function myPageView(root, { withdraw }) {
   const user = getUser();
   if (!user) return; // 라우터가 로그인 사용자만 들여보낸다
   root.append(
@@ -24,6 +27,7 @@ export function myPageView(root) {
       h("h1", { class: "text-title tracking-tight text-zinc-900" }, "마이페이지"),
       profileCard(profileView(user)),
       passwordCard(user),
+      user.is_admin ? null : withdrawCard(withdraw), // 관리자 계정은 탈퇴할 수 없다 (서버도 403)
     ),
   );
 }
@@ -40,6 +44,17 @@ function profileCard(view) {
       h("p", { class: "flex flex-wrap items-center gap-2" }, h("span", { class: "break-all text-base font-bold text-zinc-900" }, view.nickname), h("span", { class: "chip-sm" }, view.role)),
       view.joined ? h("p", { class: "text-xs text-zinc-500" }, `가입일 ${view.joined}`) : null,
     ),
+  );
+}
+
+/** @param {() => void} withdraw */
+function withdrawCard(withdraw) {
+  return h(
+    "section",
+    { class: "card space-y-3" },
+    h("h2", { class: "text-base font-bold text-zinc-900" }, "회원 탈퇴"),
+    h("p", { class: "text-sm text-zinc-700" }, "계정과 북마크, 학습 기록이 영구 삭제됩니다. 되돌릴 수 없습니다."),
+    button({ variant: "danger-soft", full: true, onClick: withdraw }, "회원 탈퇴"),
   );
 }
 

@@ -6,11 +6,11 @@ from datetime import datetime
 from sqlalchemy import CheckConstraint, DateTime, Index, Integer, String, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from backend.models.base import NOCASE, UTC_NOW_DEFAULT, Base, utcnow
+from backend.models.base import NOCASE, SOURCE_SEED, UTC_NOW_DEFAULT, Base, utcnow
 
 
 class SystemVocabulary(Base):
-    """표준 단어장. 사용자가 만들거나 고치지 않고, 서버 시드 파일로만 바뀐다.
+    """표준 단어장. 일반 사용자는 만들거나 고치지 않는다. 서버 시드 파일 또는 관리자(source='admin', REQ-160)가 만든다.
 
     - slug: 시드 파일과 DB 행을 잇는 멱등 키 (예: 'beginner-200').
     - category: 자유 문자열이다. ENUM/CHECK 로 막지 않아야 새 카테고리(CONVERSATION, TOEIC 등)를
@@ -36,6 +36,7 @@ class SystemVocabulary(Base):
     total_words: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
     content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    source: Mapped[str] = mapped_column(String(10), nullable=False, server_default=SOURCE_SEED)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=UTC_NOW_DEFAULT
     )

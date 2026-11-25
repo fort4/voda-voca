@@ -28,3 +28,8 @@ NOCASE = "NOCASE"
 
 class Base(DeclarativeBase):
     """모든 ORM 모델의 베이스. `Base.metadata` 가 Alembic autogenerate 의 기준이다."""
+
+
+# 표준 콘텐츠의 출처 (system_vocabularies.source, system_words.source). 관리자 등록분만 수정·삭제할 수 있다 (REQ-160, 161).
+SOURCE_SEED = "seed"
+SOURCE_ADMIN = "admin"
