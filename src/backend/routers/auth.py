@@ -1,4 +1,4 @@
-# 2026-11-26 - voda-voca - 인증 라우터: 가입, 닉네임 중복 확인, 로그인(세션 쿠키, 무차별 대입 방어 REQ-121), 로그아웃, 내 정보, 회원 탈퇴 (REQ-001, REQ-002, REQ-158)
+# 2026-11-26 - voda-voca - 인증 라우터: 가입, 닉네임 중복 확인, 로그인(세션 쿠키, 무차별 대입 방어 REQ-121), 로그아웃, 내 정보, 비밀번호 변경, 회원 탈퇴 (REQ-001, REQ-002, REQ-158, REQ-159, REQ-164)
 # 파일 위치: src/backend/routers/auth.py
 
 from typing import Annotated
@@ -9,12 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.config import get_settings
 from backend.core.deps import SESSION_COOKIE_NAME, get_current_user
-from backend.core.rate_limit import availability_rate_limiter, login_rate_limiter
+from backend.core.rate_limit import availability_rate_limiter, login_rate_limiter, password_change_rate_limiter
 from backend.db.session import get_db_session
 from backend.models import User
 from backend.schemas.auth import (
     AvailabilityOut,
     LoginRequest,
+    PasswordChangeRequest,
     SignupRequest,
     UserOut,
     check_nickname_rule,
@@ -30,6 +31,8 @@ AVAILABILITY_RATE_LIMITED_DETAIL = "확인 요청이 너무 많습니다. 잠시
 # 화면이 detail 문구가 아니라 이 값으로 어느 입력의 중복인지 가린다 (X-Error-Code 규약, study_session.py 와 같다).
 ERROR_CODE_HEADER = "X-Error-Code"
 NICKNAME_TAKEN = "NICKNAME_TAKEN"
+CURRENT_PASSWORD_MISMATCH = "CURRENT_PASSWORD_MISMATCH"
+PASSWORD_CHANGE_RATE_LIMITED_DETAIL = "비밀번호 변경 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요."
 
 
 def _client_ip(request: Request) -> str:
@@ -150,6 +153,40 @@ async def me(user: User = Depends(get_current_user)) -> User:
     return user
 
 
+@router.put("/me/password", status_code=status.HTTP_204_NO_CONTENT)
+async def change_my_password(
+    body: PasswordChangeRequest,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
+) -> None:
+    """비밀번호 변경. 성공하면 지금 세션은 유지하고 다른 세션을 만료시킨다.
+
+    현재 비밀번호가 틀리면 401 이 아니라 400 이다 (401 은 화면이 세션 만료로 처리한다).
+    """
+    key = f"pw:{user.id}"
+    retry_after = password_change_rate_limiter.retry_after([key])
+    if retry_after is not None:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=PASSWORD_CHANGE_RATE_LIMITED_DETAIL,
+            headers={"Retry-After": str(retry_after)},
+        )
+    # 확인 전에 먼저 센다. 판정과 기록 사이에 await 가 없어 동시에 보낸 요청도 한도를 넘지 못한다. 성공하면 지운다.
+    password_change_rate_limiter.record_failure([key])
+    try:
+        await auth_service.change_password(
+            db, user, body.current_password, body.new_password, request.cookies[SESSION_COOKIE_NAME]
+        )
+    except auth_service.InvalidCredentialsError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="현재 비밀번호가 올바르지 않습니다.",
+            headers={ERROR_CODE_HEADER: CURRENT_PASSWORD_MISMATCH},
+        ) from exc
+    password_change_rate_limiter.reset(key)
+
+
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_me(
     response: Response,
@@ -159,6 +196,9 @@ async def delete_me(
     """회원 탈퇴. 계정과 연관 데이터(단어장, 단어, 북마크, 학습 이력, 세션)를 모두 지우고 쿠키를 만료시킨다.
 
     인증되지 않은 요청은 get_current_user 가 401 로 막는다. 탈퇴 후 같은 쿠키로는 접근할 수 없다.
+    관리자 계정은 탈퇴할 수 없다 (지우면 다음 시작 때 초기 비밀번호로 다시 생긴다).
     """
+    if user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="관리자 계정은 탈퇴할 수 없습니다.")
     await auth_service.delete_account(db, user.id)
     response.delete_cookie(key=SESSION_COOKIE_NAME, **_cookie_options())

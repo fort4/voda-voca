@@ -1,13 +1,15 @@
-# 2026-11-26 - voda-voca - 회원가입(기본 학습 단어장 지정), 닉네임 로그인 인증, 닉네임 중복 확인, 회원 탈퇴 로직 (REQ-001~003, REQ-105, REQ-158)
+# 2026-11-26 - voda-voca - 회원가입(기본 학습 단어장 지정), 닉네임 로그인 인증, 닉네임 중복 확인, 비밀번호 변경, 회원 탈퇴 로직 (REQ-001~003, REQ-105, REQ-158, REQ-159, REQ-164)
 # 파일 위치: src/backend/services/auth.py
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.core.admin import is_admin_nickname
 from backend.db.errors import is_unique_violation
-from backend.models import SystemVocabulary, User
+from backend.models import AuthSession, SystemVocabulary, User
 from backend.services.password import get_dummy_hash, hash_password, verify_password
+from backend.services.session import token_digest
 
 # 가입 직후 학습 단어장으로 지정할 표준 단어장 (초급 200제). 시드 파일의 slug 와 같아야 한다.
 DEFAULT_VOCABULARY_SLUG = "beginner-200"
@@ -29,13 +31,25 @@ def normalize_nickname(nickname: str) -> str:
     return nickname.strip()
 
 
-async def is_nickname_available(db: AsyncSession, nickname: str) -> bool:
-    """가입에 쓸 수 있는 닉네임인지 본다 (대소문자·앞뒤 공백 무시)."""
+async def find_user_id(db: AsyncSession, nickname: str) -> int | None:
+    """닉네임의 계정 id (대소문자·앞뒤 공백 무시). 없으면 None."""
     found = await db.execute(select(User.id).where(User.nickname == normalize_nickname(nickname)))
-    return found.scalar_one_or_none() is None
+    return found.scalar_one_or_none()
+
+
+async def is_nickname_available(db: AsyncSession, nickname: str) -> bool:
+    """가입에 쓸 수 있는 닉네임인지 본다. 관리자 닉네임은 계정이 없어도 쓸 수 없다."""
+    return not is_admin_nickname(nickname) and await find_user_id(db, nickname) is None
 
 
 async def signup(db: AsyncSession, password: str, nickname: str) -> User:
+    """일반 가입. 관리자 닉네임은 예약어라 이미 사용 중인 것으로 본다 (REQ-159)."""
+    if is_admin_nickname(nickname):
+        raise NicknameAlreadyExistsError
+    return await create_user(db, password, nickname)
+
+
+async def create_user(db: AsyncSession, password: str, nickname: str) -> User:
     """계정을 만들고 기본 표준 단어장(초급 200제)을 학습 단어장으로 지정한다. 한 트랜잭션이다.
 
     - 닉네임 중복은 UNIQUE 제약 위반으로 판정한다 (REQ-105). 사전 조회가 아니라 제약으로 막아야 동시 가입에도 안전하다. 실패하면 계정이 남지 않는다.
@@ -75,6 +89,29 @@ async def authenticate(db: AsyncSession, nickname: str, password: str) -> User:
     if not await verify_password(password, user.password_hash):
         raise InvalidCredentialsError
     return user
+
+
+async def change_password(db: AsyncSession, user: User, current: str, new: str, session_token: str) -> None:
+    """현재 비밀번호를 확인해 바꾸고, 지금 세션을 뺀 본인의 세션을 모두 지운다. 틀리면 InvalidCredentialsError.
+
+    bcrypt 계산은 수백 ms 가 걸리므로 먼저 트랜잭션을 끝내 SQLite 쓰기 잠금을 놓는다. 그 사이에 비밀번호가 바뀌면
+    아래 UPDATE 의 조건(이전 해시)에 걸려 한 행도 바뀌지 않는다.
+    """
+    user_id, old_hash = user.id, user.password_hash
+    await db.commit()
+    if not await verify_password(current, old_hash):
+        raise InvalidCredentialsError
+    new_hash = await hash_password(new)
+    result = await db.execute(
+        update(User).where(User.id == user_id, User.password_hash == old_hash).values(password_hash=new_hash)
+    )
+    if result.rowcount != 1:
+        await db.rollback()
+        raise InvalidCredentialsError
+    await db.execute(
+        delete(AuthSession).where(AuthSession.user_id == user_id, AuthSession.id != token_digest(session_token))
+    )
+    await db.commit()
 
 
 async def delete_account(db: AsyncSession, user_id: int) -> None:

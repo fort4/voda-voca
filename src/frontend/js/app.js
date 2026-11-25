@@ -1,5 +1,5 @@
 /*
- * 2026-11-05 - voda-voca - 앱 진입점: 세션 확인(/auth/me), 라우트 등록, 상단바·하단 탭바, 세션 만료 처리 (REQ-001, REQ-002)
+ * 2026-11-05 - voda-voca - 앱 진입점: 세션 확인(/auth/me), 라우트 등록, 상단바·계정 메뉴·하단 탭바, 세션 만료 처리 (REQ-001, REQ-002, REQ-159)
  * 파일 위치: src/frontend/js/app.js
  */
 
@@ -17,6 +17,8 @@ import { themeToggleView } from "./core/preferences-model.js";
 import { signupView } from "./views/signup.js";
 import { exploreView } from "./views/explore-view.js";
 import { homeView } from "./views/home-view.js";
+import { myPageView } from "./views/mypage-view.js";
+import { profileView } from "./core/mypage-model.js";
 import { reviewView } from "./views/review-view.js";
 import { statsView } from "./views/stats-view.js";
 import { studySessionView } from "./views/study-session-view.js";
@@ -119,20 +121,18 @@ function openAccountMenu(anchor) {
         "div",
         { class: "min-w-0" },
         h("p", { class: "truncate text-sm font-semibold text-zinc-900" }, user.nickname),
-        h("span", { class: "chip-sm" }, "학습자"),
+        h("span", { class: "chip-sm" }, profileView(user).role),
       ),
     ),
     h("div", { class: "dropdown-divider" }),
+    menuItem("user", "마이페이지", openMyPageFromMenu),
     menuItem("book-open", "학습 설정", openSettingsFromMenu),
     menuItem("settings", "환경 설정", openPreferencesFromMenu),
     h("div", { class: "dropdown-divider" }),
     menuItem("log-out", "로그아웃", logoutFromMenu),
-    h("div", { class: "dropdown-divider" }),
-    h(
-      "div",
-      { class: "dropdown-danger-zone" },
-      menuItem("user-x", "회원 탈퇴", withdrawFromMenu, "danger"),
-    ),
+    // 관리자 계정은 탈퇴할 수 없다 (서버도 403 으로 거부한다)
+    user.is_admin ? null : h("div", { class: "dropdown-divider" }),
+    user.is_admin ? null : h("div", { class: "dropdown-danger-zone" }, menuItem("user-x", "회원 탈퇴", withdrawFromMenu, "danger")),
   );
 
   const rect = anchor.getBoundingClientRect();
@@ -177,6 +177,11 @@ function menuItem(iconName, label, onSelect, tone = "default") {
     icon(iconName, "h-5 w-5"),
     h("span", {}, label),
   );
+}
+
+function openMyPageFromMenu() {
+  closeAccountMenu();
+  router.navigate("/mypage");
 }
 
 function openSettingsFromMenu() {
@@ -283,6 +288,7 @@ const routes = buildRoutes({
   session: studySessionView,
   review: reviewView,
   stats: statsView,
+  mypage: myPageView,
 });
 
 const router = createRouter({

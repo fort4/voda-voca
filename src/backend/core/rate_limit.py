@@ -74,3 +74,6 @@ login_rate_limiter = LoginRateLimiter()
 # 닉네임 "중복 확인" API 호출 제한 (REQ-158). 로그인 제한과 따로 집계한다. 호출마다 한 번 기록한다.
 AVAILABILITY_MAX_CALLS = 30
 availability_rate_limiter = LoginRateLimiter(max_failures=AVAILABILITY_MAX_CALLS)
+
+# 비밀번호 변경의 현재 비밀번호 대입 방어 (REQ-164). 계정별로 1분 5회. 로그인 제한과 따로 집계한다.
+password_change_rate_limiter = LoginRateLimiter()

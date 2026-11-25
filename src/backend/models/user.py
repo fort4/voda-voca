@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
+from backend.core.admin import is_admin_nickname
 from backend.models.base import NOCASE, UTC_NOW_DEFAULT, Base, utcnow
 
 
@@ -40,3 +41,8 @@ class User(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=UTC_NOW_DEFAULT, onupdate=utcnow
     )
+
+    @property
+    def is_admin(self) -> bool:
+        """관리자 여부는 저장하지 않고 닉네임으로 판정한다 (고정 ID, REQ-159). 닉네임을 바꾸는 기능은 없다."""
+        return is_admin_nickname(self.nickname)

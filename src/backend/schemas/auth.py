@@ -1,4 +1,4 @@
-# 2026-11-26 - voda-voca - 인증 API 요청/응답 스키마: 닉네임·비밀번호(+확인) 가입과 로그인, 닉네임 중복 확인 (REQ-001, REQ-002, REQ-111, REQ-158)
+# 2026-11-26 - voda-voca - 인증 API 요청/응답 스키마: 닉네임·비밀번호(+확인) 가입과 로그인, 닉네임 중복 확인, 비밀번호 변경 (REQ-001, REQ-002, REQ-111, REQ-158, REQ-164)
 # 파일 위치: src/backend/schemas/auth.py
 
 from datetime import datetime
@@ -24,6 +24,13 @@ def check_nickname_rule(value: str) -> str:
     return stripped
 
 
+def check_password_bytes(value: str) -> str:
+    """bcrypt 입력 한계를 넘으면 ValueError (ADR-002). 글자 수 하한은 Field(min_length) 가 본다."""
+    if len(value.encode("utf-8")) > PASSWORD_MAX_BYTES:
+        raise ValueError(f"비밀번호는 UTF-8 기준 {PASSWORD_MAX_BYTES}바이트 이하여야 합니다.")
+    return value
+
+
 class SignupRequest(BaseModel):
     """가입 입력. 닉네임이 로그인 식별자이며 중복될 수 없다. 이메일은 받지 않는다 (REQ-158, 사용자 결정).
 
@@ -42,9 +49,7 @@ class SignupRequest(BaseModel):
     @field_validator("password")
     @classmethod
     def _limit_password_bytes(cls, value: str) -> str:
-        if len(value.encode("utf-8")) > PASSWORD_MAX_BYTES:
-            raise ValueError(f"비밀번호는 UTF-8 기준 {PASSWORD_MAX_BYTES}바이트 이하여야 합니다.")
-        return value
+        return check_password_bytes(value)
 
     @field_validator("password_confirm")
     @classmethod
@@ -62,6 +67,28 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=1)
 
 
+class PasswordChangeRequest(BaseModel):
+    """비밀번호 변경 입력 (REQ-164). 새 비밀번호 규칙은 가입(REQ-001)과 같고, 지금 비밀번호와 달라야 한다."""
+
+    current_password: str = Field(min_length=1)
+    new_password: str = Field(min_length=PASSWORD_MIN_CHARS)
+    new_password_confirm: str
+
+    @field_validator("new_password")
+    @classmethod
+    def _check_new_password(cls, value: str, info: ValidationInfo) -> str:
+        if value == info.data.get("current_password"):
+            raise ValueError("현재 비밀번호와 다른 비밀번호를 입력해 주세요.")
+        return check_password_bytes(value)
+
+    @field_validator("new_password_confirm")
+    @classmethod
+    def _confirm_matches(cls, value: str, info: ValidationInfo) -> str:
+        if "new_password" in info.data and value != info.data["new_password"]:
+            raise ValueError("비밀번호가 일치하지 않습니다.")
+        return value
+
+
 class AvailabilityOut(BaseModel):
     """중복 확인 응답. true 면 지금 가입에 쓸 수 있다."""
 
@@ -75,6 +102,7 @@ class UserOut(BaseModel):
 
     id: int
     nickname: str
+    is_admin: bool
     created_at: datetime
 
     @field_serializer("created_at")

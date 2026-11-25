@@ -1,10 +1,10 @@
 /*
- * 2026-11-05 - voda-voca - 라우트 표: 학습 중심 화면(홈, 탐색, 학습 세션, 복습함, 통계)과 인증 화면
+ * 2026-11-05 - voda-voca - 라우트 표: 학습 중심 화면(홈, 탐색, 학습 세션, 복습함, 통계), 마이페이지와 인증 화면
  * 파일 위치: src/frontend/js/routes.js
  */
 
 /** 라우트 표를 만들 때 반드시 필요한 화면 이름. */
-const REQUIRED_VIEWS = ["login", "signup", "home", "explore", "session", "review", "stats"];
+const REQUIRED_VIEWS = ["login", "signup", "home", "explore", "session", "review", "stats", "mypage"];
 
 /**
  * 개인 단어장·단어 편집·CSV 업로드 계열 라우트는 중앙 제공형 전환으로 폐기되어 여기에 없다.
@@ -24,5 +24,6 @@ export function buildRoutes(views) {
     { pattern: "/study/session", access: "user", view: views.session },
     { pattern: "/review", access: "user", view: views.review },
     { pattern: "/stats", access: "user", view: views.stats },
+    { pattern: "/mypage", access: "user", view: views.mypage },
   ];
 }

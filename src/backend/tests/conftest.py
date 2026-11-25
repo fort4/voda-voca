@@ -15,7 +15,7 @@ from alembic.config import Config
 from sqlalchemy import delete
 
 from backend.core.config import get_settings
-from backend.core.rate_limit import availability_rate_limiter, login_rate_limiter
+from backend.core.rate_limit import availability_rate_limiter, login_rate_limiter, password_change_rate_limiter
 from backend.db import session as db_session_module
 from backend.db.session import dispose_engine, get_session_factory
 from backend.models import SystemVocabulary, SystemWord, User
@@ -70,12 +70,13 @@ async def _dispose_db_engine() -> AsyncIterator[None]:
 
 @pytest.fixture(autouse=True)
 def _reset_login_rate_limiter() -> Iterator[None]:
-    """로그인 실패·중복 확인 호출 집계는 프로세스 전역이다. 테스트마다 비워 서로의 실패가 섞이지 않게 한다."""
-    login_rate_limiter.clear()
-    availability_rate_limiter.clear()
+    """로그인 실패·중복 확인·비밀번호 변경 집계는 프로세스 전역이다. 테스트마다 비워 서로의 실패가 섞이지 않게 한다."""
+    limiters = (login_rate_limiter, availability_rate_limiter, password_change_rate_limiter)
+    for limiter in limiters:
+        limiter.clear()
     yield
-    login_rate_limiter.clear()
-    availability_rate_limiter.clear()
+    for limiter in limiters:
+        limiter.clear()
 
 
 @pytest.fixture(autouse=True)
