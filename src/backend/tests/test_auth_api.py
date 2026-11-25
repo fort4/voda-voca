@@ -1,4 +1,4 @@
-# 2026-11-02 - voda-voca - 인증 API 통합 테스트 (실제 MySQL): 닉네임 가입, 로그인 쿠키, /me, 로그아웃, 회원 탈퇴 연쇄 삭제
+# 2026-11-26 - voda-voca - 인증 API 통합 테스트: 닉네임 가입(비밀번호 확인), 로그인 쿠키, /me, 로그아웃, 회원 탈퇴 연쇄 삭제 (REQ-158)
 # 파일 위치: src/backend/tests/test_auth_api.py
 
 from collections.abc import AsyncIterator
@@ -18,7 +18,14 @@ from backend.services import auth as auth_service
 from backend.models.base import utcnow
 from backend.models.quiz_session import QUIZ_SOURCE_BOOKMARKS
 from backend.services.session import new_token, token_digest
-from backend.tests.helpers import PASSWORD, auth_headers, signup_and_login, unique_nickname
+from backend.tests.helpers import (
+    PASSWORD,
+    auth_headers,
+    login_payload,
+    signup_and_login,
+    signup_payload,
+    unique_nickname,
+)
 
 TTL_SECONDS = 14 * 24 * 60 * 60
 
@@ -38,13 +45,13 @@ def cookie_flags(set_cookie: str) -> set[str]:
 
 async def signup(client: httpx.AsyncClient, nickname: str | None = None) -> str:
     nickname = nickname or unique_nickname()
-    response = await client.post("/api/auth/signup", json={"nickname": nickname, "password": PASSWORD})
+    response = await client.post("/api/auth/signup", json=signup_payload(nickname))
     assert response.status_code == 201, response.text
     return nickname
 
 
 async def login(client: httpx.AsyncClient, nickname: str) -> str:
-    response = await client.post("/api/auth/login", json={"nickname": nickname, "password": PASSWORD})
+    response = await client.post("/api/auth/login", json=login_payload(nickname))
     assert response.status_code == 200, response.text
     token = response.cookies[SESSION_COOKIE_NAME]
     # httpx 쿠키 jar 가 응답 쿠키를 자동으로 보내지 않도록 비운다. 테스트마다 쿠키를 명시한다.
@@ -63,20 +70,19 @@ async def count_rows(model, *where) -> int:
         return (await session.execute(select(func.count()).select_from(model).where(*where))).scalar_one()
 
 
-# --- 가입 (REQ-001, 회원 체계 단순화) ---
+# --- 가입 (REQ-001, REQ-158) ---
 
 
 @pytest.mark.asyncio
-async def test_signup_takes_only_nickname_and_password(client: httpx.AsyncClient) -> None:
+async def test_signup_takes_nickname_password_and_confirmation_only(client: httpx.AsyncClient) -> None:
     nickname = unique_nickname()
-    response = await client.post(
-        "/api/auth/signup", json={"nickname": f"  {nickname}  ", "password": PASSWORD}
-    )
+    response = await client.post("/api/auth/signup", json=signup_payload(f"  {nickname}  "))
     assert response.status_code == 201
     body = response.json()
-    assert set(body) == {"id", "nickname", "created_at"}, "이메일 필드가 응답에 없어야 한다"
+    assert set(body) == {"id", "nickname", "created_at"}, "이메일 필드가 없어야 한다 (사용자 결정: 닉네임·비밀번호만)"
     assert body["nickname"] == nickname
     assert body["created_at"].endswith("Z")
+    assert "password" not in body and "password_hash" not in body
 
     async with get_session_factory()() as session:
         user = (await session.execute(select(User).where(User.nickname == nickname))).scalar_one()
@@ -85,38 +91,62 @@ async def test_signup_takes_only_nickname_and_password(client: httpx.AsyncClient
 
 
 @pytest.mark.asyncio
-async def test_signup_ignores_legacy_email_field(client: httpx.AsyncClient) -> None:
-    """이메일은 더 이상 받지 않는다. 보내도 무시되고 계정은 닉네임으로만 식별된다."""
-    nickname = unique_nickname()
+async def test_signup_ignores_an_email_field_if_sent(client: httpx.AsyncClient) -> None:
+    """이메일은 받지 않는다. 보내도 무시되고 응답·DB 어디에도 남지 않는다."""
     response = await client.post(
-        "/api/auth/signup",
-        json={"nickname": nickname, "password": PASSWORD, "email": "legacy@example.com"},
+        "/api/auth/signup", json=signup_payload(unique_nickname()) | {"email": "legacy@example.com"}
     )
     assert response.status_code == 201
     assert "email" not in response.json()
 
 
 @pytest.mark.asyncio
+async def test_users_table_has_no_email_column() -> None:
+    from sqlalchemy import text
+
+    async with get_session_factory()() as session:
+        columns = {row[1] for row in (await session.execute(text("PRAGMA table_info(users)"))).all()}
+    assert "email" not in columns
+    assert {"id", "nickname", "password_hash"} <= columns
+
+
+@pytest.mark.asyncio
+async def test_signup_with_mismatched_confirmation_is_422_and_creates_nothing(client: httpx.AsyncClient) -> None:
+    nickname = unique_nickname()
+    payload = signup_payload(nickname) | {"password_confirm": PASSWORD + "x"}
+    response = await client.post("/api/auth/signup", json=payload)
+    assert response.status_code == 422
+    assert [e["loc"][-1] for e in response.json()["detail"]] == ["password_confirm"]
+    assert await count_rows(User, User.nickname == nickname) == 0
+
+
+@pytest.mark.asyncio
+async def test_signup_without_confirmation_is_422(client: httpx.AsyncClient) -> None:
+    payload = signup_payload(unique_nickname())
+    del payload["password_confirm"]
+    response = await client.post("/api/auth/signup", json=payload)
+    assert response.status_code == 422
+    assert [e["loc"][-1] for e in response.json()["detail"]] == ["password_confirm"]
+
+
+@pytest.mark.asyncio
 async def test_duplicate_nickname_is_409_regardless_of_case(client: httpx.AsyncClient) -> None:
     nickname = await signup(client, unique_nickname())
-    response = await client.post(
-        "/api/auth/signup", json={"nickname": nickname.upper(), "password": PASSWORD}
-    )
+    response = await client.post("/api/auth/signup", json=signup_payload(nickname.upper()))
     assert response.status_code == 409
     assert response.json()["detail"] == "이미 사용 중인 닉네임입니다."
+    assert response.headers["X-Error-Code"] == "NICKNAME_TAKEN"
 
 
 @pytest.mark.asyncio
 async def test_signup_rejects_short_password_with_422(client: httpx.AsyncClient) -> None:
-    response = await client.post(
-        "/api/auth/signup", json={"nickname": unique_nickname(), "password": "1234567"}
-    )
+    response = await client.post("/api/auth/signup", json=signup_payload(unique_nickname(), password="1234567"))
     assert response.status_code == 422
 
 
 @pytest.mark.asyncio
 async def test_signup_rejects_one_character_nickname_with_422(client: httpx.AsyncClient) -> None:
-    response = await client.post("/api/auth/signup", json={"nickname": "가", "password": PASSWORD})
+    response = await client.post("/api/auth/signup", json=signup_payload("가"))
     assert response.status_code == 422
 
 
@@ -126,7 +156,7 @@ async def test_signup_rejects_one_character_nickname_with_422(client: httpx.Asyn
 @pytest.mark.asyncio
 async def test_login_sets_httponly_samesite_cookie(client: httpx.AsyncClient) -> None:
     nickname = await signup(client)
-    response = await client.post("/api/auth/login", json={"nickname": nickname, "password": PASSWORD})
+    response = await client.post("/api/auth/login", json=login_payload(nickname))
     assert response.status_code == 200
     set_cookie = response.headers["set-cookie"]
     assert set_cookie.startswith(f"{SESSION_COOKIE_NAME}=")
@@ -154,9 +184,7 @@ async def test_login_stores_only_token_digest(client: httpx.AsyncClient) -> None
 @pytest.mark.asyncio
 async def test_login_nickname_is_case_insensitive(client: httpx.AsyncClient) -> None:
     nickname = await signup(client)
-    response = await client.post(
-        "/api/auth/login", json={"nickname": f"  {nickname.upper()} ", "password": PASSWORD}
-    )
+    response = await client.post("/api/auth/login", json=login_payload(f"  {nickname.upper()} "))
     assert response.status_code == 200
 
 
@@ -169,13 +197,11 @@ async def test_each_login_issues_a_new_token(client: httpx.AsyncClient) -> None:
 @pytest.mark.asyncio
 async def test_wrong_password_and_unknown_nickname_return_same_401(client: httpx.AsyncClient) -> None:
     nickname = await signup(client)
-    wrong_pw = await client.post("/api/auth/login", json={"nickname": nickname, "password": "wrong-pass-9"})
-    unknown = await client.post(
-        "/api/auth/login", json={"nickname": unique_nickname(), "password": PASSWORD}
-    )
+    wrong_pw = await client.post("/api/auth/login", json=login_payload(nickname, password="wrong-pass-9"))
+    unknown = await client.post("/api/auth/login", json=login_payload(unique_nickname()))
     assert wrong_pw.status_code == unknown.status_code == 401
     assert wrong_pw.json() == unknown.json()
-    assert wrong_pw.json()["detail"] == "닉네임 또는 비밀번호가 올바르지 않습니다.", "이메일 문구가 남아 있으면 안 된다"
+    assert wrong_pw.json()["detail"] == "닉네임 또는 비밀번호가 올바르지 않습니다."
     assert SESSION_COOKIE_NAME not in wrong_pw.cookies
     assert SESSION_COOKIE_NAME not in unknown.cookies
 
@@ -193,7 +219,7 @@ async def test_cookie_secure_flag_follows_cookie_secure_setting(
     nickname = await signup(client)
     monkeypatch.setenv("COOKIE_SECURE", "true")
     get_settings.cache_clear()
-    response = await client.post("/api/auth/login", json={"nickname": nickname, "password": PASSWORD})
+    response = await client.post("/api/auth/login", json=login_payload(nickname))
     assert "secure" in cookie_flags(response.headers["set-cookie"])
 
 
@@ -213,6 +239,7 @@ async def test_me_with_valid_cookie_returns_current_user(client: httpx.AsyncClie
     response = await client.get("/api/auth/me", headers=auth_headers(token))
     assert response.status_code == 200
     assert response.json()["nickname"] == nickname
+    assert "email" not in response.json()
 
 
 @pytest.mark.asyncio
@@ -393,7 +420,7 @@ async def test_duplicate_nickname_signup_changes_nothing(client: httpx.AsyncClie
     """닉네임 중복으로 실패한 가입은 계정을 하나만 남기고 기존 계정의 활성 단어장도 바꾸지 않는다."""
     nickname, _ = await signup_and_login(client)
     user_id = await user_id_of(nickname)
-    response = await client.post("/api/auth/signup", json={"nickname": nickname, "password": PASSWORD})
+    response = await client.post("/api/auth/signup", json=signup_payload(nickname))
     assert response.status_code == 409
     assert await count_rows(User, User.nickname == nickname) == 1
     assert await active_vocabulary_slug(user_id) == "beginner-200"

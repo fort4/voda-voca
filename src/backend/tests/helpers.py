@@ -1,4 +1,4 @@
-# 2026-11-05 - voda-voca - 통합 테스트 공통 헬퍼: 닉네임 가입/로그인, 쿠키 헤더, 표준 단어장·단어 시드, 사용자 id 조회
+# 2026-11-05 - voda-voca - 통합 테스트 공통 헬퍼: 닉네임 가입/로그인(비밀번호 확인 포함), 쿠키 헤더, 표준 단어장·단어 시드, 사용자 id 조회
 # 파일 위치: src/backend/tests/helpers.py
 
 import uuid
@@ -21,6 +21,16 @@ def unique_nickname() -> str:
     return f"{TEST_NICKNAME_PREFIX}{uuid.uuid4().hex[:8]}"
 
 
+def signup_payload(nickname: str, password: str = PASSWORD) -> dict[str, str]:
+    """가입 요청 본문 (REQ-158): 닉네임, 비밀번호, 비밀번호 확인."""
+    return {"nickname": nickname, "password": password, "password_confirm": password}
+
+
+def login_payload(nickname: str, password: str = PASSWORD) -> dict[str, str]:
+    """로그인 요청 본문: 닉네임과 비밀번호."""
+    return {"nickname": nickname, "password": password}
+
+
 def auth_headers(token: str) -> dict[str, str]:
     """쿠키 헤더를 직접 실어 보낸다. httpx 클라이언트의 쿠키 jar 에 의존하지 않기 위함이다."""
     return {"Cookie": f"{SESSION_COOKIE_NAME}={token}"}
@@ -29,9 +39,9 @@ def auth_headers(token: str) -> dict[str, str]:
 async def signup_and_login(client: httpx.AsyncClient, nickname: str | None = None) -> tuple[str, str]:
     """계정을 만들고 로그인해 (닉네임, 세션 토큰)을 반환한다."""
     nickname = nickname or unique_nickname()
-    signup = await client.post("/api/auth/signup", json={"nickname": nickname, "password": PASSWORD})
+    signup = await client.post("/api/auth/signup", json=signup_payload(nickname))
     assert signup.status_code == 201, signup.text
-    login = await client.post("/api/auth/login", json={"nickname": nickname, "password": PASSWORD})
+    login = await client.post("/api/auth/login", json=login_payload(nickname))
     assert login.status_code == 200, login.text
     token = login.cookies[SESSION_COOKIE_NAME]
     client.cookies.clear()

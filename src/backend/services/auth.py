@@ -1,4 +1,4 @@
-# 2026-11-05 - voda-voca - 회원가입(기본 학습 단어장 지정), 닉네임·비밀번호 확인, 회원 탈퇴 로직 (REQ-001~003, REQ-105)
+# 2026-11-26 - voda-voca - 회원가입(기본 학습 단어장 지정), 닉네임 로그인 인증, 닉네임 중복 확인, 회원 탈퇴 로직 (REQ-001~003, REQ-105, REQ-158)
 # 파일 위치: src/backend/services/auth.py
 
 from sqlalchemy import delete, select
@@ -24,15 +24,21 @@ class InvalidCredentialsError(Exception):
 def normalize_nickname(nickname: str) -> str:
     """로그인 식별용 정규화. 앞뒤 공백만 제거한다.
 
-    대소문자 구분은 DB 콜레이션(utf8mb4_0900_ai_ci)이 맡는다. 같은 닉네임은 대소문자와 무관하게 하나만 존재한다.
+    대소문자 구분은 DB 콜레이션(NOCASE)이 맡는다. 같은 닉네임은 대소문자와 무관하게 하나만 존재한다.
     """
     return nickname.strip()
+
+
+async def is_nickname_available(db: AsyncSession, nickname: str) -> bool:
+    """가입에 쓸 수 있는 닉네임인지 본다 (대소문자·앞뒤 공백 무시)."""
+    found = await db.execute(select(User.id).where(User.nickname == normalize_nickname(nickname)))
+    return found.scalar_one_or_none() is None
 
 
 async def signup(db: AsyncSession, password: str, nickname: str) -> User:
     """계정을 만들고 기본 표준 단어장(초급 200제)을 학습 단어장으로 지정한다. 한 트랜잭션이다.
 
-    - 닉네임 중복은 UNIQUE 제약 위반으로 판정한다 (REQ-105). 실패하면 계정이 남지 않는다.
+    - 닉네임 중복은 UNIQUE 제약 위반으로 판정한다 (REQ-105). 사전 조회가 아니라 제약으로 막아야 동시 가입에도 안전하다. 실패하면 계정이 남지 않는다.
     - 단어장·단어를 사용자별로 복사하지 않는다. 표준 단어장은 모든 사용자가 공유하는 읽기 전용 콘텐츠다.
     - 기본 단어장이 아직 없으면(시드 전) 활성 단어장은 비워 두고 가입은 성공시킨다.
     """

@@ -1,4 +1,4 @@
-# 2026-11-02 - voda-voca - 로그인 무차별 대입 방어 통합 테스트: 429·Retry-After, IP/계정 키, 성공 시 리셋 (REQ-121)
+# 2026-11-26 - voda-voca - 로그인 무차별 대입 방어 통합 테스트: 429·Retry-After, IP/계정(닉네임) 키, 성공 시 리셋 (REQ-121, REQ-158)
 # 파일 위치: src/backend/tests/test_login_rate_limit_api.py
 
 from collections.abc import AsyncIterator
@@ -9,7 +9,7 @@ import pytest_asyncio
 
 from backend.core.rate_limit import login_rate_limiter
 from backend.main import app
-from backend.tests.helpers import PASSWORD, signup_and_login, unique_nickname
+from backend.tests.helpers import PASSWORD, login_payload, signup_and_login, signup_payload, unique_nickname
 
 WRONG_PASSWORD = "wrong-pass-9"
 
@@ -39,7 +39,7 @@ async def client_c() -> AsyncIterator[httpx.AsyncClient]:
 
 
 async def login(client: httpx.AsyncClient, nickname: str, password: str) -> httpx.Response:
-    return await client.post("/api/auth/login", json={"nickname": nickname, "password": password})
+    return await client.post("/api/auth/login", json=login_payload(nickname, password))
 
 
 async def fail_n(client: httpx.AsyncClient, nickname: str, n: int) -> list[int]:
@@ -151,9 +151,22 @@ async def test_other_endpoints_are_not_rate_limited(client_a: httpx.AsyncClient)
 
     other = await client_a.post(
         "/api/auth/signup",
-        json={"nickname": unique_nickname(), "password": PASSWORD},
+        json=signup_payload(unique_nickname()),
     )
     assert other.status_code == 201
     me = await client_a.get("/api/auth/me", headers={"Cookie": f"voda_session={token}"})
     assert me.status_code == 200
 
+
+
+@pytest.mark.asyncio
+async def test_account_key_is_the_nickname_ignoring_case_and_spaces(
+    client_a: httpx.AsyncClient, client_b: httpx.AsyncClient
+) -> None:
+    """대문자·공백을 섞어 보내도 같은 계정 키로 집계된다."""
+    nickname, _ = await signup_and_login(client_a)
+    for spelling in [nickname.upper(), f" {nickname} ", nickname, nickname.title(), nickname]:
+        response = await client_a.post("/api/auth/login", json={"nickname": spelling, "password": WRONG_PASSWORD})
+        assert response.status_code == 401
+
+    assert (await login(client_b, nickname, PASSWORD)).status_code == 429

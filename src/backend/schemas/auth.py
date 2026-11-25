@@ -1,9 +1,9 @@
-# 2026-11-02 - voda-voca - 인증 API 요청/응답 스키마: 닉네임·비밀번호 기반 가입과 로그인 (REQ-001, REQ-002, REQ-111)
+# 2026-11-26 - voda-voca - 인증 API 요청/응답 스키마: 닉네임·비밀번호(+확인) 가입과 로그인, 닉네임 중복 확인 (REQ-001, REQ-002, REQ-111, REQ-158)
 # 파일 위치: src/backend/schemas/auth.py
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_serializer, field_validator
 
 from backend.schemas.common import to_utc_iso
 
@@ -14,21 +14,30 @@ NICKNAME_MIN_CHARS = 2
 NICKNAME_MAX_CHARS = 30
 
 
+def check_nickname_rule(value: str) -> str:
+    """공백을 지운 닉네임을 돌려준다. 길이 규칙이 틀리면 ValueError."""
+    stripped = value.strip()
+    if not stripped:
+        raise ValueError("닉네임은 공백만으로 만들 수 없습니다.")
+    if not (NICKNAME_MIN_CHARS <= len(stripped) <= NICKNAME_MAX_CHARS):
+        raise ValueError(f"닉네임은 {NICKNAME_MIN_CHARS}자 이상 {NICKNAME_MAX_CHARS}자 이하여야 합니다.")
+    return stripped
+
+
 class SignupRequest(BaseModel):
-    """가입 입력. 이메일은 받지 않는다. 닉네임이 로그인 식별자이며 중복될 수 없다."""
+    """가입 입력. 닉네임이 로그인 식별자이며 중복될 수 없다. 이메일은 받지 않는다 (REQ-158, 사용자 결정).
+
+    비밀번호 복잡도 정규식은 두지 않는다 (사용자 결정). 길이(8자 이상, 72바이트 이하)만 본다.
+    """
 
     nickname: str = Field(description="닉네임 (2~30자, 공백 제거 후 기준, 중복 불가)")
     password: str = Field(min_length=PASSWORD_MIN_CHARS)
+    password_confirm: str = Field(description="비밀번호 확인. password 와 같아야 한다")
 
     @field_validator("nickname")
     @classmethod
     def _check_nickname(cls, value: str) -> str:
-        stripped = value.strip()
-        if not stripped:
-            raise ValueError("닉네임은 공백만으로 만들 수 없습니다.")
-        if not (NICKNAME_MIN_CHARS <= len(stripped) <= NICKNAME_MAX_CHARS):
-            raise ValueError(f"닉네임은 {NICKNAME_MIN_CHARS}자 이상 {NICKNAME_MAX_CHARS}자 이하여야 합니다.")
-        return stripped
+        return check_nickname_rule(value)
 
     @field_validator("password")
     @classmethod
@@ -37,12 +46,26 @@ class SignupRequest(BaseModel):
             raise ValueError(f"비밀번호는 UTF-8 기준 {PASSWORD_MAX_BYTES}바이트 이하여야 합니다.")
         return value
 
+    @field_validator("password_confirm")
+    @classmethod
+    def _confirm_matches(cls, value: str, info: ValidationInfo) -> str:
+        # 오류가 password_confirm 필드에 붙어야 화면이 확인란 아래에 메시지를 보인다. password 가 이미 틀렸으면 비교하지 않는다.
+        if "password" in info.data and value != info.data["password"]:
+            raise ValueError("비밀번호가 일치하지 않습니다.")
+        return value
+
 
 class LoginRequest(BaseModel):
     """로그인 입력은 형식 검증을 느슨하게 둔다. 없는 닉네임도 422 가 아니라 일반 401 로 응답한다."""
 
     nickname: str = Field(min_length=1, max_length=200)
     password: str = Field(min_length=1)
+
+
+class AvailabilityOut(BaseModel):
+    """중복 확인 응답. true 면 지금 가입에 쓸 수 있다."""
+
+    available: bool
 
 
 class UserOut(BaseModel):
