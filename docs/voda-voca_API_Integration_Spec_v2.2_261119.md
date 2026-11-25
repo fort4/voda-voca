@@ -87,7 +87,7 @@
 | 8 | PUT | `/api/bookmarks/{word_id}` | REQ-017 | 필수 | 204 | 404, 401 |
 | 9 | DELETE | `/api/bookmarks/{word_id}` | REQ-017 | 필수 | 204 | 401 |
 | 10 | GET | `/api/bookmarks` | REQ-018 | 필수 | 200 | 422, 401 |
-| 11 | POST | `/api/study/sessions` | REQ-012, 014, 019, 129 | 필수 | 201 | 400, 409, 422, 401 |
+| 11 | POST | `/api/study/sessions` | REQ-012, 014, 019, 129, 157 | 필수 | 201 | 400, 409, 422, 401 |
 | 12 | POST | `/api/study/sessions/{session_id}/answer` | REQ-015, 016, 124 | 필수 | 200 | 400, 404, 409, 422, 401 |
 | 13 | GET | `/api/study/stats` | REQ-131~133 | 필수 | 200 | 401 |
 | 14 | GET | `/api/study/wrong-words` | REQ-129 | 필수 | 200 | 422, 401 |
@@ -193,6 +193,8 @@
   | `count` | 1~30 | (생략) | 요청 문항 수. **생략하면 내 설정**(`mode` 가 quiz 면 `quiz_count`, flashcard 면 `flashcard_count`, 기본 10)을 씁니다. 가용 단어가 적으면 줄어듭니다 |
   | `include_memorized` | boolean | false | true 면 숙련 단어도 출제 (`source=all` 에만 적용) |
   | `source` | `"all"` \| `"bookmarks"` \| `"wrong"` \| `"due"` | `all` | 아래 표 |
+  | `direction` | `"en_to_ko"` \| `"ko_to_en"` \| `"mixed"` | `en_to_ko` | **(v2.2, REQ-157)** 출제 방향(퀴즈만). `mixed` 는 문항마다 무작위. 플래시카드는 무시 |
+  | `format` | `"choice"` \| `"ox"` | `choice` | **(v2.2, REQ-157)** 문제 형식(퀴즈만). 4지선다 / 제시한 보기가 맞는지 O·X. 플래시카드는 무시 |
 - `source` 별 동작:
   | source | 출제 풀 | 활성 단어장 | 비고 |
   | :--- | :--- | :--- | :--- |
@@ -215,6 +217,7 @@
     }]
   }
   ```
+- **방향·형식 필드 (`SessionItemOut`, v2.2, REQ-157)**: `direction`(`en_to_ko`\|`ko_to_en`, 이 문항의 실제 방향. `mixed` 요청도 문항마다 하나), `format`(`choice`\|`ox`), `prompt`(문제로 보일 문구: 영→한은 단어, 한→영은 뜻), `proposed`(OX 가 맞는지 묻는 보기, 4지선다는 null). **한→영 문항은 `term`·`context`(예문)가 null** 입니다(정답 단어가 들어 있으므로). OX 는 `options` = `["O","X"]` 이고 답은 `choice_index` 0(O)·1(X)입니다. 선지 번호가 `options` 길이 이상이면 400(`QUIZ_ANSWER_INVALID`). 채점 응답(#12)의 `term`·`meaning` 은 방향과 상관없이 정답 단어와 뜻이며 `correct_index` 는 OX 에서도 0 또는 1 입니다. 추가 필드이고 기본값이 기존 동작(영→한 4지선다)이라 하위 호환입니다. 단, `term` 이 null 일 수 있게 되었으므로 클라이언트는 `prompt` 를 쓰세요.
 - **정답 비노출 규격 (퀴즈)**: 출제 응답 문항에는 `question_id`, `word_id`, `term`, `context`(예문, 없으면 null), `options` 만 있습니다. **`correct_index` 필드는 출제 응답 스키마에 없고, `meaning`, `example_meaning` 은 퀴즈에서 항상 null 입니다.** 정답과 해설은 `#12` 채점 응답에서만 공개됩니다.
 - **플래시카드**: 정답 개념이 없으므로 `options` = null 이고, 뒷면 정보 `meaning`, `example_meaning` 과 앞면에 보일 `phonetic` 을 문항에 함께 싣습니다 (`context` = 예문).
 - **`phonetic` (`SessionItemOut`, v2.2, REQ-144)**: 문자열 또는 null. **퀴즈 세션의 출제 응답에서는 단어에 발음기호가 있어도 항상 null** 입니다 (채점 전 정보 최소화. 서버가 값을 내려보내지 않아 클라이언트 실수로 새지 않게 합니다). 플래시카드는 뒷면용으로 값을 싣습니다. 진행 중인 옛 세션(스냅샷에 키 없음)은 null 입니다. 추가 필드이므로 하위 호환입니다. 이 비노출 규칙은 **퀴즈 출제 응답에만** 적용됩니다. 단어 목록·북마크 목록·오답 목록 같은 조회 API 는 값을 그대로 내려 보냅니다.
@@ -225,7 +228,7 @@
   - 400: 퀴즈인데 단어가 4개 미만 (`"퀴즈는 단어가 4개 이상 있어야 시작할 수 있습니다."` 등), 오답 보기를 만들 수 없음
   - 409 `X-Error-Code: NO_WORDS_TO_STUDY`: 출제할 단어가 없음 (`all` 이면 `"학습할 단어가 없습니다. 숙련한 단어를 포함해 볼까요?"`, 복습이면 `"복습할 단어가 없습니다."`)
   - 409 `X-Error-Code: NO_VOCABULARY`: 학습할 단어장이 없음
-  - 422: 필드 범위·값 위반
+  - 422: 필드 범위·값 위반 (`direction`·`format` 이 허용 값이 아닌 경우 포함)
   - 401
 
 **#12 POST `/api/study/sessions/{session_id}/answer`** — 문항별 즉시 채점
@@ -488,3 +491,4 @@ POST /api/study/sessions  ─►  items[0..N-1]
 | v2.1 | 2026-11-05 | 중앙 제공형 단어장 전환 반영. `/api/wordbooks/*`, `/api/words/*`, `/api/study/flashcards`, `/api/study/quiz/*` 제거. `GET /api/vocabularies`, `GET /api/vocabularies/{id}/words`, `POST /api/users/me/active-vocabulary`, `POST /api/study/sessions`(source: all/bookmarks/wrong), `POST /api/study/sessions/{id}/answer`, `GET /api/study/wrong-words`, `GET /api/study/stats` 추가. 출제 응답 정답 비노출·채점 응답 공개 규격, 멱등 재전송, 숙련도 전이, `X-Error-Code` 표 명시. 요구사항 명세 v2.1, 데이터 설계 v2.1 과 정합 | Claude |
 | v2.0 | 2026-11-02 | `example_meaning`, 학습 로그 `wordbook_id` 등 (`docs/old/voda-voca_API_Integration_Spec_v2.0_261102.md`) | Claude |
 | v1.2 이하 | 2026-11-02 | `docs/old/` 보관본 참조 | Claude |
+| v2.2 개정 | 2026-11-25 | `POST /api/study/sessions`(#11)에 `direction`·`format` 요청 필드와 `SessionItemOut` 의 `direction`·`format`·`prompt`·`proposed` 추가, 한→영 문항의 `term`·`context` null(REQ-157). 기본값이 기존 동작이라 하위 호환 | Claude |

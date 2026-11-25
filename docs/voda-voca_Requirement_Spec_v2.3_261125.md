@@ -4,7 +4,7 @@
 | :--- | :--- |
 | 프로젝트 | voda-voca (보다보카, 웹 기반 단어장 서비스) |
 | 문서 종류 | 요구사항 명세서 (Requirement Spec, `개발방법론.md` §2.2) |
-| 버전 / 상태 | v2.3 / **검토 대기 (Draft)** — v2.2 에 ① **DB 를 MySQL 에서 SQLite 로 전환**(과제 서버 규칙, ADR-010)하고 ② **기말과제 요구사항(VOCA-FR/NFR/SUB) 매핑(§11)**을 더했다. 기능 요구사항(REQ-0xx/14x/150)의 의미는 바뀌지 않았다. 같은 날 **REQ-154~156**(자주 틀리는 단어 상위 N, 시험 성적 추이, 비밀번호 보기/숨기기)을 신설했다 |
+| 버전 / 상태 | v2.3 / **검토 대기 (Draft)** — v2.2 에 ① **DB 를 MySQL 에서 SQLite 로 전환**(과제 서버 규칙, ADR-010)하고 ② **기말과제 요구사항(VOCA-FR/NFR/SUB) 매핑(§11)**을 더했다. 기능 요구사항(REQ-0xx/14x/150)의 의미는 바뀌지 않았다. 같은 날 **REQ-154~157**(자주 틀리는 단어 상위 N, 시험 성적 추이, 비밀번호 보기/숨기기, 출제 방향·형식)을 신설했다 |
 | 작성일 | 2026-11-25 (v2.2: 2026-11-19, v2.1: 2026-11-05, v2.0: 2026-11-02) |
 | 산출물 경로 | `docs/voda-voca_Requirement_Spec_v2.3_261125.md` (이전 버전: `docs/old/voda-voca_Requirement_Spec_v2.2_261119.md` 외 보관) |
 
@@ -129,6 +129,7 @@
 | REQ-150 | 간격 반복(SRS)과 오늘 복습 | S | (v2.2, 이슈 #25) 시스템은 사용자×단어별로 **복습 단계**(0~5)와 **다음 복습 시각**(`next_review_at`)을 기록한다. 답을 기록할 때(REQ-016 과 같은 트랜잭션) 정답이면 단계 +1(최대 5), 오답이면 −2(최소 0)로 바꾸고 다음 복습 시각을 **간격일 뒤 한국 날짜의 0시**(간격 0·1·3·7·14·30일)로 정한다(그 날 하루 종일 "오늘 복습"에 뜬다). 복습 기한이 되기 전에 맞힌 정답은 단계와 복습 시각을 바꾸지 않고(정답 수·연속 정답·숙련 판정은 평소대로 쌓는다), 오답은 기한과 무관하게 단계를 내린다. 세션 출제(`source=all`)의 복습 슬롯은 기한이 지난 단어를 오래 밀린 순으로 먼저 쓰고, 숙련 단어도 기한이 되면 복습 풀로 돌아온다(복습 시각이 없는 옛 숙련 단어는 되살리지 않는다). 기한 전 단어는 풀이 모자랄 때만 채운다. `source=due` 세션(`POST /api/study/sessions`)은 기한이 도래한 단어만으로 만들며 활성 단어장을 바꾸지 않는다. 대상 단어가 없으면 409(`X-Error-Code: NO_WORDS_TO_STUDY`), 퀴즈에서 단어가 4개 미만이면 기존 규칙대로 거부한다. `GET /api/study/stats` 는 `due_review_count`(오늘 복습할 단어 수)를 돌려준다. 복습함에 "오늘 복습" 카드(개수 문구와 시작 버튼, 0개면 "모두 마쳤어요"와 비활성 버튼)를 둔다. `is_memorized` 는 단계로 흡수하지 않고 기존 규칙(연속 정답 3회)을 유지한다 (ADR-006). |
 | REQ-154 | 자주 틀리는 단어 상위 N | S | (2026-11-25 신설, VOCA-FR-033·034) 통계 화면이 누적 오답 횟수가 많은 단어를 보여 준다. ① **API**: `GET /api/study/frequent-wrong?limit=` (기본 10, 1~50 밖은 422, 비로그인 401). 항목은 `word_id`, `vocabulary_id`, `vocabulary_title`, `term`, `meaning`, `wrong_count`, `answered_count`, `last_wrong_at`. ② **집계**: 본인 `study_logs` 의 **오답 행 수**(퀴즈·플래시카드 모두)이며 이력으로 읽는 시점에 계산한다. 한 번 맞혀도 줄지 않는다는 점이 "마지막 결과가 오답인 단어"만 보는 오답 복습(REQ-129)과 다르다. 횟수가 같으면 최근에 틀린 단어, 그다음 단어 ID 순이고 틀린 적 없는 단어는 넣지 않는다. ③ **화면**: 통계 화면의 "자주 틀리는 단어" 섹션(상위 10개)에 순위·표제어·오답 횟수·뜻·"N번 중 M번 틀림"과 최다 오답 대비 막대를 보인다. 목록이 비면 섹션을 그리지 않고, 불러오기에 실패해도 나머지 통계는 보인다. |
 | REQ-155 | 시험 성적 추이 | S | (2026-11-25 신설, VOCA-FR-032·034) 통계 화면이 퀴즈 정답률의 변화를 회차별·날짜별로 보여 준다. ① **API**: `GET /api/study/score-trend?sessions=&days=` (`sessions` 기본 20·1~100, `days` 기본 30·1~90, 범위 밖은 422, 비로그인 401). 응답은 `sessions[]`(`round`, `session_id`, `taken_at`, `total`, `correct`, `accuracy`)와 `daily[]`(`date`, `answered`, `correct`, `accuracy`). ② **회차별**: `quiz_sessions` 중 `mode=quiz` 이고 **답한 문항 수 ≥ 문항 수**인 세션만 센다(중간에 그만둔 시험과 플래시카드는 제외). 저장된 정답 번호와 고른 번호를 비교해 채점하고, 회차 번호는 전체 이력의 오래된 순서이며 `sessions` 는 그중 최근 N회만 내려도 번호를 유지한다. ③ **날짜별**: `study_logs`(퀴즈 모드)를 **한국 날짜**(UTC+9)로 묶으며 최근 `days`일 중 기록이 있는 날만 오래된 날부터 내려 준다. ④ **화면**: 통계 화면의 "시험 성적 추이" 섹션에 회차별(직전 회차 대비 변화 "+25%p"·"변화 없음" 포함)과 날짜별 정답률을 막대로 보인다. 둘 다 비면 섹션을 그리지 않는다. |
+| REQ-157 | 출제 방향·형식 | S | (2026-11-25 신설, VOCA-FR-023·024·026) 퀴즈의 출제 방향과 문제 형식을 고를 수 있다. ① **방향**(`direction`): `en_to_ko`(단어를 보고 뜻, 기본) \| `ko_to_en`(뜻을 보고 단어) \| `mixed`(문항마다 무작위). **형식**(`format`): `choice`(4지선다, 기본) \| `ox`(제시한 보기가 맞는지 O/X, 참을 낼 확률 50%). 단답형은 채점이 모호해 제외했다(사용자 결정). 두 값은 퀴즈 시작 요청(`POST /api/study/sessions`)의 선택 필드이며 플래시카드는 무시한다. 모든 `source`(활성 단어장·북마크·오답·오늘 복습)에 적용한다. ② **정답 비노출**: 한→영 문항은 정답인 영단어가 `term` 이고 예문에도 들어 있으므로 출제 응답의 `term`·`context` 를 **null** 로 하고 문제 문구는 `prompt`(뜻)로만 준다. OX 는 `options` 가 `["O","X"]`, 제시 보기는 `proposed`, 답은 `choice_index` 0(O)·1(X)이며 범위를 벗어나면 400(`QUIZ_ANSWER_INVALID`). 채점 응답의 `term`·`meaning` 은 방향과 무관하게 정답 단어와 뜻이다. ③ **저장**: 세션에 요청 값(`quiz_sessions.direction`·`format`)을, 문항 스냅샷에 문항별 실제 방향·형식·`prompt`·`proposed`·`meaning` 을 둔다. 이력 `study_logs.direction`·`format` 에는 `mixed` 가 아니라 **그 문항의 실제 방향**을 적는다(문항 단위 저장, FR-026). 옛 세션·옛 행은 영→한·4지선다로 읽는다(마이그레이션 0002 의 기본값). ④ **화면**: 홈의 퀴즈 모드에 "출제 방향"(영→한·한→영·섞기)과 "문제 형식"(4지선다·OX) 세그먼트를 두고 마지막 선택을 `localStorage`(`voda.study.quiz-options`)에 기억한다. 세션 화면은 문제 카드의 안내 문구와 OX 두 버튼(`1`·`2` 키와 `O`·`X` 키)을 그린다. 다시 시작은 직전 방향·형식을 잇는다. 한→영 OX 는 한글 문제를 작게(20px), 영문 제시 보기를 크게(32px) 그려 글자 크기를 맞춘다. |
 
 ### 4.5 북마크 (Bookmark)
 
@@ -306,6 +307,7 @@ v1.0의 질의 사항 Q1~Q8에 대한 결정이다. 사용자가 명시적으로
 | REQ-154 | 자주 틀리는 단어 상위 N | S | API 규격서 §3.5 #18, UI/UX 설계서 §3.5 | `routers/study.py`, `services/stats.py`(`list_frequent_wrong`), `schemas/study.py`, `core/analytics-model.js`, `views/stats-view.js` | TC-154 (`test_study_analytics_api.py`, `tests/analytics-model.test.js`) | 구현 완료 |
 | REQ-155 | 시험 성적 추이 | S | API 규격서 §3.5 #19, UI/UX 설계서 §3.5 | `routers/study.py`, `services/stats.py`(`get_score_trend`), `schemas/study.py`, `core/analytics-model.js`, `views/stats-view.js` | TC-155 (`test_study_analytics_api.py`, `tests/analytics-model.test.js`) | 구현 완료 |
 | REQ-156 | 비밀번호 보기/숨기기 | S | UI/UX 설계서 §3.1 | `core/password-toggle.js`, `core/form.js`(`passwordField`), `views/login.js`, `views/signup.js`, `css/app.css` | TC-156 (`tests/password-toggle.test.js`) | 구현 완료 |
+| REQ-157 | 출제 방향·형식 | S | API 규격서 §3.4 #11, Data 설계서 §3.6·3.7, UI/UX 설계서 §3.2·3.6 | `services/study.py`(`build_quiz_question`), `services/learning_session.py`, `schemas/learning_session.py`, `models/quiz_session.py`·`study_log.py`, `alembic/versions/0002_*`, `core/session-view-model.js`(`questionCopy`), `core/home-model.js`, `views/components/quiz-options.js`, `views/study-session-view.js` | TC-157 (`test_quiz_variants_units.py`, `test_quiz_variants_api.py`, `tests/quiz-variants.test.js`) | 구현 완료 |
 | REQ-118 | pytest 자동화 테스트 | M | Test Specification | `src/backend/tests/` | TC-118 | 초안 |
 | REQ-119 | 모바일 스크린샷 검증 | S | Test Specification | 검증 스크립트 | TC-119 | 초안 |
 | REQ-120 | 코드 추적성 (ID 명시) | M | 개발방법론 §3 | 모듈 헤더, 커밋 메시지 | 코드 리뷰 체크리스트 | 초안 |
@@ -351,6 +353,7 @@ v1.0의 질의 사항 Q1~Q8에 대한 결정이다. 사용자가 명시적으로
 | :--- | :--- | :--- | :--- |
 | **v2.3** | 2026-11-25 | **SQLite 전환(ADR-010)**: §1.4, REQ-108·116·117·152 개정, REQ-153 신설, 콜레이션 확정 갱신. **기말과제 매핑 §11 신설**(VOCA-FR/NFR/SUB ↔ REQ, 구현 여부 표시). REQ-0xx/14x/150 의 의미는 변경 없음 | Claude |
 | v2.3 개정 | 2026-11-25 | **REQ-154·155·156 신설**: 자주 틀리는 단어 상위 N(`GET /api/study/frequent-wrong`), 시험 성적 추이(`GET /api/study/score-trend`, 회차별·날짜별 정답률), 로그인·가입 비밀번호 보기/숨기기. §11 의 VOCA-FR-032·033 을 ❌/🟡 에서 ✅ 로 갱신. 비밀번호 찾기·Google OAuth 는 서버가 실행 중 인터넷을 쓸 수 없어 제외(사용자 결정). 스키마 변경 없음 | Claude |
+| v2.3 개정 | 2026-11-25 | **REQ-157 신설**: 퀴즈 출제 방향(영→한·한→영·섞기)과 형식(4지선다·OX). `POST /api/study/sessions` 에 `direction`·`format` 추가, 한→영 출제 응답의 `term`·`context` 비노출, `quiz_sessions`·`study_logs` 에 방향·형식 컬럼 추가(마이그레이션 0002). §11 의 VOCA-FR-023·024·026 을 ✅ 로 갱신. 단답형은 채점이 모호해 OX 로 대체(사용자 결정) | Claude |
 | v0.1 | 2026-11-02 | 초안 작성 (요구사항 ID 체계 수립, 기능/비기능 목록, 추적 매트릭스) | Claude |
 | v1.0 | 2026-11-02 | 사용자 승인 후 `docs/`로 승격 (파일명 `Requirement_Spec` 규칙 적용) | Claude |
 | v2.2 개정 | 2026-11-25 | **REQ-152 신설, REQ-116·117 개정**: 앱 컨테이너화(Dockerfile, `migrate`·`app` 서비스, 개발용 override). 사용자 확정: HTTPS 제외, git clone 전달, DB 포트 loopback (ADR-009) | Claude |
@@ -421,10 +424,10 @@ v1.0의 질의 사항 Q1~Q8에 대한 결정이다. 사용자가 명시적으로
 | VOCA-FR-014 | 암기 이력(누가·언제·어느 단어·몇 일차) DB 저장 | 기본 | 🟡 | `study_logs`(user, word, 시각, mode) 저장(REQ-131). "몇 일차" 컬럼은 없다 |
 | VOCA-FR-021 | 문제 수를 정해 그만큼 출제 | 기본 | 🟡 | 문항 수 10/20/30 중 선택(REQ-147). 임의의 수는 아니다 |
 | VOCA-FR-022 | 무작위 출제, 미출제·오래된·자주 틀린 단어 가중 | 기본 | 🟡 | 오답·복습 기한·미학습 배분은 있다(REQ-129, 150). "오래된 단어"는 복습 기한으로 대신하며 가중 무작위는 아니다 |
-| VOCA-FR-023 | 출제 방향 선택(영→한, 한→영, 섞기) | 기본 | ❌ | 영→한 한 방향만 있다 |
-| VOCA-FR-024 | 출제 형식 2가지 이상(단답형/4지선다/OX) | 기본 | ❌ | 4지선다 한 가지뿐이다(플래시카드는 암기 모드이며 시험 형식이 아니다) |
+| VOCA-FR-023 | 출제 방향 선택(영→한, 한→영, 섞기) | 기본 | ✅ | REQ-157. 퀴즈 시작 요청의 `direction`(`en_to_ko`·`ko_to_en`·`mixed`). 한→영은 정답 단어를 출제 응답에 싣지 않는다 |
+| VOCA-FR-024 | 출제 형식 2가지 이상(단답형/4지선다/OX) | 기본 | ✅ | REQ-157. 4지선다와 OX 두 가지(`format`). 단답형은 채점이 모호해 두지 않았다(2가지 이상 요건은 충족). 플래시카드는 암기 모드이며 시험 형식이 아니다 |
 | VOCA-FR-025 | 채점 결과(점수, 틀린 문항과 정답) | 기본 | ✅ | 서버 채점·결과 화면(REQ-014~016, ADR-005) |
-| VOCA-FR-026 | 시험 이력 문항 단위 DB 저장(단어·형식·방향·정오·시각) | 기본 | 🟡 | `study_logs`에 단어·정오·시각·mode 가 있다. 형식·방향 컬럼은 없다(형식·방향이 하나뿐이었다) |
+| VOCA-FR-026 | 시험 이력 문항 단위 DB 저장(단어·형식·방향·정오·시각) | 기본 | ✅ | `study_logs` 에 단어·정오·시각·mode 와 `direction`·`format`(0002). 섞기 세션도 문항의 실제 방향을 적는다 |
 | VOCA-FR-031 | 진도 현황(현재 일차, 암기 단어 수/전체) | 기본 | 🟡 | 단어장별 암기/전체 진행률은 있다(REQ-133, 140). "현재 일차"는 없다 |
 | VOCA-FR-032 | 시험 성적 추이(회차별·날짜별 정답률) | 기본 | ✅ | REQ-155. 끝까지 푼 퀴즈의 회차별 정답률과 한국 날짜별 정답률(`GET /api/study/score-trend`). 중간에 그만둔 시험과 플래시카드는 회차에서 제외한다 |
 | VOCA-FR-033 | 자주 틀리는 단어 상위 N | 기본 | ✅ | REQ-154. 누적 오답 횟수 순 상위 N(`GET /api/study/frequent-wrong`, 기본 10). 이력(`study_logs`)에서 계산한다 |
@@ -469,7 +472,7 @@ v1.0의 질의 사항 Q1~Q8에 대한 결정이다. 사용자가 명시적으로
 기본 요구사항 중 ❌/🟡 항목이 만점 조건의 핵심 격차다. 우선순위(제안, 사용자 승인 대기):
 
 1. **단어 등록·수정·삭제·검색(FR-001, 002, 004)과 CSV 일괄 등록(FR-003)**: 사용자 소유 단어 모델이 필요하다. 설계 결정이 크다 — 표준 단어장 모델을 유지하면서 사용자 단어장을 병행할지, 과제용으로 단순화할지.
-2. **출제 방향·형식(FR-023, 024)**: 한→영, 섞기, 단답형 또는 OX 추가. 세션 스키마(`questions` JSON)와 채점 로직 확장.
+2. ~~**출제 방향·형식(FR-023, 024, 026)**~~ — **완료(2026-11-25)**: REQ-157 로 구현했다(한→영·섞기, 4지선다·OX, 마이그레이션 0002). 단답형은 OX 로 대체했다.
 3. **일차 진도(FR-011, 014, 031)**: "N일차" 개념과 `study_logs` 의 일차 기록.
 4. ~~**성적 추이·오답 횟수 상위(FR-032, 033)**~~ — **완료(2026-11-25)**: REQ-154·155 로 구현했다. 기존 이력으로 계산해 스키마 변경이 없었다.
 5. **문서(SUB-011, 012)**: `docs/` 에 방법론 사본과 기획서 추가.

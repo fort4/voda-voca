@@ -301,6 +301,8 @@ erDiagram
 | `is_correct` | BOOLEAN | N | — | 정답 1, 오답 0. 플래시카드의 "알아요" = 정답, "헷갈려요" = 오답 |
 | `created_at` | DATETIME | N | UTC 현재 시각(§2.2) | UTC. 답을 기록한 시각 |
 | `mode` | VARCHAR(20) | N | `'quiz'` | `'quiz'` \| `'flashcard'` (`ck_study_logs_mode`). 마이그레이션 `c3f7a9d1e8b2` 에서 추가 |
+| `direction` | VARCHAR(10) | N | `'en_to_ko'` | `'en_to_ko'` \| `'ko_to_en'` (`ck_study_logs_direction`). **문항의 실제 방향**이며 `mixed` 는 값이 아니다. 플래시카드 행은 기본값. 마이그레이션 `0002` (REQ-157, VOCA-FR-026) |
+| `format` | VARCHAR(10) | N | `'choice'` | `'choice'` \| `'ox'` (`ck_study_logs_format`). 마이그레이션 `0002` |
 
 **인덱스**: `PRIMARY KEY (id)`, `KEY idx_study_logs_user_created (user_id, created_at)`, `KEY idx_study_logs_word (word_id)`
 
@@ -323,6 +325,8 @@ erDiagram
 | `vocabulary_id` | INTEGER | Y | NULL | **FK** → `system_vocabularies.id` `ON DELETE CASCADE` (`fk_quiz_sessions_vocabulary`). `source='vocabulary'` 일 때 원천 단어장. 북마크·오답 복습이면 NULL. v2.0 의 `wordbook_id` 를 대체 |
 | `source` | VARCHAR(16) | N | — | `'vocabulary'` \| `'bookmarks'` \| `'wrong'` \| `'due'` (`ck_quiz_sessions_source`, `due` 는 v2.2 오늘 복습). API 의 `source=all` 은 `'vocabulary'` 로 저장된다 |
 | `mode` | VARCHAR(20) | N | `'quiz'` | `'quiz'` \| `'flashcard'` (`ck_quiz_sessions_mode`) |
+| `direction` | VARCHAR(10) | N | `'en_to_ko'` | 요청한 출제 방향 `'en_to_ko'` \| `'ko_to_en'` \| `'mixed'` (`ck_quiz_sessions_direction`). 마이그레이션 `0002` |
+| `format` | VARCHAR(10) | N | `'choice'` | 요청한 문제 형식 `'choice'` \| `'ox'` (`ck_quiz_sessions_format`). 마이그레이션 `0002` |
 | `questions` | JSON | N | — | 문항 배열. 아래 구조 |
 | `answers` | JSON | N | `'{}'` | 기록된 답 `{"문항번호": 값}`. 퀴즈는 선택한 보기 번호(0~3), 플래시카드는 알아요=1 / 헷갈려요=0 |
 | `is_submitted` | BOOLEAN | N | — | 모든 문항에 답해 세션이 끝나면 `TRUE` |
@@ -346,6 +350,7 @@ erDiagram
 ```
 
 - 플래시카드 문항은 `choices` 가 `[]`, `correct_index` 가 `null` 이다.
+- **방향·형식 스냅샷 (v3.0 개정, REQ-157)**: 새 문항은 `direction`(문항의 실제 방향), `format`, `prompt`(문제 문구), `meaning`(정답 뜻)을 가진다. OX 문항은 `proposed`(제시 보기)를 더 갖고 `choices` 가 `["O","X"]`, `correct_index` 가 0(O)·1(X)이다. 한→영 문항의 `choices` 는 영단어 4개다. 읽을 때는 `question.get("direction", "en_to_ko")` 처럼 기본값을 둬 이전 세션(키 없음)을 영→한 4지선다로 읽고, `meaning` 이 없으면 `choices[correct_index]` 로 대신한다. 한→영 문항의 `term`·`example` 은 출제 응답에 싣지 않는다.
 - **노출 규칙 (v2.1)**: 출제 응답(`POST /api/study/sessions`)은 `question_id`, `word_id`, `term`, `context`(예문)와 퀴즈의 `options` 만 싣는다. `correct_index`, `meaning`, `example_meaning` 은 싣지 않고, **채점 응답**(`POST .../answer`)에서만 공개한다. (플래시카드는 정답이 없으므로 뒷면 뜻을 출제 응답에 함께 싣는다.) v2.0 D11 의 "출제 응답에 정답 포함"은 폐기되었다 (D16).
 - `phonetic` (v2.2) 은 **시작 시점의 `system_words.phonetic` 스냅샷**이다. 읽을 때는 `question.get("phonetic")` 로 다뤄, v2.2 이전에 만든 진행 중 세션(키 없음)은 null 로 응답한다. 퀴즈 출제 응답에는 이 값을 싣지 않고(항상 null), 채점 응답과 플래시카드 출제 응답에서만 내려간다 (REQ-144).
 - `pos` (v2.2, REQ-146) 도 **시작 시점의 `system_words.pos` 스냅샷**이다. `question.get("pos")` 로 읽어 옛 세션(키 없음)은 null 로 응답한다. 발음기호와 달리 **퀴즈 출제 응답에도 싣는다**.
@@ -645,6 +650,7 @@ CREATE INDEX idx_uwp_word ON user_word_progress (word_id);
 
 | 버전 | 날짜 | 내용 | 작성 |
 | :--- | :--- | :--- | :--- |
+| v3.0 개정 | 2026-11-25 | **출제 방향·형식 컬럼(REQ-157, 마이그레이션 `0002`)**: `quiz_sessions.direction`·`format`, `study_logs.direction`·`format` 추가(NOT NULL, 기본 `en_to_ko`·`choice`, CHECK 제약). 기존 행은 기본값으로 채워진다. `questions` 스냅샷 키 `direction`·`format`·`prompt`·`meaning`·`proposed` 추가 | Claude |
 | **v3.0** | 2026-11-25 | **SQLite 전환(ADR-010)**: 타입(INTEGER PK/FK, DATETIME UTC 마이크로초, VARCHAR+CHECK), 대소문자 정책(`NOCASE`), 시간 기본값(`strftime`), 외래키 PRAGMA, `BEGIN IMMEDIATE` 동시성, §5 DDL 을 실제 스키마 덤프로 교체, 마이그레이션 12개를 `0001` 하나로 압축. 테이블·컬럼 의미 변경 없음. D20~D21 추가, F1 폐기 | Claude |
 | v2.2 개정 | 2026-11-19 | **SRS 복습 시각 규칙 개정(REQ-150)**: `next_review_at` 을 한국 날짜 0시로 맞추고 기한 전 정답은 단계·시각 유지. §3.4 규칙·컬럼 설명 갱신. **스키마·마이그레이션 변경 없음** | Claude |
 | v2.2 | 2026-11-19 | v2.1 개정분(2026-11-06~11-11)을 v2.2 로 확정, 파일명 `v2.2_261119` (구버전 `docs/old/` 보관). **간격 반복 반영(REQ-150)**: `user_word_progress.interval_step`·`next_review_at`·인덱스(`f4c8b2d6a1e7`), `quiz_sessions.source` 에 `due`(`a7d3f1c9e5b2`), D19, F2 완료, §3.4 복습 단계 규칙, DDL·마이그레이션 이력 갱신 | Claude |
