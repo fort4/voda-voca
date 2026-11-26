@@ -201,7 +201,8 @@ async def test_flashcard_items_carry_the_back_side_and_no_options(client, make_v
 
 
 @pytest.mark.asyncio
-async def test_waterfall_composition_wrong_review_unseen(client, make_vocabulary) -> None:
+@pytest.mark.parametrize("mode", ["quiz", "flashcard"])
+async def test_waterfall_composition_wrong_review_unseen(client, make_vocabulary, mode) -> None:
     vocab = await make_vocabulary([f"w{i:02d}" for i in range(60)])
     _, token = await signup_and_login(client)
     await activate(client, token, vocab.id)
@@ -211,14 +212,19 @@ async def test_waterfall_composition_wrong_review_unseen(client, make_vocabulary
     for i in range(10, 15):  # w10..w14 복습 대상
         await put_progress(user_id, vocab.word_ids[f"w{i:02d}"], minutes=i)
 
-    body = (await create(client, token, count=15)).json()
+    body = (await create(client, token, count=15, mode=mode)).json()
 
     assert body["composition"] == {"wrong": 4, "review": 1, "unseen": 10}
     terms = {i["term"] for i in body["items"]}
-    assert {"w06", "w07", "w08", "w09"} <= terms, "오답은 최근에 틀린 것부터 4개"
+    assert len(terms & {f"w{i:02d}" for i in range(10)}) == 4
     assert len(terms & {f"w{i:02d}" for i in range(10, 15)}) == 1
-    assert {f"w{i:02d}" for i in range(15, 25)} <= terms, "미학습은 단어장 순서대로 10개"
     assert len(terms) == 15
+    first_unseen = {f"w{i:02d}" for i in range(15, 25)}
+    if mode == "flashcard":
+        assert {"w06", "w07", "w08", "w09"} <= terms, "암기는 최근에 틀린 것부터 4개"
+        assert first_unseen <= terms, "암기는 미학습을 단어장 순서대로"
+    else:  # REQ-168: 45개 중 10개를 무작위로 고르므로 앞 10개와 똑같을 확률은 약 3e-10 이다
+        assert not first_unseen <= terms, "퀴즈의 미학습은 등록 순서에 묶이지 않는다"
 
 
 @pytest.mark.asyncio

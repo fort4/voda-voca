@@ -19,7 +19,7 @@ from backend.schemas.learning_session import (
     SessionOut,
 )
 from backend.services.progress import ProgressState
-from backend.services.session_picker import WordCandidate, select_session_words, split_pools
+from backend.services.session_picker import WordCandidate, candidate_weights, select_session_words, split_pools
 from backend.services.study import (
     DIRECTION_EN_TO_KO,
     FORMAT_CHOICE,
@@ -245,7 +245,9 @@ async def create_session(
         for word, progress in rows
     ]
     pools = split_pools(candidates, include_memorized, now)
-    picked = select_session_words(pools.wrong, pools.unseen, pools.review, count, rng, pools.due)
+    # 퀴즈(시험)는 풀 안을 가중 무작위로, 플래시카드(암기)는 정해진 순서로 고른다 (REQ-168)
+    weights = candidate_weights(candidates, now) if mode == STUDY_MODE_QUIZ else None
+    picked = select_session_words(pools.wrong, pools.unseen, pools.review, count, rng, pools.due, weights)
     if not picked.ids:
         raise NoWordsToStudyError
 
