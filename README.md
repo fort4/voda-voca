@@ -3,7 +3,7 @@
 모바일에 맞춘 웹 기반 영어 단어 학습 서비스입니다. 서비스가 준비한 **표준 단어장**(5종, 1,000단어)을 골라 학습 세션 하나에서 4지선다 퀴즈와 플래시카드로 외우고, 북마크와 틀린 단어를 복습함에서 다시 봅니다.
 
 - **버전**: v2.2 개발 중 (최근 릴리즈 태그 `v2.1.0`), 2026-11-25 DB 를 SQLite 로 전환
-- **설계 문서**: [`docs/`](docs/) (요구사항 명세 v2.3, 데이터 설계서 v3.0, API 연동 규격서 v2.2, UI/UX 설계서 v2.2, 아키텍처 설계서 v1.1, 결정 기록 v1.1, 테스트 정의서 v1.2)
+- **설계 문서**: [`docs/`](docs/) (개발 방법론 v1.0, 프로젝트 기획서 v0.1, 요구사항 명세 v2.3, 데이터 설계서 v3.0, API 연동 규격서 v2.2, UI/UX 설계서 v2.2, 아키텍처 설계서 v1.1, 결정 기록 v1.1, 테스트 정의서 v1.2)
 - **선택한 DB**: **SQLite** (단일 파일, 기본 `/data/voca.db`). PostgreSQL 은 쓰지 않는다
 - **작업 환경**: Windows 11 + WSL2 (Ubuntu 24.04), Docker
 
@@ -96,11 +96,13 @@ voda-voca/
 ├── .github/workflows/       docker-check.yml (과제 점검 워크플로, 수정하지 않음)
 ├── src/
 │   ├── backend/             FastAPI 애플리케이션
-│   │   ├── routers/         auth, vocabulary, bookmark, study, study_session, user_settings
-│   │   ├── services/        인증, 표준 단어장, 학습 세션(출제·채점), 통계, 진행도, 시드 로더
+│   │   ├── routers/         admin, auth, vocabulary, bookmark, study, study_session, user_settings
+│   │   ├── core/            설정, 관리자 계정, 요청 제한, 표제어 정규화 등 공통 코드
+│   │   ├── db/              SQLite 연결과 세션
+│   │   ├── services/        인증, 표준 단어장, 관리자 단어장·단어와 CSV 등록, 학습 세션(출제·채점), 통계, 진행도·일차, 시드 로더
 │   │   ├── schemas/         Pydantic 요청·응답 모델
 │   │   ├── models/          SQLAlchemy 모델 (user, system_vocabulary, system_word, bookmark, study_log, quiz_session, user_word_progress, session)
-│   │   ├── alembic/         마이그레이션 (SQLite, 리비전 0001~0003)
+│   │   ├── alembic/         마이그레이션 (SQLite, 리비전 0001~0004)
 │   │   ├── data/seeds/      표준 단어장 시드 (vocabularies.json, words/*.json 5종)
 │   │   └── tests/           pytest 테스트 (통합 + 단위)
 │   └── frontend/            정적 프론트엔드 (FastAPI 가 같은 출처로 서빙)
@@ -216,19 +218,19 @@ Docker 도 DB 서버도 필요 없습니다. 테스트가 임시 SQLite 파일�
 .venv/bin/python -m pytest -q
 ```
 - 통합 테스트는 세션 단위 임시 SQLite 파일에 연결하며 개발자의 실제 DB(`DB_PATH`)는 건드리지 않습니다. 테스트 계정은 `tvoda-` 접두사를 씁니다.
-- 최근 검증 결과: 895 passed, 4 skipped (2026-11-26, 약 60초). 커버리지는 98%(2026-11-19 측정, SQLite 전환 전)입니다 (`--cov=backend`, 설정은 `.coveragerc`).
+- 최근 검증 결과: 895 passed, 4 skipped (2026-11-26, 약 1~2분). 커버리지는 99%(2026-11-26 측정)입니다 (`--cov=backend`, 설정은 `.coveragerc`).
 - **DB 없이 빠르게**: 순수 단위 테스트에는 `no_db` 표시가 붙어 있어 `.venv/bin/python -m pytest -q -m no_db` (363건, 약 12초)로 돌립니다. 새 순수 단위 테스트에는 `pytestmark = pytest.mark.no_db` 를 붙이세요 (표시가 거짓이면 `test_no_db_guard.py` 가 실패합니다).
 - **푸시 전 마이그레이션 검사**: `.venv/bin/alembic -c src/backend/alembic.ini check` 가 `No new upgrade operations detected.` 를 내야 합니다 (모델은 바꿨는데 마이그레이션을 빼먹은 경우를 잡습니다).
 - 개발 중에는 지금 작업하는 테스트만 돌립니다 (예: `.venv/bin/python -m pytest -q src/backend/tests/test_bookmark_api.py`).
 
-### 4.2 프론트엔드 (node --test, 594건)
+### 4.2 프론트엔드 (node --test, 625건)
 ```bash
 cd src/frontend
 npm test            # 또는: node --test tests/
 ```
 - 외부 패키지를 설치하지 않습니다. 순수 로직(API 클라이언트, 라우터, 세션 러너, 콤보, 사운드, 저장소, 뷰모델)과, 화면 배선·디자인 토큰·다크 모드 누락을 소스 수준에서 검사하는 테스트를 돌립니다.
-- 최근 검증 결과: 594 passed (2026-11-26).
-- 누적 검증: 백엔드 895건 통과(4 skip), 프론트엔드 594건 통과.
+- 최근 검증 결과: 625 passed (2026-11-26).
+- 누적 검증: 백엔드 895건 통과(4 skip), 프론트엔드 625건 통과.
 
 ### 4.3 문법 검사 (프론트엔드)
 ```bash
@@ -273,7 +275,7 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 - **일차 진도** (REQ-165): 단어장마다 1일차부터 셉니다. 설정의 오늘의 목표만큼 서로 다른 단어를 풀고(정답·오답 모두), 한국 날짜가 바뀌면 다음 일차가 됩니다. 못 채우면 같은 일차를 이어 갑니다. 홈에 현재 일차, 그 일차의 진행, 암기한 단어 수(연속 3회 정답) / 전체가 보입니다. 업데이트 전에 쌓인 기록에는 일차가 없습니다.
 - 한 번에 푸는 문항 수와 오늘의 목표는 **학습 설정**(10·20·30, 기본 10)을 따릅니다.
 - **세션 하나에서 퀴즈와 플래시카드를 모두 진행**합니다. 문항마다 서버가 즉시 채점·기록하며, 한 번 고른 답은 바뀌지 않습니다.
-- **퀴즈(4지선다)**: 단어를 보고 알맞은 뜻을 고릅니다. 고르면 해설 시트가 올라와 정오, 뜻, 예문, 품사와 발음기호를 보여 줍니다. 단어 4개 미만이면 출제할 수 없습니다.
+- **퀴즈**: 홈에서 **출제 방향**(영→한·한→영·섞기)과 **문제 형식**(4지선다·OX)을 고릅니다 (REQ-157). 영→한은 단어를 보고 뜻을, 한→영은 뜻을 보고 단어를 고릅니다. 답을 고르면 해설 시트가 올라와 정오, 뜻, 예문, 품사와 발음기호를 보여 줍니다. 단어 4개 미만이면 출제할 수 없습니다.
 - **플래시카드**: 앞면에 표제어·품사·발음기호, 뒷면에 뜻·예문을 보여 줍니다. 카드를 눌러 뒤집고 "헷갈려요"/"알아요"로 평가합니다.
 - **숙련**: 한 단어를 연속 3번 맞히면 숙련으로 표시하고 기본 출제에서 뺍니다. 한 번 틀리면 숙련이 풀립니다.
 - **콤보와 효과음**: 연속 정답이 2 이상이면 콤보 뱃지가 보이고 5·10·15에서 마일스톤 소리가 납니다. 효과음은 Web Audio로 합성하므로 음원 파일이 없습니다.
@@ -286,8 +288,9 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 - **틀린 단어**는 단어별 **마지막 결과가 오답**인 단어입니다. 다시 맞히면 목록에서 빠집니다.
 - 해당 목록의 단어가 **4개 이상**이면 [복습 시작]이 켜지고, 그 단어들로 같은 학습 세션(퀴즈 또는 플래시카드)을 시작합니다. 복습은 활성 단어장을 바꾸지 않습니다.
 
-### 5.5 통계 (REQ-131~133)
+### 5.5 통계 (REQ-131~133, REQ-154, REQ-155)
 - 누적 정답률, 연속 학습일(한국 날짜 기준), 최근 7일 학습 단어 수 막대 차트(오늘 강조), 단어장별 숙련도 진행률을 보여 줍니다. 전체 이력 기준이며 서버가 집계합니다.
+- **시험 성적 추이**(회차별·날짜별 정답률)와 **자주 틀리는 단어** 상위 10개를 보여 줍니다. 끝까지 푼 퀴즈만 회차로 셉니다.
 
 ### 5.6 계정 메뉴, 학습 설정, 환경 설정 (REQ-134, REQ-147, REQ-149)
 - 닉네임 칩을 누르면 칩 아래에 메뉴가 뜹니다. 바깥을 누르거나 Esc로 닫습니다.
@@ -307,15 +310,15 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 
 ## 6. API 개요
 
-모든 경로는 `/api` 아래입니다. 자세한 요청·응답은 `docs/설계_261119_API연동규격서 v2.2.md`와 `/docs`(자동 생성)를 봅니다.
+아래 경로는 모두 `/api` 아래입니다(헬스체크 `GET /health` 만 밖에 있습니다). 자세한 요청·응답은 `docs/설계_261119_API연동규격서 v2.2.md`와 `/docs`(자동 생성)를 봅니다.
 
 | 영역 | 엔드포인트 |
 | :--- | :--- |
-| 인증 | `POST /auth/signup`, `POST /auth/login`, `POST /auth/logout`, `GET·DELETE /auth/me`, `PUT /auth/me/password` |
-| 표준 단어장 | `GET /vocabularies`, `GET /vocabularies/{id}/words`, `POST /users/me/active-vocabulary` |
+| 인증 | `POST /auth/signup`, `POST /auth/login`, `POST /auth/logout`, `GET·DELETE /auth/me`, `PUT /auth/me/password`, `GET /auth/check-nickname` |
+| 표준 단어장 | `GET /vocabularies`, `GET /vocabularies/{id}/words` (검색 `?q=`), `POST /users/me/active-vocabulary` |
 | 학습 세션 | `POST /study/sessions`, `POST /study/sessions/{id}/answer` (`mode=quiz\|flashcard`, `source=all\|bookmarks\|wrong\|due`) |
 | 북마크 | `PUT·DELETE /bookmarks/{word_id}`, `GET /bookmarks` |
-| 복습·통계 | `GET /study/wrong-words`, `GET /study/stats`, `GET /study/logs` |
+| 복습·통계 | `GET /study/wrong-words`, `GET /study/frequent-wrong`, `GET /study/score-trend`, `GET /study/stats`, `GET /study/logs` |
 | 사용자 설정 | `GET·PATCH /users/me/settings` |
 | 관리(관리자) | `POST·PATCH·DELETE /admin/vocabularies`, `POST /admin/vocabularies/{id}/words`, `POST /admin/vocabularies/{id}/words/import`, `PUT·DELETE /admin/words/{id}` |
 
@@ -355,6 +358,6 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 | UI/UX 설계서 | `docs/설계_261105_UIUX설계서 v2.2.md` | `docs/old/` |
 | 시스템 아키텍처 설계서 | `docs/설계_261125_시스템아키텍처설계서 v1.1.md` | `docs/old/` |
 | 아키텍처 결정 기록 (ADR-001~014) | `docs/설계_261125_결정기록 v1.1.md` | `docs/old/` |
-| 테스트 명세서 | `docs/구현_261125_테스트정의서 v1.2.md` | `docs/old/` |
+| 테스트 정의서 | `docs/구현_261125_테스트정의서 v1.2.md` | `docs/old/` |
 
-v2.2 진행 중에는 파일명을 바꾸지 않고 각 문서의 변경 이력 표에 개정 행을 추가합니다. 작업 일지와 결정 기록은 `ai-agent/claude/`에 있습니다.
+2026-11-26 에 과제 형식(`분류_yymmdd_제목 vX.X.md`)으로 파일명을 바꿨습니다. 이후 개정은 파일명을 유지하고 각 문서의 변경 이력 표에 행을 추가합니다. 작업 일지와 결정 기록은 `ai-agent/claude/`에 있습니다.
