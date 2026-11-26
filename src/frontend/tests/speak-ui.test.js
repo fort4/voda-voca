@@ -137,24 +137,22 @@ test("36px 아이콘 버튼(h-9 w-9)이 화면에 남아 있지 않다 (REQ-114)
   assert.deepEqual(offenders, []);
 });
 
-test("발음 버튼 배치: 세션 헤더(단어), 해설 시트(예문만), 플래시카드 뒷면(예문), 단어 시트(단어만)", () => {
+test("발음 버튼 배치: 세션 헤더(단어), 해설 시트(예문만), 플래시카드 뒷면(예문), 단어 시트에는 없음", () => {
   assert.match(read("js/views/components/progress-header.js"), /speakButton\(/);
   const sheet = read("js/views/components/feedback-sheet.js");
   assert.doesNotMatch(sheet, /kind:\s*"word"/, "단어 듣기는 세션 헤더에 이미 있으므로 해설 시트에는 두지 않는다 (2026-11-10)");
   assert.match(sheet, /speakButton\([^)]*kind:\s*"sentence"/s);
   assert.match(read("js/views/study-session-view.js"), /speakButton\([^)]*kind:\s*"sentence"/s);
   const words = read("js/views/components/word-sheet.js");
-  assert.match(words, /speakButton\([^)]*kind:\s*"word"/s);
-  assert.doesNotMatch(words, /kind:\s*"sentence"/, "미리보기 시트에는 예문 듣기를 두지 않는다 (2026-11-10)");
+  assert.doesNotMatch(words, /speakButton|speak-button/, "미리보기 시트의 발음 버튼은 북마크로 바꿨다 (2026-11-26)");
 });
 
-test("정지 시점: 문항 전환·다음·중단·화면 정리(세션), 시트 닫힘(단어 시트), 라우트 이동·탭 숨김(앱)", () => {
+test("정지 시점: 문항 전환·다음·중단·화면 정리(세션), 라우트 이동·탭 숨김(앱)", () => {
   const session = read("js/views/study-session-view.js");
   assert.match(session, /stopSpeaking\(\)/);
   assert.match(session, /ACTION\.NEXT[^\n]*\n?[^\n]*stopSpeaking|stopSpeaking[^\n]*ACTION\.NEXT|ACTION\.NEXT \|\| action\.type === ACTION\.ABORT/, "다음/중단에서 멈춘다");
   assert.match(session, /return \(\) => \{[\s\S]*stopSpeaking\(\)[\s\S]*driver\.dispose/, "정리 함수에서 멈춘다");
   assert.match(session, /resetSpeechNotice\(\)/, "새 세션마다 안내를 다시 허용한다");
-  assert.match(read("js/views/components/word-sheet.js"), /const close = \(\) => \{[\s\S]*?stopSpeaking\(\)/);
   const app = read("js/app.js");
   assert.match(app, /addEventListener\("hashchange"[\s\S]*?stopSpeaking\(\)/);
   assert.match(app, /visibilitychange/);

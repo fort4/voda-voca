@@ -61,3 +61,12 @@ test("켜진 북마크는 hover 가 남아도 호박색을 유지한다 (터치 
   // 터치 기기에서는 탭한 뒤 hover 배경이 남지 않게 한다
   assert.match(css, /@media \(hover:\s*none\)\s*\{[^}]*\.star-toggle:hover:not\(:disabled\)\s*\{[^}]*background:\s*var\(--btn-bg\)/s);
 });
+
+test("단어 미리보기 시트: 행마다 북마크 버튼을 두고, 받은 목록의 상태로 채우며, 실패하면 토스트로 알린다", () => {
+  const sheet = read("js/views/components/word-sheet.js");
+  assert.match(sheet, /createBookmarkStore\(\{ api \}\)/);
+  assert.match(sheet, /bookmarks\.seed\(event\.added\)/, "더 보기·검색으로 받은 단어도 서버의 bookmarked 값으로 채운다");
+  assert.match(sheet, /bookmarkButton\(\{ wordId: word\.word_id, term: word\.term/);
+  assert.match(sheet, /toast\([^)]*"error"/);
+  assert.ok(sheet.indexOf("bookmarks.seed(") < sheet.indexOf("list.append("), "버튼을 만들기 전에 상태를 채운다");
+});

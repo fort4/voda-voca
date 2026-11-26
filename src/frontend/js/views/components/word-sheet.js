@@ -1,19 +1,20 @@
 /*
- * 2026-11-05 - voda-voca - 단어 미리보기 바텀시트: 단어장의 단어를 페이지씩 보여 주고 표제어·뜻으로 검색한다. 관리자는 단어를 추가·수정·삭제하고 CSV 로 일괄 등록한다 (Esc·바깥 탭·✕ 로 닫기)
+ * 2026-11-05 - voda-voca - 단어 미리보기 바텀시트: 단어장의 단어를 페이지씩 보여 주고 표제어·뜻으로 검색하며 단어를 북마크한다. 관리자는 단어를 추가·수정·삭제하고 CSV 로 일괄 등록한다 (Esc·바깥 탭·✕ 로 닫기)
  * 파일 위치: src/frontend/js/views/components/word-sheet.js
  */
 
 import { canEditContent, wordSheetEntry } from "../../core/admin-model.js";
 import { api } from "../../core/api.js";
+import { createBookmarkStore } from "../../core/bookmark-store.js";
 import { button, h, icon, refreshIcons } from "../../core/dom.js";
 import { INPUT_CLASS } from "../../core/form.js";
 import { getUser } from "../../core/state.js";
-import { stopSpeaking } from "../../core/tts.js";
+import { toast } from "../../core/toast.js";
 import { SEARCH_DEBOUNCE_MS, SEARCH_MAX_LENGTH, createWordPager, pagerFooter } from "../../core/word-search-model.js";
 import { confirmDeleteWord, openImportForm, openWordForm } from "./admin-forms.js";
+import { bookmarkButton } from "./bookmark-button.js";
 import { phoneticLine } from "./phonetic-line.js";
 import { posTag } from "./pos-tag.js";
-import { speakButton } from "./speak-button.js";
 
 const PAGE_SIZE = 30;
 
@@ -28,15 +29,18 @@ export function openWordSheet(vocabulary, { onWordsChanged = () => {} } = {}) {
   const list = h("div", { class: "space-y-2" });
   const footer = h("div", { class: "pt-2", "aria-live": "polite" });
   let searchTimer;
+  const bookmarks = createBookmarkStore({ api });
+  const bookmarkFor = (word) =>
+    bookmarkButton({ wordId: word.word_id, term: word.term, store: bookmarks, onError: () => toast("북마크를 바꾸지 못했어요. 잠시 후 다시 시도해 주세요.", "error") });
 
   const pager = createWordPager({
     fetchPage: ({ page, query }) => api(`/vocabularies/${vocabulary.id}/words`, { query: { page, size: PAGE_SIZE, q: query || undefined } }),
     onChange: (event) => {
-      if (event.type === "reset") {
-        stopSpeaking(); // 재생 중인 단어의 버튼이 목록에서 사라진다
-        list.replaceChildren();
+      if (event.type === "reset") list.replaceChildren();
+      if (event.type === "page") {
+        bookmarks.seed(event.added);
+        list.append(...event.added.map((word) => wordRow(word, bookmarkFor(word), canEditContent(user, word) ? adminActions(word) : null)));
       }
-      if (event.type === "page") list.append(...event.added.map((word) => wordRow(word, canEditContent(user, word) ? adminActions(word) : null)));
       paintFooter();
       refreshIcons();
     },
@@ -101,7 +105,6 @@ export function openWordSheet(vocabulary, { onWordsChanged = () => {} } = {}) {
 
   const close = () => {
     clearTimeout(searchTimer);
-    stopSpeaking(); // 시트를 닫으면 재생 중인 발음도 멈춘다
     document.removeEventListener("keydown", onKey);
     overlay.remove();
     previousFocus?.focus?.();
@@ -129,9 +132,10 @@ export function openWordSheet(vocabulary, { onWordsChanged = () => {} } = {}) {
 
 /**
  * @param {{term: string, phonetic?: string|null, pos?: string|null, meaning: string, example: string|null}} word
+ * @param {HTMLButtonElement} bookmark 행 오른쪽의 북마크 토글
  * @param {HTMLElement[]|null} actions 관리자 버튼 (없으면 null)
  */
-function wordRow(word, actions) {
+function wordRow(word, bookmark, actions) {
   return h(
     "div",
     { class: "flex items-start gap-2 rounded-xl bg-zinc-50 px-3 py-2" },
@@ -145,8 +149,7 @@ function wordRow(word, actions) {
     h(
       "div",
       { class: "flex shrink-0 items-center" },
-      // 미리보기는 단어를 훑어보는 용도라 표제어 듣기만 둔다 (예문 듣기는 학습 세션에서)
-      speakButton({ text: word.term, kind: "word", key: `word:${word.term}` }),
+      bookmark,
       ...(actions ?? []),
     ),
   );

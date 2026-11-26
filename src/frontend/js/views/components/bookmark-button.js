@@ -1,12 +1,12 @@
 /*
- * 2026-11-10 - voda-voca - 세션 카드의 북마크 버튼: 44px 아이콘 버튼, 눌림 상태(aria-pressed), 저장소 변경을 구독해 스스로 갱신
+ * 2026-11-10 - voda-voca - 북마크 버튼(세션 카드, 단어 미리보기 시트): 44px 아이콘 버튼, 눌림 상태(aria-pressed), 저장소 변경을 구독해 스스로 갱신
  * 파일 위치: src/frontend/js/views/components/bookmark-button.js
  */
 
 import { h, icon } from "../../core/dom.js";
 
 /**
- * 카드 오른쪽 위에 놓는 북마크 토글. 상태는 저장소가 갖고, 버튼은 구독으로 따라간다.
+ * 북마크 토글. 상태는 저장소가 갖고, 버튼은 구독으로 따라간다.
  * @param {{wordId: number, term: string, store: ReturnType<typeof import("../../core/bookmark-store.js").createBookmarkStore>, onError: (error: unknown) => void}} opts
  * @returns {HTMLButtonElement}
  */

@@ -51,12 +51,11 @@ test(".btn-secondary 는 가장자리에 --btn-secondary-edge 토큰을 쓴다",
   assert.match(css, /:root\s*\{[^}]*--btn-secondary-edge:/s, "라이트 값도 :root 에 있어야 한다");
 });
 
-// ---------- 3. 단어 미리보기 시트: 예문 듣기 없음 (표제어 듣기만) ----------
+// ---------- 3. 단어 미리보기 시트: 발음 버튼 없음 (북마크로 대체, 2026-11-26) ----------
 
-test("단어 미리보기 시트에는 예문 발음 버튼이 없고 표제어 발음 버튼만 있다", () => {
+test("단어 미리보기 시트에는 발음 버튼이 없다", () => {
   const src = read("js/views/components/word-sheet.js");
-  assert.doesNotMatch(src, /kind:\s*"sentence"/);
-  assert.match(src, /kind:\s*"word"/);
+  assert.doesNotMatch(src, /speakButton|kind:\s*"(word|sentence)"|core\/tts/);
 });
 
 // ---------- 3. 플래시카드 뒷면: 예문과 예문 해석을 한 열로 (해설 시트와 같은 구조) ----------
