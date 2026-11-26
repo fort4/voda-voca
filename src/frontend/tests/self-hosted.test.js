@@ -75,3 +75,22 @@ test("vendor/README.md 에 자원별 출처·버전·라이선스를 적어 둔�
   assert.match(doc, /MIT/);
   assert.match(doc, /OFL/);
 });
+
+test("Paperlogy: OFL 1.1 은 사본에 저작권 표시와 라이선스 전문을 함께 두어야 한다 (#36)", () => {
+  const path = "vendor/fonts/Paperlogy-LICENSE.txt";
+  assert.ok(existsSync(join(ROOT, path)), `${path} 파일이 있다`);
+  const text = read(path);
+  assert.match(text, /Copyright © 2024 PT&/, "글꼴 파일에 내장된 저작권 표시");
+  assert.match(text, /SIL OPEN FONT LICENSE Version 1\.1 - 26 February 2007/);
+  assert.match(text, /PERMISSION & CONDITIONS/);
+  assert.match(text, /TERMINATION/);
+  assert.match(text, /DISCLAIMER/);
+  assert.doesNotMatch(text, /Pretendard|Kil Hyung-jin/, "다른 글꼴의 저작권 표시가 섞이지 않는다");
+});
+
+test("vendor/README.md 의 모든 자원은 라이선스가 확정돼 있다 (#36)", () => {
+  const doc = read("vendor/README.md");
+  assert.doesNotMatch(doc, /확인 필요/);
+  const row = doc.split("\n").find((line) => line.startsWith("| Paperlogy"));
+  assert.match(row, /SIL OFL 1\.1 \(`fonts\/Paperlogy-LICENSE\.txt`\)/);
+});
