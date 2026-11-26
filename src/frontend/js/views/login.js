@@ -117,7 +117,7 @@ export function loginView(root, { query, navigate }) {
       ),
       h(
         "div",
-        { class: "card card-hero tone-accent" },
+        { class: "card tone-accent" },
         form,
       ),
       h(

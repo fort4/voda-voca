@@ -77,9 +77,12 @@ test("A: 마이페이지 비밀번호 변경 카드도 의미 색(tone-accent)�
 
 // ---------- 2026-11-26 화면 확인에서 찾은 결함의 회귀 검사 ----------
 
-test("히어로 카드의 상단 강조선은 .card 의 border 에 덮이지 않는 명시도를 쓴다", () => {
-  // .card-hero 단독 선택자는 뒤에 오는 .card { border } 에 진다
-  assert.match(css, /\.card\.card-hero\s*\{[^}]*border-top:\s*2px solid var\(--tone,\s*var\(--accent\)\)/);
+test("카드 상단에 색 강조선을 두지 않는다 (사용자 지시)", () => {
+  assert.doesNotMatch(css, /card-hero/);
+  assert.doesNotMatch(css, /\.card[^{}]*\{[^}]*border-top[^;}]*var\(--(tone|accent)/);
+  for (const file of ["js/views/home-view.js", "js/views/review-view.js", "js/views/login.js", "js/views/signup.js"]) {
+    assert.doesNotMatch(read(file), /card-hero/, file);
+  }
 });
 
 test("통계의 오답 복습 버튼은 복습함의 틀린 단어 탭으로 간다", () => {

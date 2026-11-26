@@ -72,7 +72,7 @@ function renderHome(data, ctx, { mode, setMode, quizOptions, setQuizOptions }) {
     { class: "stack pb-4" },
     h(
       "section",
-      { class: "card card-hero tone-accent rise-in space-y-3" },
+      { class: "card tone-accent rise-in space-y-3" },
       cardHeading({
         iconName: "book-open",
         title: "학습 중인 단어장",

@@ -75,7 +75,7 @@ class ReviewPanel {
   /** 오늘 복습(SRS) 카드: 복습 예정 시각이 도래한 단어로 바로 세션을 시작한다. */
   dueCard() {
     const due = dueSource(this.dueCount);
-    return h("section", { class: "card card-hero tone-accent space-y-3" }, cardHeading({ iconName: "calendar-clock", title: "오늘 복습" }), h("p", { class: "text-sm text-zinc-700" }, due.message), button({ variant: "primary", full: true, disabled: !due.ready, onClick: () => openSession(this.ctx.navigate, this.mode, "due") }, icon("play", "h-5 w-5"), "오늘 복습 시작"));
+    return h("section", { class: "card tone-accent space-y-3" }, cardHeading({ iconName: "calendar-clock", title: "오늘 복습" }), h("p", { class: "text-sm text-zinc-700" }, due.message), button({ variant: "primary", full: true, disabled: !due.ready, onClick: () => openSession(this.ctx.navigate, this.mode, "due") }, icon("play", "h-5 w-5"), "오늘 복습 시작"));
   }
 
   tab(tab, sources) {

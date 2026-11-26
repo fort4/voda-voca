@@ -156,7 +156,7 @@ export function signupView(root, { navigate }) {
       ),
       h(
         "div",
-        { class: "card card-hero tone-accent" },
+        { class: "card tone-accent" },
         h(
           "form",
           { class: "space-y-4", novalidate: true, onsubmit: onSubmit },

@@ -168,14 +168,6 @@ a:focus-visible,
   box-shadow: var(--shadow-card);
 }
 
-/* 히어로 카드(홈·인증·주요 요약): 상단에 은은한 포인트 하이라이트를 더해 시각적 중심을 잡는다 */
-/* .card 의 border 보다 뒤에 오지 않아도 이기도록 두 클래스를 겹친다 */
-.card.card-hero {
-  position: relative;
-  overflow: hidden;
-  border-top: 2px solid var(--tone, var(--accent));
-}
-
 /* 단어 시트 안의 단어 행: 표면과 구분되는 정갈한 카드형 리스트 아이템 */
 .word-item {
   border: 1px solid var(--border);
