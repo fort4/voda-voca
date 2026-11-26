@@ -22,7 +22,7 @@ function declarations(selector) {
 
 test("탐색의 단어장 카드는 .vocab-card 를 쓰고 shadow-* 유틸리티가 없다", () => {
   const src = read("js/views/explore-view.js");
-  assert.match(src, /class:\s*"card vocab-card rise-in/);
+  assert.match(src, /class:\s*[`"]card vocab-card rise-in/);
   assert.doesNotMatch(src, /shadow/);
 });
 

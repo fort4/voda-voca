@@ -11,13 +11,13 @@ import { DIRECTION_OPTIONS, FORMAT_OPTIONS } from "../../core/session-view-model
  * @param {{label: string, options: ReadonlyArray<{id: string, label: string}>, value: string, onChange: (id: string) => void}} opts
  */
 function segmented({ label, options, value, onChange }) {
-  const group = h("div", { class: "grid gap-1 rounded-xl bg-zinc-100 p-1", style: `grid-template-columns: repeat(${options.length}, minmax(0, 1fr))`, role: "group", "aria-label": label });
+  const group = h("div", { class: "segmented", style: `grid-template-columns: repeat(${options.length}, minmax(0, 1fr))`, role: "group", "aria-label": label });
   const buttons = options.map((option) =>
     h(
       "button",
       {
         type: "button",
-        class: "press focus-ring min-h-[44px] rounded-lg px-3 text-body font-semibold",
+        class: "segment press focus-ring",
         onclick: () => {
           onChange(option.id);
           paint(option.id);
@@ -30,7 +30,6 @@ function segmented({ label, options, value, onChange }) {
     buttons.forEach((el, i) => {
       const on = options[i].id === selected;
       el.setAttribute("aria-pressed", String(on));
-      el.className = `press focus-ring min-h-[44px] rounded-lg px-3 text-body font-semibold ${on ? "bg-white text-indigo-600 shadow-sm" : "text-zinc-600"}`;
     });
   }
   paint(value);

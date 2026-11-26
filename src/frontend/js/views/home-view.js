@@ -9,7 +9,8 @@ import { homeModel, loadMode, loadQuizOptions, saveMode, saveQuizOptions } from 
 import { startLabel } from "../core/settings-model.js";
 import { settingsStore } from "../core/settings-store.js";
 import { getUser } from "../core/state.js";
-import { progressBar } from "./components/progress-bar.js";
+import { cardHeading } from "./components/card-heading.js";
+import { progressRow } from "./components/progress-bar.js";
 import { mountLoader } from "./components/loader.js";
 import { renderModeToggle } from "./components/mode-toggle.js";
 import { renderQuizOptions } from "./components/quiz-options.js";
@@ -71,22 +72,22 @@ function renderHome(data, ctx, { mode, setMode, quizOptions, setQuizOptions }) {
     { class: "stack pb-4" },
     h(
       "section",
-      { class: "card rise-in space-y-3" },
-      h(
-        "div",
-        { class: "flex items-center justify-between gap-2" },
-        h("p", { class: "text-sm font-medium text-zinc-500" }, "학습 중인 단어장"),
-        m.studyDay ? h("span", { class: "shrink-0 rounded-full bg-indigo-50 px-2.5 py-1 text-sm font-semibold text-indigo-600" }, m.studyDay.label) : null,
-      ),
+      { class: "card tone-accent rise-in space-y-3" },
+      cardHeading({
+        iconName: "book-open",
+        title: "학습 중인 단어장",
+        level: "p",
+        aside: m.studyDay ? h("span", { class: "shrink-0 rounded-full bg-indigo-50 px-2.5 py-1 text-sm font-semibold text-indigo-600" }, m.studyDay.label) : null,
+      }),
       m.hasActive
         ? [
             h("h1", { class: "text-heading tracking-tight text-zinc-900" }, m.vocabularyTitle),
-            progressBar(m.progressPercent, "단어장 진행률"),
+            progressRow(m.progressPercent, "단어장 진행률"),
             h("p", { class: "text-sm text-zinc-600" }, `${m.progressText} · ${m.memorizedText}`),
             m.studyDay ? h("p", { class: "text-sm text-zinc-600" }, m.studyDay.detail) : null,
           ]
         : [h("h1", { class: "text-heading tracking-tight text-zinc-900" }, "단어장을 골라 주세요"), h("p", { class: "text-sm text-zinc-600" }, m.emptyHint)],
-      button({ variant: "ghost", onClick: () => ctx.navigate("/explore") }, icon("search", "h-4 w-4"), m.hasActive ? "단어장 바꾸기" : "단어장 고르기"),
+      button({ variant: "secondary", full: true, onClick: () => ctx.navigate("/explore") }, icon("search", "h-4 w-4"), m.hasActive ? "단어장 바꾸기" : "단어장 고르기"),
     ),
     goalCard(m),
     h(
@@ -106,13 +107,18 @@ function goalCard(m) {
       ? h("p", { class: "text-sm text-zinc-600" }, "오늘 기록을 불러오지 못했어요.")
       : [
           h("p", { class: "text-2xl font-extrabold tracking-tight text-zinc-900" }, m.goalReached ? "오늘 목표를 채웠어요 🎉" : `${m.remaining}문항 남았어요`),
-          progressBar(m.goalPercent, "오늘 목표"),
+          progressRow(m.goalPercent, "오늘 목표", m.goalReached ? "ok" : "goal"),
           h("p", { class: "text-sm text-zinc-600" }, `오늘 ${m.todayCount}개 학습 · 목표 ${m.dailyGoal}개`),
         ];
   return h(
     "section",
-    { class: "card rise-in space-y-3" },
-    h("div", { class: "flex items-center justify-between" }, h("p", { class: "text-sm font-medium text-zinc-500" }, "오늘의 목표"), m.streakText ? h("span", { class: "text-sm font-semibold text-indigo-600" }, `🔥 ${m.streakText}`) : null),
+    { class: `card ${m.goalReached ? "tone-ok" : "tone-activity"} rise-in space-y-3` },
+    cardHeading({
+      iconName: "target",
+      title: "오늘의 목표",
+      level: "p",
+      aside: m.streakText ? h("span", { class: "streak-pill tone-activity" }, icon("flame", "h-3.5 w-3.5"), m.streakText) : null,
+    }),
     body,
   );
 }

@@ -5,6 +5,20 @@
 
 import { button, h, icon } from "../../core/dom.js";
 import { completeCopy } from "../../core/session-view-model.js";
+import { iconBadge } from "./card-heading.js";
+
+/** 지표 이름별 아이콘과 의미 색 */
+const STAT_STYLES = {
+  "정답률": ["target", "tone-accent"],
+  "맞힌 문제": ["check", "tone-ok"],
+  "최대 콤보": ["flame", "tone-activity"],
+  "새로 숙련": ["sparkles", "tone-words"],
+};
+
+function statCell({ label, value }) {
+  const [iconName, tone] = STAT_STYLES[label] ?? ["circle", "tone-accent"];
+  return h("div", { class: `stat-cell ${tone}` }, iconBadge(iconName), h("div", { class: "stat-value" }, value), h("div", { class: "stat-label" }, label));
+}
 
 /**
  * @param {{summary: object, onRestart: () => void, onHome: () => void}} opts
@@ -15,20 +29,20 @@ export function renderSessionResult({ summary, onRestart, onHome }) {
   return h(
     "section",
     { class: "session-card rise-in" },
-    h("div", { class: "grid h-14 w-14 place-items-center rounded-2xl", style: "background: var(--ok-soft); color: var(--ok)" }, icon("trophy", "h-7 w-7")),
+    h("div", { class: "trophy-badge" }, icon("trophy", "h-7 w-7")),
     h("h2", { class: "text-2xl font-extrabold tracking-tight" }, copy.title),
     h("p", { class: "session-context" }, copy.subtitle),
     summary.answered
       ? h(
           "div",
           { class: "stat-grid" },
-          copy.stats.map((stat) => h("div", { class: "stat-cell" }, h("div", { class: "stat-value" }, stat.value), h("div", { class: "stat-label" }, stat.label))),
+          copy.stats.map(statCell),
         )
       : null,
     copy.showWrongList
       ? h(
           "div",
-          { class: "wrong-list" },
+          { class: "wrong-list tone-wrong" },
           h("p", { class: "text-sm font-semibold" }, "다시 볼 단어"),
           summary.wrongItems.map((item) => h("div", { class: "wrong-row" }, h("strong", {}, item.term), h("span", {}, item.meaning))),
         )

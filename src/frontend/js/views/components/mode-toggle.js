@@ -15,13 +15,13 @@ const MODES = [
  * @returns {HTMLElement}
  */
 export function renderModeToggle({ value, onChange }) {
-  const group = h("div", { class: "grid grid-cols-2 gap-1 rounded-xl bg-zinc-100 p-1", role: "group", "aria-label": "학습 방식" });
+  const group = h("div", { class: "segmented grid-cols-2", role: "group", "aria-label": "학습 방식" });
   const buttons = MODES.map((mode) =>
     h(
       "button",
       {
         type: "button",
-        class: "press focus-ring min-h-[44px] rounded-lg px-3 text-body font-semibold",
+        class: "segment press focus-ring",
         "aria-pressed": String(mode.id === value),
         onclick: () => {
           onChange(mode.id);
@@ -35,7 +35,6 @@ export function renderModeToggle({ value, onChange }) {
     buttons.forEach((el, i) => {
       const on = MODES[i].id === selected;
       el.setAttribute("aria-pressed", String(on));
-      el.className = `press focus-ring min-h-[44px] rounded-lg px-3 text-body font-semibold ${on ? "bg-white text-indigo-600 shadow-sm" : "text-zinc-600"}`;
     });
   }
   paint(value);

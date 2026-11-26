@@ -11,7 +11,8 @@ import { getUser } from "../core/state.js";
 import { toast } from "../core/toast.js";
 import { confirmDeleteVocabulary, openVocabularyForm } from "./components/admin-forms.js";
 import { mountLoader } from "./components/loader.js";
-import { progressBar } from "./components/progress-bar.js";
+import { iconBadge } from "./components/card-heading.js";
+import { progressRow } from "./components/progress-bar.js";
 import { openWordSheet } from "./components/word-sheet.js";
 
 /**
@@ -68,15 +69,20 @@ class ExplorePanel {
     const entry = wordSheetEntry(this.user);
     return h(
       "article",
-      { class: "card vocab-card rise-in space-y-3" },
-      h("div", { class: "flex items-start justify-between gap-2" }, h("h2", { class: "min-w-0 text-base font-bold text-zinc-900" }, c.title), c.isActive ? h("span", { class: "shrink-0 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-600" }, "학습 중") : null),
-      h("p", { class: "text-xs text-zinc-500" }, `${c.categoryLabel} · ${c.levelLabel} · ${c.wordCountText}`),
+      { class: `card vocab-card rise-in tone-accent space-y-3${c.isActive ? " vocab-card--active" : ""}` },
+      h(
+        "div",
+        { class: "flex items-start gap-3" },
+        iconBadge("book-open"),
+        h("div", { class: "min-w-0 flex-1" }, h("h2", { class: "text-base font-bold text-zinc-900" }, c.title), h("p", { class: "text-xs text-zinc-500" }, `${c.categoryLabel} · ${c.levelLabel} · ${c.wordCountText}`)),
+        c.isActive ? h("span", { class: "shrink-0 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-600" }, "학습 중") : null,
+      ),
       c.description ? h("p", { class: "text-sm text-zinc-700" }, c.description) : null,
-      progressBar(c.progressPercent, `${c.title} 진행률`),
+      progressRow(c.progressPercent, `${c.title} 진행률`),
       h("p", { class: "text-xs text-zinc-500" }, c.progressText),
       h(
         "div",
-        { class: "grid grid-cols-2 gap-2" },
+        { class: "vocab-actions" },
         button({ variant: actions.preview, onClick: () => openWordSheet(vocabulary, { onWordsChanged: () => this.refresh() }) }, icon(entry.icon, "h-4 w-4"), entry.label),
         c.isActive ? button({ variant: actions.main, onClick: () => this.ctx.navigate("/") }, icon("check", "h-4 w-4"), "홈에서 학습") : button({ variant: actions.main, disabled: this.busyId !== null, onClick: () => this.activate(vocabulary) }, "이 단어장으로 학습"),
       ),

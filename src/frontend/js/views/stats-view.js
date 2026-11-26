@@ -1,13 +1,15 @@
 /*
- * 2026-11-05 - voda-voca - 통계 화면: 누적 정답률·연속 학습일, 주간 활동 차트, 표준 단어장별 진행률
+ * 2026-11-05 - voda-voca - 통계 화면: 누적 정답률·연속 학습일, 성적 추이·주간 활동 차트(Chart.js), 자주 틀리는 단어, 표준 단어장별 진행률
  * 파일 위치: src/frontend/js/views/stats-view.js
  */
 
 import { api } from "../core/api.js";
 import { button, h, icon, notice } from "../core/dom.js";
 import { frequentWrongModel, scoreTrendModel } from "../core/analytics-model.js";
+import { dailyChartConfig, sessionChartConfig, weeklyChartConfig } from "../core/chart-model.js";
 import { statsPageModel } from "../core/stats-page-model.js";
-import { renderWeeklyChart } from "../core/weekly-chart.js";
+import { cardHeading, iconBadge } from "./components/card-heading.js";
+import { browserChartSet, chartPanel } from "./components/chart-panel.js";
 import { progressBar } from "./components/progress-bar.js";
 import { mountLoader } from "./components/loader.js";
 
@@ -35,44 +37,83 @@ async function loadStats() {
  * @returns {() => void}
  */
 export function statsView(root, ctx) {
-  return mountLoader(root, loadStats, (m) => root.append(renderStats(m, ctx)));
+  const charts = browserChartSet();
+  const dispose = mountLoader(root, loadStats, (m) => {
+    root.append(renderStats(m, ctx, charts));
+    charts.mount(); // 캔버스가 문서에 붙은 뒤에 그려야 크기를 읽는다
+  });
+  return () => {
+    dispose();
+    charts.destroy();
+  };
 }
 
-function card(label, value, hint) {
-  return h("div", { class: "card" }, h("p", { class: "text-xs font-medium text-zinc-500" }, label), h("p", { class: "mt-1 text-2xl font-extrabold tracking-tight text-zinc-900" }, value), hint ? h("p", { class: "text-xs text-zinc-500" }, hint) : null);
-}
-
-/** 라벨, 막대, 값을 한 줄로 보여 주는 정답률 행. 막대는 진행 막대를 재사용한다. */
-function scoreRow(label, percent, valueText, subText) {
+/** 요약 카드. 아이콘 색은 지표를 알아보는 표시이고, 값은 본문 글자색을 쓴다. */
+function card({ label, value, hint, iconName, tone, aside }) {
   return h(
     "div",
-    { class: "space-y-1" },
-    h("div", { class: "flex items-center justify-between gap-2" }, h("p", { class: "text-sm font-semibold text-zinc-800" }, label), h("span", { class: "text-sm text-zinc-500" }, valueText)),
-    progressBar(percent, `${label} 정답률`),
-    subText ? h("p", { class: "text-xs text-zinc-500" }, subText) : null,
+    { class: `card tone-${tone}` },
+    h("div", { class: "flex items-center gap-2" }, iconBadge(iconName), h("p", { class: "text-xs font-medium text-zinc-500" }, label)),
+    h("div", { class: "mt-2 flex items-center justify-between gap-2" }, h("p", { class: "text-2xl font-extrabold tracking-tight text-zinc-900" }, value), aside ?? null),
+    hint ? h("p", { class: "text-xs text-zinc-500" }, hint) : null,
   );
 }
 
-function renderTrend(trend) {
+/** 누적 정답률 고리. 값은 옆의 숫자가 읽어 주므로 장식으로 숨긴다. */
+function accuracyRing(percent) {
+  return h("span", { class: "stat-ring", style: `--ring: ${percent}`, "aria-hidden": "true" });
+}
+
+const DELTA_ICONS = { up: "trending-up", down: "trending-down", flat: "minus" };
+
+/** 차트 위의 제목 줄: 제목, 대표 값, 직전 대비(색과 아이콘, 글자를 함께 쓴다) */
+function chartHeading(title, value, valueLabel, delta) {
+  return h(
+    "div",
+    { class: "flex items-end justify-between gap-2" },
+    h("h3", { class: "text-sm font-semibold text-zinc-600" }, title),
+    h(
+      "p",
+      { class: "flex items-center gap-2" },
+      delta?.direction ? h("span", { class: `delta delta--${delta.direction}` }, icon(DELTA_ICONS[delta.direction], "h-3.5 w-3.5"), delta.change) : null,
+      h("span", { class: "text-xs text-zinc-500" }, valueLabel),
+      h("span", { class: "text-heading text-zinc-900" }, value),
+    ),
+  );
+}
+
+function renderTrend(trend, charts) {
   if (!trend || trend.isEmpty) return null;
+  const { sessions, daily, latestSession } = trend;
   return h(
     "section",
-    { class: "card space-y-4" },
-    h("h2", { class: "text-base font-bold text-zinc-900" }, "시험 성적 추이"),
-    trend.sessions.length > 0
+    { class: "card tone-accent space-y-5" },
+    cardHeading({ iconName: "trending-up", title: "시험 성적 추이" }),
+    sessions.length > 0
       ? h(
           "div",
-          { class: "space-y-3" },
-          h("h3", { class: "text-sm font-semibold text-zinc-600" }, "회차별 정답률"),
-          trend.sessions.map((s) => scoreRow(s.label, s.percent, s.accuracyText, s.change ? `${s.scoreText} 정답 · 직전 회차 대비 ${s.change}` : `${s.scoreText} 정답`)),
+          { class: "space-y-2" },
+          chartHeading("회차별 정답률", latestSession.accuracyText, "최근", latestSession),
+          chartPanel(charts, {
+            label: "회차별 정답률",
+            summary: `${sessions.length}회, 최근 ${latestSession.accuracyText}`,
+            build: (palette, options) => sessionChartConfig(sessions, palette, options),
+            table: { head: ["회차", "정답률", "정답", "직전 대비"], rows: sessions.map((s) => [s.label, s.accuracyText, s.scoreText, s.change ?? "—"]) },
+            tall: true,
+          }),
         )
       : null,
-    trend.daily.length > 0
+    daily.length > 0
       ? h(
           "div",
-          { class: "space-y-3" },
-          h("h3", { class: "text-sm font-semibold text-zinc-600" }, "날짜별 정답률"),
-          trend.daily.map((d) => scoreRow(d.label, d.percent, d.accuracyText, d.text)),
+          { class: "space-y-2" },
+          chartHeading("날짜별 정답률", trend.dailyAverageText ?? "—", "평균"),
+          chartPanel(charts, {
+            label: "날짜별 정답률",
+            summary: `${daily.length}일, 평균 ${trend.dailyAverageText}`,
+            build: (palette, options) => dailyChartConfig(daily, palette, options),
+            table: { head: ["날짜", "정답률", "푼 결과"], rows: daily.map((d) => [d.label, d.accuracyText, d.text]) },
+          }),
         )
       : null,
   );
@@ -82,25 +123,44 @@ function renderFrequentWrong(frequent) {
   if (!frequent || frequent.isEmpty) return null;
   return h(
     "section",
-    { class: "card space-y-4" },
-    h("div", { class: "flex items-baseline justify-between" }, h("h2", { class: "text-base font-bold text-zinc-900" }, "자주 틀리는 단어"), h("span", { class: "text-sm text-zinc-500" }, `상위 ${frequent.items.length}개`)),
+    { class: "card tone-wrong space-y-4" },
+    cardHeading({ iconName: "rotate-ccw", title: "자주 틀리는 단어", aside: h("span", { class: "text-sm text-zinc-500" }, `상위 ${frequent.items.length}개`) }),
     h(
       "ol",
       { class: "space-y-3" },
       frequent.items.map((w) =>
         h(
           "li",
-          { class: "space-y-1.5" },
-          h("div", { class: "flex items-baseline justify-between gap-2" }, h("p", { class: "min-w-0 truncate text-sm font-semibold text-zinc-800" }, `${w.rank}. ${w.term}`), h("span", { class: "shrink-0 text-sm text-zinc-500" }, w.countText)),
-          progressBar(w.ratio, `${w.term} 오답 횟수`),
-          h("p", { class: "text-xs text-zinc-500" }, `${w.meaning} · ${w.ratioText}`),
+          { class: "flex items-start gap-3" },
+          h("span", { class: w.rank <= 3 ? "rank-badge rank-badge--top" : "rank-badge" }, String(w.rank)),
+          h(
+            "div",
+            { class: "min-w-0 flex-1 space-y-1.5" },
+            h("div", { class: "flex items-baseline justify-between gap-2" }, h("p", { class: "min-w-0 truncate text-sm font-semibold text-zinc-800" }, w.term), h("span", { class: "shrink-0 text-sm text-zinc-500" }, w.countText)),
+            progressBar(w.ratio, `${w.term} 오답 횟수`, "wrong"),
+            h("p", { class: "text-xs text-zinc-500" }, `${w.meaning} · ${w.ratioText}`),
+          ),
         ),
       ),
     ),
   );
 }
 
-function renderStats(m, ctx) {
+function renderWeekly(m, charts) {
+  return h(
+    "section",
+    { class: "card tone-activity space-y-2" },
+    cardHeading({ iconName: "calendar-days", title: "최근 7일", aside: h("span", { class: "text-sm text-zinc-500" }, `${m.weekTotal}개`) }),
+    chartPanel(charts, {
+      label: "최근 7일 학습 단어 수",
+      summary: `합계 ${m.weekTotal}개`,
+      build: (palette, options) => weeklyChartConfig(m.weekly, palette, options),
+      table: { head: ["날짜", "요일", "학습 단어"], rows: m.weekly.map((d) => [d.date.slice(5).replace("-", "/"), d.isToday ? `${d.label} (오늘)` : d.label, `${d.count}개`]) },
+    }),
+  );
+}
+
+function renderStats(m, ctx, charts) {
   if (m.isEmpty) {
     return notice({
       iconName: "bar-chart-3",
@@ -115,20 +175,20 @@ function renderStats(m, ctx) {
     h(
       "div",
       { class: "grid grid-cols-2 gap-3" },
-      card("누적 정답률", m.accuracy.value, m.accuracy.hint),
-      card("연속 학습일", m.streak?.value ?? "0일", m.streak?.hint ?? "오늘 학습하면 시작돼요"),
-      card("전체 단어", m.totalWords, "제공 단어장 합계"),
-      card("복습할 오답", `${m.wrongWordCount}개`, "마지막 결과가 오답"),
+      card({ label: "누적 정답률", value: m.accuracy.value, hint: m.accuracy.hint, iconName: "target", tone: "accent", aside: accuracyRing(m.accuracyPercent) }),
+      card({ label: "연속 학습일", value: m.streak?.value ?? "0일", hint: m.streak?.hint ?? "오늘 학습하면 시작돼요", iconName: "flame", tone: "activity" }),
+      card({ label: "전체 단어", value: m.totalWords, hint: "제공 단어장 합계", iconName: "book-open", tone: "words" }),
+      card({ label: "복습할 오답", value: `${m.wrongWordCount}개`, hint: "마지막 결과가 오답", iconName: "rotate-ccw", tone: "wrong" }),
     ),
-    renderTrend(m.trend),
+    renderTrend(m.trend, charts),
     renderFrequentWrong(m.frequent),
-    h("section", { class: "card space-y-2" }, h("div", { class: "flex items-baseline justify-between" }, h("h2", { class: "text-base font-bold text-zinc-900" }, "최근 7일"), h("span", { class: "text-sm text-zinc-500" }, `${m.weekTotal}개`)), renderWeeklyChart(m.weekly)),
+    renderWeekly(m, charts),
     h(
       "section",
-      { class: "card space-y-4" },
-      h("h2", { class: "text-base font-bold text-zinc-900" }, "단어장별 진행률"),
+      { class: "card tone-accent space-y-4" }, // 막대(학습 진행)와 같은 색
+      cardHeading({ iconName: "book-open", title: "단어장별 진행률" }),
       m.vocabulariesActiveFirst.map((v) =>
-        h("div", { class: "space-y-1.5" }, h("div", { class: "flex items-center justify-between gap-2" }, h("p", { class: "min-w-0 truncate text-sm font-semibold text-zinc-800" }, v.isActive ? [h("span", { class: "mr-1.5 text-indigo-600" }, "학습 중"), v.title] : v.title), h("span", { class: "text-sm text-zinc-500" }, `${v.percent}%`)), progressBar(v.percent, `${v.title} 진행률`), h("p", { class: "text-xs text-zinc-500" }, v.text)),
+        h("div", { class: "space-y-1.5" }, h("div", { class: "flex items-center justify-between gap-2" }, h("p", { class: "min-w-0 truncate text-sm font-semibold text-zinc-800" }, v.isActive ? [h("span", { class: "mr-1.5 text-indigo-600" }, "학습 중"), v.title] : v.title), h("span", { class: "text-sm font-bold text-zinc-900" }, `${v.percent}%`)), progressBar(v.percent, `${v.title} 진행률`, "progress"), h("p", { class: "text-xs text-zinc-500" }, v.text)),
       ),
     ),
   );

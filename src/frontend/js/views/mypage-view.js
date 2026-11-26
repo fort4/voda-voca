@@ -10,6 +10,7 @@ import { passwordChangeErrors, passwordChangeFailure, profileView } from "../cor
 import { getUser } from "../core/state.js";
 import { toast } from "../core/toast.js";
 import { passwordConfirmState } from "../core/validate.js";
+import { cardHeading } from "./components/card-heading.js";
 
 const CONFIRM_TONE_CLASS = { match: "text-emerald-700", mismatch: "text-red-600", empty: "text-zinc-500" };
 
@@ -36,8 +37,8 @@ export function myPageView(root, { withdraw }) {
 function profileCard(view) {
   return h(
     "section",
-    { class: "card flex items-center gap-3", "aria-label": "계정 정보" },
-    h("span", { class: "grid h-12 w-12 shrink-0 place-items-center rounded-full bg-indigo-600 text-lg font-bold text-white", "aria-hidden": "true" }, view.initial),
+    { class: "card tone-accent flex items-center gap-3", "aria-label": "계정 정보" },
+    h("span", { class: "avatar-badge", "aria-hidden": "true" }, view.initial),
     h(
       "div",
       { class: "min-w-0" },
@@ -51,8 +52,8 @@ function profileCard(view) {
 function withdrawCard(withdraw) {
   return h(
     "section",
-    { class: "card space-y-3" },
-    h("h2", { class: "text-base font-bold text-zinc-900" }, "회원 탈퇴"),
+    { class: "card tone-wrong space-y-3" },
+    cardHeading({ iconName: "user-x", title: "회원 탈퇴" }),
     h("p", { class: "text-sm text-zinc-700" }, "계정과 북마크, 학습 기록이 영구 삭제됩니다. 되돌릴 수 없습니다."),
     button({ variant: "danger-soft", full: true, onClick: withdraw }, "회원 탈퇴"),
   );
@@ -142,7 +143,7 @@ function passwordCard(user) {
   return h(
     "section",
     { class: "card space-y-4" },
-    h("h2", { class: "text-base font-bold text-zinc-900" }, "비밀번호 변경"),
+    cardHeading({ iconName: "lock", title: "비밀번호 변경" }),
     user.is_admin ? h("p", { class: "text-sm text-zinc-700" }, "처음 받은 비밀번호를 그대로 쓰고 있다면 지금 바꿔 주세요.") : null,
     h("p", { class: "text-xs text-zinc-500" }, "바꾸면 다른 기기에서 로그인한 상태는 해제됩니다."),
     form,

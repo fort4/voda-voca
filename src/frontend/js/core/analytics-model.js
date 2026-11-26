@@ -31,6 +31,22 @@ function changeText(previous, current) {
   return `${diff > 0 ? "+" : "-"}${Math.abs(diff)}%p`;
 }
 
+/** 최근 회차의 정답률과 직전 회차 대비 방향(up·down·flat). 첫 회차는 비교 대상이 없다. */
+function latestSummary(sessions) {
+  const last = sessions.at(-1);
+  if (!last) return null;
+  const direction = last.change === null ? null : last.change.startsWith("+") ? "up" : last.change.startsWith("-") ? "down" : "flat";
+  return { accuracyText: last.accuracyText, change: last.change, direction };
+}
+
+/** 기간 평균 정답률. 날마다 푼 문항 수가 다르므로 문항 수로 가중한다. */
+function averageText(daily) {
+  const answered = daily.reduce((sum, d) => sum + d.answered, 0);
+  if (answered === 0) return null;
+  const correct = daily.reduce((sum, d) => sum + d.correct, 0);
+  return `${Math.round((correct / answered) * 100)}%`;
+}
+
 /**
  * @param {{sessions: Array<{round: number, session_id: number, correct: number, total: number, accuracy: number}>,
  *          daily: Array<{date: string, answered: number, correct: number, accuracy: number}>}} data
@@ -50,5 +66,11 @@ export function scoreTrendModel(data) {
     accuracyText: `${d.accuracy}%`,
     text: `${d.correct} / ${d.answered} 정답`,
   }));
-  return { isEmpty: sessions.length === 0 && daily.length === 0, sessions, daily };
+  return {
+    isEmpty: sessions.length === 0 && daily.length === 0,
+    sessions,
+    daily,
+    latestSession: latestSummary(sessions),
+    dailyAverageText: averageText(data.daily),
+  };
 }

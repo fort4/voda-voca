@@ -35,6 +35,7 @@ export function statsPageModel(stats, catalog) {
       stats.accuracy === null
         ? { value: NO_DATA, hint: "기록 없음" }
         : { value: `${Math.round(stats.accuracy)}%`, hint: `누적 ${stats.answered.toLocaleString(KO)}문항` },
+    accuracyPercent: stats.accuracy === null ? 0 : Math.round(stats.accuracy),
     streak: stats.streak_days > 0 ? { value: `${stats.streak_days}일`, hint: "오늘 기준" } : null,
     totalWords: stats.total_words.toLocaleString(KO),
     wrongWordCount: stats.wrong_word_count,
