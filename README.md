@@ -21,7 +21,7 @@
 
 ### 구현한 요구사항 ID (기준일 2026-11-26)
 
-상태: ✅ 구현 / 🟡 일부 / ❌ 미구현 / ➖ 선택하지 않음. 상세 근거와 차이는 [`요구사항 명세 §11`](docs/voda-voca_Requirement_Spec_v2.3_261125.md)에 있다.
+상태: ✅ 구현 / 🟡 일부 / ❌ 미구현 / ➖ 선택하지 않음. 상세 근거와 차이는 [`요구사항 명세 §11`](docs/분석_261125_요구사항명세서%20v2.3.md)에 있다.
 
 | 영역 | ID | 상태 |
 | :--- | :--- | :---: |
@@ -306,7 +306,7 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 
 ## 6. API 개요
 
-모든 경로는 `/api` 아래입니다. 자세한 요청·응답은 `docs/voda-voca_API_Integration_Spec_v2.2_261119.md`와 `/docs`(자동 생성)를 봅니다.
+모든 경로는 `/api` 아래입니다. 자세한 요청·응답은 `docs/설계_261119_API연동규격서 v2.2.md`와 `/docs`(자동 생성)를 봅니다.
 
 | 영역 | 엔드포인트 |
 | :--- | :--- |
@@ -346,12 +346,12 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 
 | 문서 | 현행 버전 | 이전 버전 |
 | :--- | :--- | :--- |
-| 요구사항 명세 (§11 에 과제 ID 매핑) | `docs/voda-voca_Requirement_Spec_v2.3_261125.md` | `docs/old/` |
-| 데이터 설계서 | `docs/voda-voca_Data_Design_v3.0_261125.md` | `docs/old/` |
-| API 연동 규격서 | `docs/voda-voca_API_Integration_Spec_v2.2_261119.md` | `docs/old/` |
-| UI/UX 설계서 | `docs/voda-voca_UIUX_Design_Spec_v2.2_261105.md` | `docs/old/` |
-| 시스템 아키텍처 설계서 | `docs/voda-voca_Architecture_Design_v1.1_261125.md` | `docs/old/` |
-| 아키텍처 결정 기록 (ADR-001~014) | `docs/voda-voca_Decision_Records_v1.1_261125.md` | `docs/old/` |
-| 테스트 명세서 | `docs/voda-voca_Test_Specification_v1.2_261125.md` | `docs/old/` |
+| 요구사항 명세 (§11 에 과제 ID 매핑) | `docs/분석_261125_요구사항명세서 v2.3.md` | `docs/old/` |
+| 데이터 설계서 | `docs/설계_261125_데이터설계서 v3.0.md` | `docs/old/` |
+| API 연동 규격서 | `docs/설계_261119_API연동규격서 v2.2.md` | `docs/old/` |
+| UI/UX 설계서 | `docs/설계_261105_UIUX설계서 v2.2.md` | `docs/old/` |
+| 시스템 아키텍처 설계서 | `docs/설계_261125_시스템아키텍처설계서 v1.1.md` | `docs/old/` |
+| 아키텍처 결정 기록 (ADR-001~014) | `docs/설계_261125_결정기록 v1.1.md` | `docs/old/` |
+| 테스트 명세서 | `docs/구현_261125_테스트정의서 v1.2.md` | `docs/old/` |
 
 v2.2 진행 중에는 파일명을 바꾸지 않고 각 문서의 변경 이력 표에 개정 행을 추가합니다. 작업 일지와 결정 기록은 `ai-agent/claude/`에 있습니다.
