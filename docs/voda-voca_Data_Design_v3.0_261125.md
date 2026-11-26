@@ -110,6 +110,7 @@ erDiagram
         INTEGER word_id FK
         BOOLEAN is_correct
         VARCHAR mode "quiz | flashcard"
+        INTEGER study_day "단어장별 일차, 옛 기록은 NULL"
         DATETIME created_at
     }
 ```
@@ -303,10 +304,11 @@ erDiagram
 | `user_id` | INTEGER | N | — | **FK** → `users.id` `ON DELETE CASCADE` |
 | `word_id` | INTEGER | N | — | **FK** → `system_words.id` `ON DELETE CASCADE` (`fk_study_logs_word`) |
 | `is_correct` | BOOLEAN | N | — | 정답 1, 오답 0. 플래시카드의 "알아요" = 정답, "헷갈려요" = 오답 |
-| `created_at` | DATETIME | N | UTC 현재 시각(§2.2) | UTC. 답을 기록한 시각 |
+| `created_at` | DATETIME | N | UTC 현재 시각(§2.2) | UTC. 답을 기록한 시각. 앱은 일차 판정에 쓴 시각을 그대로 적는다 |
 | `mode` | VARCHAR(20) | N | `'quiz'` | `'quiz'` \| `'flashcard'` (`ck_study_logs_mode`). 마이그레이션 `c3f7a9d1e8b2` 에서 추가 |
 | `direction` | VARCHAR(10) | N | `'en_to_ko'` | `'en_to_ko'` \| `'ko_to_en'` (`ck_study_logs_direction`). **문항의 실제 방향**이며 `mixed` 는 값이 아니다. 플래시카드 행은 기본값. 마이그레이션 `0002` (REQ-157, VOCA-FR-026) |
 | `format` | VARCHAR(10) | N | `'choice'` | `'choice'` \| `'ox'` (`ck_study_logs_format`). 마이그레이션 `0002` |
+| `study_day` | INTEGER | Y | NULL | 단어가 속한 단어장 기준의 일차 (REQ-165, VOCA-FR-014). `0004` 이전 기록은 NULL. 별도 진도 테이블은 두지 않는다. 마이그레이션 `0004` |
 
 **인덱스**: `PRIMARY KEY (id)`, `KEY idx_study_logs_user_created (user_id, created_at)`, `KEY idx_study_logs_word (word_id)`
 
@@ -544,17 +546,21 @@ CREATE TABLE sessions (
 	CONSTRAINT fk_sessions_user FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
-CREATE TABLE study_logs (
+CREATE TABLE "study_logs" (
 	id INTEGER NOT NULL, 
 	user_id INTEGER NOT NULL, 
 	word_id INTEGER NOT NULL, 
 	is_correct BOOLEAN NOT NULL, 
 	mode VARCHAR(20) DEFAULT 'quiz' NOT NULL, 
 	created_at DATETIME DEFAULT (strftime('%Y-%m-%d %H:%M:%f000', 'now')) NOT NULL, 
+	direction VARCHAR(10) DEFAULT 'en_to_ko' NOT NULL, 
+	format VARCHAR(10) DEFAULT 'choice' NOT NULL, study_day INTEGER, 
 	PRIMARY KEY (id), 
 	CONSTRAINT ck_study_logs_mode CHECK (mode IN ('quiz', 'flashcard')), 
+	CONSTRAINT fk_study_logs_word FOREIGN KEY(word_id) REFERENCES system_words (id) ON DELETE CASCADE, 
 	CONSTRAINT fk_study_logs_user FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE, 
-	CONSTRAINT fk_study_logs_word FOREIGN KEY(word_id) REFERENCES system_words (id) ON DELETE CASCADE
+	CONSTRAINT ck_study_logs_direction CHECK (direction IN ('en_to_ko', 'ko_to_en')), 
+	CONSTRAINT ck_study_logs_format CHECK (format IN ('choice', 'ox'))
 );
 
 CREATE TABLE user_word_progress (
@@ -608,6 +614,7 @@ CREATE INDEX idx_uwp_word ON user_word_progress (word_id);
 | **`0001`** (v3.0) | SQLite 초기 스키마. 위 DDL 의 8개 테이블과 인덱스를 한 번에 만든다. 빈 DB 에서 `alembic upgrade head` 한 번으로 시작하며(VOCA-NFR-003), 컨테이너는 시작할 때 `docker-entrypoint.sh` 가 이를 실행한다. |
 | `0002` (v3.0 개정) | `quiz_sessions`·`study_logs` 에 출제 방향·형식 컬럼 (REQ-157) |
 | `0003` (v3.0 개정) | `system_vocabularies`·`system_words` 에 `source` 컬럼 (REQ-160·161). **테이블을 재작성하지 않고 `ADD COLUMN`** 만 쓴다: 재작성은 `COLLATE NOCASE` 를 잃고 `ON DELETE CASCADE` 로 학습 이력을 지울 위험이 있다 (ADR-012) |
+| `0004` (v3.0 개정) | `study_logs` 에 `study_day` 컬럼 (REQ-165). `ADD COLUMN` 만 쓰며 기존 이력은 NULL 로 둔다 |
 
 **이력 압축**: v2.2 까지의 MySQL 리비전 12개(`08e3374f8644` … `a7d3f1c9e5b2`)는 MySQL 전용 구문(`mysql.BIGINT`, `UTC_TIMESTAMP`, `JSON_OBJECT`, `ENGINE=InnoDB`)을 담고 있어 SQLite 에서 실행할 수 없으므로 `0001` 하나로 재작성했다. 옛 리비전 파일은 git 이력(커밋 `d1e58dc` 이전)에, 옛 스키마의 DDL 은 `docs/old/voda-voca_Data_Design_v2.2_261119.md` 에 남아 있다. 기존 MySQL 데이터는 이관하지 않는다(D20).
 
@@ -656,6 +663,7 @@ CREATE INDEX idx_uwp_word ON user_word_progress (word_id);
 
 | 버전 | 날짜 | 내용 | 작성 |
 | :--- | :--- | :--- | :--- |
+| v3.0 개정 | 2026-11-26 | `study_logs.study_day` 추가(마이그레이션 `0004`, REQ-165), §1·§3.6·§5 갱신. §5 의 `study_logs` DDL 을 현행 덤프로 교체 | Claude |
 | v3.0 개정 | 2026-11-26 | `system_vocabularies.source`, `system_words.source` 추가(마이그레이션 `0003`, REQ-160·161), §1·§3.2·§3.3·§5 갱신 | Claude |
 | v3.0 개정 | 2026-11-25 | **출제 방향·형식 컬럼(REQ-157, 마이그레이션 `0002`)**: `quiz_sessions.direction`·`format`, `study_logs.direction`·`format` 추가(NOT NULL, 기본 `en_to_ko`·`choice`, CHECK 제약). 기존 행은 기본값으로 채워진다. `questions` 스냅샷 키 `direction`·`format`·`prompt`·`meaning`·`proposed` 추가 | Claude |
 | **v3.0** | 2026-11-25 | **SQLite 전환(ADR-010)**: 타입(INTEGER PK/FK, DATETIME UTC 마이크로초, VARCHAR+CHECK), 대소문자 정책(`NOCASE`), 시간 기본값(`strftime`), 외래키 PRAGMA, `BEGIN IMMEDIATE` 동시성, §5 DDL 을 실제 스키마 덤프로 교체, 마이그레이션 12개를 `0001` 하나로 압축. 테이블·컬럼 의미 변경 없음. D20~D21 추가, F1 폐기 | Claude |

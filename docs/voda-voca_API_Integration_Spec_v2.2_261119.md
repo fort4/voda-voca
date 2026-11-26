@@ -290,10 +290,12 @@
     "weekly": [{"date": "2026-11-05", "label": "목", "count": 15, "is_today": true}],
     "total_words": 1000,
     "vocabulary_progress": [{"vocabulary_id": 1, "word_count": 200, "learned_words": 52, "percent": 26}],
-    "wrong_word_count": 9, "due_review_count": 3
+    "wrong_word_count": 9, "due_review_count": 3,
+    "day_progress": {"vocabulary_id": 1, "day": 2, "words": 6}
   }
   ```
 - `due_review_count` (v2.2, REQ-150): 오늘 복습할 단어 수. SRS 다음 복습 시각이 지금 이전인 단어를 센다 (`source=due` 로 시작할 수 있는 단어 수와 같다). 복습함의 "오늘 복습" 카드가 쓴다.
+- `day_progress` (REQ-165): 학습 중인 단어장의 일차 진도. `day` 는 지금 학습하면 기록될 일차, `words` 는 그 일차에 답한 서로 다른 단어 수입니다. 학습 중인 단어장이 없으면 `null`. 암기 단어 수와 전체는 #5 의 `memorized_words`·`total_words` 를 씁니다.
 - **전체 이력 기준**이며 최근 N건 제한이 없습니다 (REQ-131). `accuracy` 는 푼 문항이 없으면 null. `streak_days` 는 한국 날짜 기준이며 오늘 기록이 없으면 어제부터 셉니다. `weekly` 는 오늘을 포함한 최근 7일(오래된 날부터)이고 `count` 는 그날 푼 **고유 단어 수**입니다. `vocabulary_progress[].learned_words` 는 **한 번이라도 맞힌** 단어 수이며(#5 의 `studied_words` 와 기준이 다릅니다), `wrong_word_count` 는 #14 의 `total` 과 같은 규칙입니다.
 
 **#14 GET `/api/study/wrong-words?page=&size=`**
@@ -554,3 +556,4 @@ POST /api/study/sessions  ─►  items[0..N-1]
 | v2.2 개정 | 2026-11-26 | 비밀번호 변경 `PUT /api/auth/me/password`(#4c, REQ-164) 추가, `UserOut.is_admin` 추가, `admin` 예약 닉네임, 관리자 탈퇴 403 (REQ-159) | Claude |
 | v2.2 개정 | 2026-11-26 | 관리 API #20~#25 추가(§3.8, REQ-160·161), 단어장·단어 응답에 `source` 추가 | Claude |
 | v2.2 개정 | 2026-11-26 | CSV 일괄 등록 `#26` 추가(REQ-162), 400 `CSV_INVALID`·413·415, 래퍼의 `contentType` 옵션 | Claude |
+| v2.2 개정 | 2026-11-26 | `GET /api/study/stats`(#13) 응답에 `day_progress` 추가 (REQ-165). 하위 호환 | Claude |

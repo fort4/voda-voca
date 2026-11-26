@@ -29,12 +29,12 @@
 | CSV 일괄 등록 | VOCA-FR-003 | 🟡 (관리자 전용, 1회 500행. 중복은 건너뛰고 건수 보고) |
 | 단어 검색 | VOCA-FR-004 | ✅ (단어장 안에서 표제어·뜻 검색) |
 | 암기 | VOCA-FR-012, 013 | ✅ |
-| 암기 | VOCA-FR-011, 014 | 🟡 (일차 개념 없음, 간격 반복으로 대체) |
+| 암기 | VOCA-FR-011, 014 | ✅ (단어장별 일차 진도, 학습 이력에 일차 저장) |
 | 시험 | VOCA-FR-025 | ✅ |
 | 시험 | VOCA-FR-021, 022 | 🟡 (문항 수 10·20·30, 오답·복습·미학습 배분) |
 | 시험 | VOCA-FR-023, 024, 026 | ✅ (영→한·한→영·섞기, 4지선다·OX, 문항별 방향·형식 저장) |
 | 통계 | VOCA-FR-034 | ✅ |
-| 통계 | VOCA-FR-031 | 🟡 (진행률은 있고 일차 없음) |
+| 통계 | VOCA-FR-031 | ✅ (홈에 현재 일차, 암기 단어 수 / 전체) |
 | 통계 | VOCA-FR-032, 033 | ✅ (회차별·날짜별 정답률, 오답 횟수 상위 N) |
 | 로그인 (도전) | VOCA-FR-041, 042, 043 | ✅ |
 | 다른 계정 이력 (도전) | VOCA-FR-051~053 | ➖ |
@@ -209,25 +209,25 @@ curl http://localhost:8080/health
 
 ## 4. 테스트 실행
 
-### 4.1 백엔드 (pytest, 873건)
+### 4.1 백엔드 (pytest, 899건)
 Docker 도 DB 서버도 필요 없습니다. 테스트가 임시 SQLite 파일을 만들어 마이그레이션과 시드를 적용합니다.
 ```bash
 .venv/bin/python -m pytest -q
 ```
 - 통합 테스트는 세션 단위 임시 SQLite 파일에 연결하며 개발자의 실제 DB(`DB_PATH`)는 건드리지 않습니다. 테스트 계정은 `tvoda-` 접두사를 씁니다.
-- 최근 검증 결과: 870 passed, 3 skipped (2026-11-26, 약 39초). 커버리지는 98%(2026-11-19 측정, SQLite 전환 전)입니다 (`--cov=backend`, 설정은 `.coveragerc`).
-- **DB 없이 빠르게**: 순수 단위 테스트에는 `no_db` 표시가 붙어 있어 `.venv/bin/python -m pytest -q -m no_db` (347건, 약 8초)로 돌립니다. 새 순수 단위 테스트에는 `pytestmark = pytest.mark.no_db` 를 붙이세요 (표시가 거짓이면 `test_no_db_guard.py` 가 실패합니다).
+- 최근 검증 결과: 895 passed, 4 skipped (2026-11-26, 약 60초). 커버리지는 98%(2026-11-19 측정, SQLite 전환 전)입니다 (`--cov=backend`, 설정은 `.coveragerc`).
+- **DB 없이 빠르게**: 순수 단위 테스트에는 `no_db` 표시가 붙어 있어 `.venv/bin/python -m pytest -q -m no_db` (363건, 약 12초)로 돌립니다. 새 순수 단위 테스트에는 `pytestmark = pytest.mark.no_db` 를 붙이세요 (표시가 거짓이면 `test_no_db_guard.py` 가 실패합니다).
 - **푸시 전 마이그레이션 검사**: `.venv/bin/alembic -c src/backend/alembic.ini check` 가 `No new upgrade operations detected.` 를 내야 합니다 (모델은 바꿨는데 마이그레이션을 빼먹은 경우를 잡습니다).
 - 개발 중에는 지금 작업하는 테스트만 돌립니다 (예: `.venv/bin/python -m pytest -q src/backend/tests/test_bookmark_api.py`).
 
-### 4.2 프론트엔드 (node --test, 587건)
+### 4.2 프론트엔드 (node --test, 594건)
 ```bash
 cd src/frontend
 npm test            # 또는: node --test tests/
 ```
 - 외부 패키지를 설치하지 않습니다. 순수 로직(API 클라이언트, 라우터, 세션 러너, 콤보, 사운드, 저장소, 뷰모델)과, 화면 배선·디자인 토큰·다크 모드 누락을 소스 수준에서 검사하는 테스트를 돌립니다.
-- 최근 검증 결과: 587 passed (2026-11-26).
-- 누적 검증: 백엔드 870건 통과(3 skip), 프론트엔드 587건 통과.
+- 최근 검증 결과: 594 passed (2026-11-26).
+- 누적 검증: 백엔드 895건 통과(4 skip), 프론트엔드 594건 통과.
 
 ### 4.3 문법 검사 (프론트엔드)
 ```bash
@@ -269,6 +269,7 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 
 ### 5.3 홈과 학습 세션 (REQ-012, REQ-014~016, REQ-124, REQ-142, REQ-147)
 - **홈**은 세션 시작까지 한 번의 탭이 목표입니다. 활성 단어장과 진행률, 오늘의 목표, 퀴즈/플래시카드 토글, "N문항 학습 시작" 버튼이 있습니다. 오늘 학습 수는 고유 단어 기준입니다.
+- **일차 진도** (REQ-165): 단어장마다 1일차부터 셉니다. 설정의 오늘의 목표만큼 서로 다른 단어를 풀고(정답·오답 모두), 한국 날짜가 바뀌면 다음 일차가 됩니다. 못 채우면 같은 일차를 이어 갑니다. 홈에 현재 일차, 그 일차의 진행, 암기한 단어 수(연속 3회 정답) / 전체가 보입니다. 업데이트 전에 쌓인 기록에는 일차가 없습니다.
 - 한 번에 푸는 문항 수와 오늘의 목표는 **학습 설정**(10·20·30, 기본 10)을 따릅니다.
 - **세션 하나에서 퀴즈와 플래시카드를 모두 진행**합니다. 문항마다 서버가 즉시 채점·기록하며, 한 번 고른 답은 바뀌지 않습니다.
 - **퀴즈(4지선다)**: 단어를 보고 알맞은 뜻을 고릅니다. 고르면 해설 시트가 올라와 정오, 뜻, 예문, 품사와 발음기호를 보여 줍니다. 단어 4개 미만이면 출제할 수 없습니다.
@@ -350,7 +351,7 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 | API 연동 규격서 | `docs/voda-voca_API_Integration_Spec_v2.2_261119.md` | `docs/old/` |
 | UI/UX 설계서 | `docs/voda-voca_UIUX_Design_Spec_v2.2_261105.md` | `docs/old/` |
 | 시스템 아키텍처 설계서 | `docs/voda-voca_Architecture_Design_v1.1_261125.md` | `docs/old/` |
-| 아키텍처 결정 기록 (ADR-001~013) | `docs/voda-voca_Decision_Records_v1.1_261125.md` | `docs/old/` |
+| 아키텍처 결정 기록 (ADR-001~014) | `docs/voda-voca_Decision_Records_v1.1_261125.md` | `docs/old/` |
 | 테스트 명세서 | `docs/voda-voca_Test_Specification_v1.2_261125.md` | `docs/old/` |
 
 v2.2 진행 중에는 파일명을 바꾸지 않고 각 문서의 변경 이력 표에 개정 행을 추가합니다. 작업 일지와 결정 기록은 `ai-agent/claude/`에 있습니다.
