@@ -55,8 +55,8 @@
 | 대상 | 파일 수 | 케이스 수 | 측정 결과 |
 | :--- | :-: | :-: | :--- |
 | 백엔드 `pytest -q` (전체) | 54 | **899** | **895 통과, 4 skip, 실패 0** (약 60초). skip 4건은 마이그레이션 파일 4개의 스캔을 건너뛰는 항목(마이그레이션은 별도 테스트가 검사). 이 중 `no_db` 363건은 DB 서버 없이 약 12초 |
-| 프론트엔드 `node --test tests/` (전체) | 52 | **594** | **594 통과, 실패 0** |
-| 합계 | 106 | 1,493 | 전체 통과 (2026-11-26 REQ-165 반영 후 재측정) |
+| 프론트엔드 `node --test tests/` (전체) | 55 | **625** | **625 통과, 실패 0** |
+| 합계 | 109 | 1,524 | 전체 통과 (2026-11-26 퀴즈 자동 발음 반영 후 재측정) |
 
 **측정 조건**
 - 2026-11-25, SQLite 전환(ADR-010) 후 측정. 임시 SQLite 파일에 마이그레이션 `0001` 과 시드가 적용된 상태다. `alembic check` 는 `No new upgrade operations detected.` 이다.
@@ -159,7 +159,7 @@
 | TC-023 | REQ-023 Lucide 아이콘 | 자동 | `dom.test.js`(Lucide 부재에도 안전) | |
 | TC-114 | REQ-114 터치 44px | 소스검사 + 수동 | `speak-ui.test.js`, `bookmark-ui.test.js` | 전 화면 전수 검사는 아니다 |
 | TC-115 | REQ-115 본문 16px | 수동 | §6 | `design-tokens.test.js` 는 `--fs-body` 토큰의 존재만 검사하고 값(16px 이상)은 검사하지 않는다. 값 검사 추가는 후속 제안 |
-| TC-125 | REQ-125 발음 청취(TTS) | 자동 | `tts.test.js`, `tts-state.test.js`, `speak-ui.test.js` | 실제 음성 출력은 수동 |
+| TC-125 | REQ-125 발음 청취(TTS) | 자동 | `tts.test.js`, `tts-state.test.js`, `speak-ui.test.js`, `answer-speech.test.js`(퀴즈 자동 발음: 대상, 효과음 뒤 재생, 음소거, 취소, 화면 배선) | 실제 음성 출력은 수동 |
 | TC-126 | REQ-126 다크 모드 | 자동 + 소스검사 | `theme.test.js`, `dark-theme.test.js`(색 클래스마다 다크 규칙 존재), `ui-polish.test.js`, `preferences-model.test.js`(`themeToggleView`), `preferences-ui.test.js`(로그인 전 헤더 버튼이 로그인 링크 왼쪽, 로그인 후에는 없음) | 색 구분과 360px 헤더 겹침은 수동 |
 | TC-127 | REQ-127 키보드 단축키 | 자동 | `shortcuts.test.js`, `session-view-model.test.js` | |
 | TC-134 | REQ-134 계정 메뉴 | 소스검사 | `preferences-ui.test.js`, `settings-ui.test.js` | |
@@ -276,6 +276,7 @@
 | v1.2 개정 | 2026-11-26 | **TC-160·161 신설**(관리자 단어장·단어), TC-122 갱신, 기준선 pytest 823건(820 통과·3 skip)·node 577건·합계 1,400건 | Claude |
 | v1.2 개정 | 2026-11-26 | **TC-162 신설**(CSV 일괄 등록), TC-161 보강, 기준선 pytest 873건(870 통과·3 skip)·node 587건·합계 1,460건 | Claude |
 | v1.2 개정 | 2026-11-26 | **TC-165 신설**(일차 진도), 기준선 pytest 899건(895 통과·4 skip)·node 594건·합계 1,493건 | Claude |
+| v1.2 개정 | 2026-11-26 | **TC-125 보강**(퀴즈 채점 직후 자동 발음), 단어장 카드 플랫 스타일·다크 모드 표면 계층 검사 증가분 반영, 기준선 pytest 899건(895 통과·4 skip)·node 625건·합계 1,524건 | Claude |
 | v1.2 개정 | 2026-11-25 | **TC-154·155·156 신설**(자주 틀리는 단어, 시험 성적 추이, 비밀번호 토글). 기준선 재측정: 백엔드 686건(685 통과·1 skip, +17), 프론트엔드 492건(+14), 합계 1,178건. `alembic check` 는 `No new upgrade operations detected.` (스키마 변경 없음) | Claude |
 | v1.1 개정 | 2026-11-25 | 앱 컨테이너화 반영: TC-116·117 개정, TC-152 신설, 시나리오 S10, 기준선 백엔드 587건(`no_db` 206건)·합계 1,060건 | Claude |
 | v1.1 개정 | 2026-11-24 | 외부 자원 자체 호스팅(REQ-151) 반영: TC-151 추가, 기준선 node 473건·합계 1,030건 | Claude |
