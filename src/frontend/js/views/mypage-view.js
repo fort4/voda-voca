@@ -183,7 +183,7 @@ function passwordCard(user) {
 
   return h(
     "section",
-    { class: "card space-y-4" },
+    { class: "card tone-accent space-y-4" },
     cardHeading({ iconName: "lock", title: "비밀번호 변경" }),
     h("p", { class: "text-xs text-zinc-500" }, "바꾸면 다른 기기에서 로그인한 상태는 해제됩니다."),
     form,

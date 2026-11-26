@@ -168,18 +168,23 @@ a:focus-visible,
   box-shadow: var(--shadow-card);
 }
 
-/* 누를 수 있는 카드: 호버에 살짝 떠오르고, 누르면 가라앉는다 */
-.surface-interactive {
-  transition: transform 180ms var(--ease-out), box-shadow 180ms var(--ease-out), border-color 180ms ease;
+/* 히어로 카드(홈·인증·주요 요약): 상단에 은은한 포인트 하이라이트를 더해 시각적 중심을 잡는다 */
+/* .card 의 border 보다 뒤에 오지 않아도 이기도록 두 클래스를 겹친다 */
+.card.card-hero {
+  position: relative;
+  overflow: hidden;
+  border-top: 2px solid var(--tone, var(--accent));
 }
-.surface-interactive:hover {
+
+/* 단어 시트 안의 단어 행: 표면과 구분되는 정갈한 카드형 리스트 아이템 */
+.word-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--bg);
+  transition: border-color 150ms ease;
+}
+.word-item:hover {
   border-color: var(--border-strong);
-  box-shadow: var(--shadow-raised);
-  transform: translateY(-1px);
-}
-.surface-interactive:active {
-  transform: scale(0.99);
-  box-shadow: var(--shadow-card);
 }
 
 /* ---------- 버튼 마이크로 인터랙션 ---------- */
@@ -384,6 +389,12 @@ a:focus-visible,
   color: #fff;
   box-shadow: 0 2px 6px -2px rgba(79, 70, 229, 0.55);
 }
+.brand-mark--lg {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px -6px rgba(79, 70, 229, 0.55);
+}
 
 /* ---------- 하단 탭바 ---------- */
 .tabbar {
@@ -533,26 +544,7 @@ a:focus-visible,
   }
 }
 
-/* ---------- 대시보드: 단어장 태그, 진행률 바, 주간 차트 (v2 UI 고도화) ---------- */
-.level-tag {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 9999px;
-  padding: 0.125rem 0.625rem;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  line-height: 1.25rem;
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-.level-tag--beginner { background: #ecfdf5; color: #047857; }
-.level-tag--intermediate { background: #eef2ff; color: #4338ca; }
-.level-tag--advanced { background: #faf5ff; color: #7e22ce; }
-.level-tag--user { background: #f4f4f5; color: #52525b; }
-html.dark .level-tag--beginner { background: rgba(16, 185, 129, 0.16); color: #6ee7b7; }
-html.dark .level-tag--intermediate { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; }
-html.dark .level-tag--advanced { background: rgba(168, 85, 247, 0.18); color: #d8b4fe; }
-html.dark .level-tag--user { background: var(--control); color: var(--text-2); }
+/* ---------- 대시보드: 진행률 바, 주간 차트 (v2 UI 고도화) ---------- */
 
 /* 진행 막대: 앱 전체가 이 모양 하나를 쓰고, 의미에 따라 색(--meter-from/to)만 바꾼다 */
 .progress-track {
@@ -836,7 +828,54 @@ html.dark select {
 }
 html.dark input[type="search"]::-webkit-search-cancel-button { filter: invert(1); }
 
-/* SweetAlert2 가 열리면 대화창도 어둡게 */
+/* SweetAlert2 대화창: 앱 카드·버튼·입력창 토큰과 일체화 */
+.swal2-popup {
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-raised);
+  font-family: var(--font-sans);
+}
+.swal2-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-heading);
+  color: var(--text);
+}
+.swal2-html-container {
+  color: var(--text-2);
+  font-size: var(--fs-body);
+}
+.swal2-styled.swal2-confirm,
+.swal2-styled.swal2-cancel {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-control);
+  font-size: var(--fs-body);
+  font-weight: 600;
+}
+.swal2-styled.swal2-confirm {
+  background-color: var(--btn-primary-bg);
+  box-shadow: 0 3px 0 var(--btn-primary-edge);
+}
+/* 삭제·탈퇴 확인: 빨간 버튼은 아래 테두리도 빨강 */
+.swal2-styled.swal2-confirm.swal2-danger {
+  box-shadow: 0 3px 0 var(--btn-danger-edge);
+}
+.swal2-styled.swal2-cancel {
+  background-color: var(--control);
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: 0 3px 0 var(--btn-secondary-edge);
+}
+.swal2-input {
+  min-height: 44px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 16px;
+}
 html.dark .swal2-popup {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -844,6 +883,11 @@ html.dark .swal2-popup {
 }
 html.dark .swal2-title,
 html.dark .swal2-html-container {
+  color: #fafafa;
+}
+html.dark .swal2-input {
+  background: var(--control);
+  border-color: var(--border-strong);
   color: #fafafa;
 }
 

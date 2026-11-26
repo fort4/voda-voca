@@ -72,7 +72,7 @@ function renderHome(data, ctx, { mode, setMode, quizOptions, setQuizOptions }) {
     { class: "stack pb-4" },
     h(
       "section",
-      { class: "card tone-accent rise-in space-y-3" },
+      { class: "card card-hero tone-accent rise-in space-y-3" },
       cardHeading({
         iconName: "book-open",
         title: "학습 중인 단어장",
@@ -81,18 +81,19 @@ function renderHome(data, ctx, { mode, setMode, quizOptions, setQuizOptions }) {
       }),
       m.hasActive
         ? [
-            h("h1", { class: "text-heading tracking-tight text-zinc-900" }, m.vocabularyTitle),
+            h("h1", { class: "text-title tracking-tight text-zinc-900" }, m.vocabularyTitle),
             progressRow(m.progressPercent, "단어장 진행률"),
             h("p", { class: "text-sm text-zinc-600" }, `${m.progressText} · ${m.memorizedText}`),
             m.studyDay ? h("p", { class: "text-sm text-zinc-600" }, m.studyDay.detail) : null,
           ]
-        : [h("h1", { class: "text-heading tracking-tight text-zinc-900" }, "단어장을 골라 주세요"), h("p", { class: "text-sm text-zinc-600" }, m.emptyHint)],
+        : [h("h1", { class: "text-title tracking-tight text-zinc-900" }, "단어장을 골라 주세요"), h("p", { class: "text-sm text-zinc-600" }, m.emptyHint)],
       button({ variant: "secondary", full: true, onClick: () => ctx.navigate("/explore") }, icon("search", "h-4 w-4"), m.hasActive ? "단어장 바꾸기" : "단어장 고르기"),
     ),
     goalCard(m),
     h(
       "section",
-      { class: "space-y-3" },
+      { class: "card tone-accent rise-in space-y-3" },
+      cardHeading({ iconName: "play", title: "학습 시작", level: "h2" }),
       renderModeToggle({ value: mode, onChange: setMode }),
       // 방향·형식은 퀴즈에만 적용한다 (플래시카드에서는 숨긴다)
       mode === "quiz" ? renderQuizOptions({ value: quizOptions(), onChange: setQuizOptions }) : null,

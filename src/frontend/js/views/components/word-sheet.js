@@ -115,13 +115,13 @@ export function openWordSheet(vocabulary, { onWordsChanged = () => {} } = {}) {
 
   const panel = h(
     "div",
-    { class: "surface w-full max-w-lg overflow-y-auto rounded-b-none p-4", role: "dialog", "aria-modal": "true", "aria-label": `${vocabulary.title} ${wordSheetEntry(vocabulary).label}`, style: "max-height: 80dvh; padding-bottom: max(1rem, env(safe-area-inset-bottom))" },
-    h("div", { class: "mb-3 flex items-center justify-between gap-2" }, h("h2", { class: "min-w-0 truncate text-lg font-bold text-zinc-900" }, vocabulary.title), button({ variant: "ghost", "aria-label": "닫기", onClick: close }, icon("x", "h-5 w-5"))),
+    { class: "surface w-full max-w-lg overflow-y-auto rounded-b-none sm:rounded-2xl p-4 sm:p-6", role: "dialog", "aria-modal": "true", "aria-label": `${vocabulary.title} ${wordSheetEntry(vocabulary).label}`, style: "max-height: 80dvh; padding-bottom: max(1rem, env(safe-area-inset-bottom))" },
+    h("div", { class: "mb-3 flex items-center justify-between gap-2" }, h("h2", { class: "min-w-0 truncate text-heading text-zinc-900" }, vocabulary.title), button({ variant: "ghost", "aria-label": "닫기", onClick: close }, icon("x", "h-5 w-5"))),
     h("div", { class: "mb-3 space-y-2" }, searchInput, addButtons),
     list,
     footer,
   );
-  const overlay = h("div", { class: "fixed inset-0 z-50 flex items-end justify-center", style: "background: rgba(0, 0, 0, 0.4)", onclick: (event) => event.target === overlay && close() }, panel);
+  const overlay = h("div", { class: "fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4", style: "background: rgba(0, 0, 0, 0.45)", onclick: (event) => event.target === overlay && close() }, panel);
   document.body.append(overlay);
   document.addEventListener("keydown", onKey);
   refreshIcons();
@@ -137,7 +137,7 @@ export function openWordSheet(vocabulary, { onWordsChanged = () => {} } = {}) {
 function wordRow(word, bookmark, actions) {
   return h(
     "div",
-    { class: "flex items-start gap-2 rounded-xl bg-zinc-50 px-3 py-2" },
+    { class: "word-item flex items-start gap-2 px-3.5 py-2.5" },
     h(
       "div",
       { class: "min-w-0 flex-1" },

@@ -6,7 +6,7 @@
 import { api } from "../core/api.js";
 import { formatRetry } from "../core/format.js";
 import { field, passwordField, alertBox } from "../core/form.js";
-import { button, h } from "../core/dom.js";
+import { brandLogo, button, h } from "../core/dom.js";
 import { setUser } from "../core/state.js";
 import { toast } from "../core/toast.js";
 import { safeNext } from "../core/router.js";
@@ -111,13 +111,13 @@ export function loginView(root, { query, navigate }) {
       h(
         "div",
         { class: "space-y-2 text-center" },
-        h("div", { class: "brand-mark mx-auto h-12 w-12 rounded-2xl" }, "VODA"),
-        h("h1", { class: "text-2xl font-bold tracking-tight text-zinc-900" }, "다시 만나서 반가워요"),
+        brandLogo("lg"),
+        h("h1", { class: "text-title tracking-tight text-zinc-900" }, "다시 만나서 반가워요"),
         h("p", { class: "text-sm text-zinc-500" }, "닉네임과 비밀번호로 로그인하세요."),
       ),
       h(
         "div",
-        { class: "surface p-6" },
+        { class: "card card-hero tone-accent" },
         form,
       ),
       h(

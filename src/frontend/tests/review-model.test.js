@@ -6,7 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { REVIEW_MIN_WORDS, bookmarkRow, reviewSources } from "../js/core/review-model.js";
+import { REVIEW_MIN_WORDS, bookmarkRow, initialReviewTab, reviewSources } from "../js/core/review-model.js";
 
 test("퀴즈 최소 단어 수(4)와 같은 기준을 쓴다", () => {
   assert.equal(REVIEW_MIN_WORDS, 4);
@@ -75,4 +75,12 @@ test("오늘 복습: 0개면 시작할 수 없고 칭찬 문구를 준다", () =
 test("오늘 복습: 개수를 모르면(null) 막고 숫자를 지어내지 않는다", () => {
   const due = dueSource(null);
   assert.deepEqual({ count: due.count, ready: due.ready, message: due.message }, { count: null, ready: false, message: "불러오는 중이에요." });
+});
+
+test("처음 보일 탭: 주소의 tab 이 wrong 이면 틀린 단어, 그 밖에는 북마크", () => {
+  assert.equal(initialReviewTab({ tab: "wrong" }), "wrong");
+  assert.equal(initialReviewTab({ tab: "bookmarks" }), "bookmarks");
+  assert.equal(initialReviewTab({ tab: "unknown" }), "bookmarks");
+  assert.equal(initialReviewTab({}), "bookmarks");
+  assert.equal(initialReviewTab(undefined), "bookmarks");
 });

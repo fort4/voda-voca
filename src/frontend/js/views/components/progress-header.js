@@ -17,7 +17,7 @@ export function renderProgressHeader({ progress, onAbort, speakText = null }) {
     { class: "session-header" },
     h(
       "button",
-      { type: "button", class: "press focus-ring inline-flex h-11 w-11 items-center justify-center rounded-xl", "aria-label": "학습 중단", onclick: onAbort },
+      { type: "button", class: "btn btn-ghost btn-icon focus-ring", "aria-label": "학습 중단", onclick: onAbort },
       icon("x", "h-5 w-5"),
     ),
     h(

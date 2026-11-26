@@ -43,6 +43,7 @@ export function rankingView(root, ctx) {
   }
 
   root.append(
+    h("h1", { class: "text-title mb-3 tracking-tight text-zinc-900" }, "학습 순위"),
     statsSwitch("ranking"),
     h("div", { class: "stack pb-4" }, h("div", { class: "segmented grid-cols-3", role: "group", "aria-label": "순위 지표" }, choices), body),
   );

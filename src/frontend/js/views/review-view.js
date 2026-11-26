@@ -5,10 +5,11 @@
 
 import { api } from "../core/api.js";
 import { appendNodes, button, clear, h, icon, refreshIcons } from "../core/dom.js";
-import { loadMode } from "../core/home-model.js";
-import { bookmarkRow, dueSource, reviewSources } from "../core/review-model.js";
+import { loadMode, saveMode } from "../core/home-model.js";
+import { bookmarkRow, dueSource, initialReviewTab, reviewSources } from "../core/review-model.js";
 import { cardHeading, iconBadge } from "./components/card-heading.js";
 import { mountLoader } from "./components/loader.js";
+import { renderModeToggle } from "./components/mode-toggle.js";
 import { phoneticLine } from "./components/phonetic-line.js";
 import { posTag } from "./components/pos-tag.js";
 import { openSession } from "./components/study-nav.js";
@@ -28,7 +29,7 @@ async function loadFirstPages() {
 
 /**
  * @param {HTMLElement} root
- * @param {{navigate: (path: string, query?: Record<string, string>) => void}} ctx
+ * @param {{navigate: (path: string, query?: Record<string, string>) => void, query?: Record<string, string>}} ctx
  * @returns {() => void}
  */
 export function reviewView(root, ctx) {
@@ -38,12 +39,18 @@ export function reviewView(root, ctx) {
 class ReviewPanel {
   constructor(pages, ctx) {
     this.ctx = ctx;
-    this.active = "bookmarks";
+    this.active = initialReviewTab(ctx.query);
+    this.mode = loadMode(globalThis.localStorage);
     this.data = { bookmarks: { items: pages.bookmarks.items, total: pages.bookmarks.total, page: 1 }, wrong: { items: pages.wrong.items, total: pages.wrong.total, page: 1 } };
     this.dueCount = pages.dueCount;
     this.body = h("div", { class: "space-y-4" });
     this.element = h("div", { class: "stack pb-4" }, h("h1", { class: "text-title tracking-tight text-zinc-900" }, "복습함"), this.body);
     this.paint();
+  }
+
+  setMode(next) {
+    this.mode = next;
+    saveMode(globalThis.localStorage, next);
   }
 
   paint() {
@@ -55,10 +62,11 @@ class ReviewPanel {
     // 목록이 끝났으면 "더 보기" 자리는 null 이다. 네이티브 append 는 null 을 "null" 글자로 그리므로 appendNodes 로 거른다.
     appendNodes(
       this.body,
+      renderModeToggle({ value: this.mode, onChange: (next) => this.setMode(next) }),
       this.dueCard(),
       h("div", { class: "segmented grid-cols-2", role: "tablist" }, TABS.map((tab) => this.tab(tab, sources))),
-      h("section", { class: `card ${tone} space-y-3` }, h("div", { class: "flex items-center gap-3" }, iconBadge(iconName), h("p", { class: "min-w-0 text-sm text-zinc-700" }, source.message)), button({ variant: "primary", full: true, disabled: !source.ready, onClick: () => openSession(this.ctx.navigate, loadMode(globalThis.localStorage), this.active) }, icon("play", "h-5 w-5"), "복습 시작")),
-      current.items.length === 0 ? h("p", { class: "surface p-6 text-center text-sm text-zinc-600" }, this.active === "bookmarks" ? "북마크한 단어가 없어요. 학습 중 ★ 를 눌러 모아 보세요." : "틀린 단어가 없어요. 잘하고 있어요!") : h("div", { class: `space-y-2 ${tone}` }, current.items.map((item) => this.row(bookmarkRow(item)))),
+      h("section", { class: `card ${tone} space-y-3` }, h("div", { class: "flex items-center gap-3" }, iconBadge(iconName), h("p", { class: "min-w-0 text-sm text-zinc-700" }, source.message)), button({ variant: "primary", full: true, disabled: !source.ready, onClick: () => openSession(this.ctx.navigate, this.mode, this.active) }, icon("play", "h-5 w-5"), "복습 시작")),
+      current.items.length === 0 ? h("p", { class: "card text-center text-sm text-zinc-600" }, this.active === "bookmarks" ? "북마크한 단어가 없어요. 학습 중 ★ 를 눌러 모아 보세요." : "틀린 단어가 없어요. 잘하고 있어요!") : h("div", { class: `space-y-2 ${tone}` }, current.items.map((item) => this.row(bookmarkRow(item)))),
       current.items.length < current.total ? button({ variant: "secondary", full: true, onClick: () => this.more() }, `더 보기 (${current.items.length}/${current.total})`) : null,
     );
     refreshIcons();
@@ -67,7 +75,7 @@ class ReviewPanel {
   /** 오늘 복습(SRS) 카드: 복습 예정 시각이 도래한 단어로 바로 세션을 시작한다. */
   dueCard() {
     const due = dueSource(this.dueCount);
-    return h("section", { class: "card tone-accent space-y-3" }, cardHeading({ iconName: "calendar-clock", title: "오늘 복습" }), h("p", { class: "text-sm text-zinc-700" }, due.message), button({ variant: "primary", full: true, disabled: !due.ready, onClick: () => openSession(this.ctx.navigate, loadMode(globalThis.localStorage), "due") }, icon("play", "h-5 w-5"), "오늘 복습 시작"));
+    return h("section", { class: "card card-hero tone-accent space-y-3" }, cardHeading({ iconName: "calendar-clock", title: "오늘 복습" }), h("p", { class: "text-sm text-zinc-700" }, due.message), button({ variant: "primary", full: true, disabled: !due.ready, onClick: () => openSession(this.ctx.navigate, this.mode, "due") }, icon("play", "h-5 w-5"), "오늘 복습 시작"));
   }
 
   tab(tab, sources) {

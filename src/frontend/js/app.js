@@ -233,6 +233,7 @@ async function withdraw() {
     confirmButtonText: "탈퇴하기",
     cancelButtonText: "취소",
     confirmButtonColor: "#dc2626",
+    customClass: { confirmButton: "swal2-danger" },
     inputValidator: (value) => (nicknameConfirmationMatches(value, user.nickname) ? null : "닉네임이 일치하지 않습니다."),
   });
   if (!final.isConfirmed) return;

@@ -14,7 +14,7 @@ import {
   startCheck,
 } from "../core/availability.js";
 import { alertBox, checkField, passwordField } from "../core/form.js";
-import { button, h } from "../core/dom.js";
+import { brandLogo, button, h } from "../core/dom.js";
 import { mapFieldErrors, passwordConfirmState, validateNickname, validatePassword } from "../core/validate.js";
 
 const RATE_LIMITED = "확인 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.";
@@ -150,13 +150,13 @@ export function signupView(root, { navigate }) {
       h(
         "div",
         { class: "space-y-2 text-center" },
-        h("div", { class: "brand-mark mx-auto h-12 w-12 rounded-2xl" }, "VODA"),
-        h("h1", { class: "text-2xl font-bold tracking-tight text-zinc-900" }, "회원가입"),
+        brandLogo("lg"),
+        h("h1", { class: "text-title tracking-tight text-zinc-900" }, "회원가입"),
         h("p", { class: "text-sm text-zinc-500" }, "이메일 없이 닉네임만 정하면 바로 시작할 수 있어요."),
       ),
       h(
         "div",
-        { class: "surface p-6" },
+        { class: "card card-hero tone-accent" },
         h(
           "form",
           { class: "space-y-4", novalidate: true, onsubmit: onSubmit },

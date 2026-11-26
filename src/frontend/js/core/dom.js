@@ -88,16 +88,34 @@ export function refreshIcons() {
 }
 
 /**
- * 로딩 중 자리 표시 블록 (스켈레톤). 실제 카드와 비슷한 높이를 가져 화면이 튀지 않게 한다 (UI 설계서 §4).
+ * 브랜드 로고 배지 (상단바와 인증 화면 공용).
+ * @param {"sm" | "lg"} [size] sm 은 상단바(28px), lg 는 로그인·회원가입 히어로(48px)
+ * @returns {HTMLElement}
+ */
+export function brandLogo(size = "lg") {
+  const cls = size === "lg" ? "brand-mark brand-mark--lg mx-auto" : "brand-mark";
+  return h("div", { class: cls, "aria-hidden": "true" }, icon("book-open", size === "lg" ? "h-6 w-6" : "h-4 w-4"));
+}
+
+/**
+ * 로딩 중 자리 표시 블록 (스켈레톤). 실제 카드와 비슷한 높이와 테두리를 가져 화면이 튀지 않게 한다 (UI 설계서 §4).
  * @param {number} count
  * @returns {HTMLElement}
  */
 export function skeleton(count = 3) {
   return h(
     "div",
-    { class: "space-y-3", "aria-busy": "true" },
+    { class: "space-y-4", "aria-busy": "true" },
     h("span", { class: "sr-only" }, "불러오는 중"),
-    Array.from({ length: count }, () => h("div", { class: "h-20 animate-pulse rounded-xl bg-zinc-200" })),
+    Array.from({ length: count }, (_, i) =>
+      h(
+        "div",
+        { class: "card space-y-3" },
+        h("div", { class: "flex items-center gap-2" }, h("div", { class: "h-7 w-7 animate-pulse rounded-lg bg-zinc-200" }), h("div", { class: "h-4 w-28 animate-pulse rounded-md bg-zinc-200" })),
+        h("div", { class: `${i === 0 ? "h-7 w-48" : "h-5 w-36"} animate-pulse rounded-md bg-zinc-200` }),
+        h("div", { class: "h-2.5 w-full animate-pulse rounded-full bg-zinc-200" }),
+      ),
+    ),
   );
 }
 

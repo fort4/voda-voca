@@ -7,6 +7,15 @@
 export const REVIEW_MIN_WORDS = 4;
 
 /**
+ * 복습함에 처음 보일 탭. 다른 화면이 `#/review?tab=wrong` 으로 보내면 틀린 단어를 연다.
+ * @param {Record<string, string>|undefined} query
+ * @returns {"bookmarks"|"wrong"}
+ */
+export function initialReviewTab(query) {
+  return query?.tab === "wrong" ? "wrong" : "bookmarks";
+}
+
+/**
  * 복습 출처 두 개(북마크, 오답)의 시작 가능 여부와 문구. 개수를 모르면(null) 막되 숫자를 지어내지 않는다.
  * @param {{bookmarkCount: number|null, wrongCount: number|null}} counts
  * @returns {Array<{id: "bookmarks"|"wrong", count: number|null, ready: boolean, message: string}>}

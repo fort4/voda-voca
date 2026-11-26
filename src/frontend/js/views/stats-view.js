@@ -40,6 +40,7 @@ async function loadStats() {
 export function statsView(root, ctx) {
   const charts = browserChartSet();
   const body = h("div");
+  root.append(h("h1", { class: "text-title mb-3 tracking-tight text-zinc-900" }, "학습 통계"));
   root.append(statsSwitch("stats"), body); // 전환은 불러오는 중이나 기록이 없을 때도 보인다
   const dispose = mountLoader(body, loadStats, (m) => {
     body.append(renderStats(m, ctx, charts));
@@ -122,7 +123,7 @@ function renderTrend(trend, charts) {
   );
 }
 
-function renderFrequentWrong(frequent) {
+function renderFrequentWrong(frequent, ctx) {
   if (!frequent || frequent.isEmpty) return null;
   return h(
     "section",
@@ -146,6 +147,7 @@ function renderFrequentWrong(frequent) {
         ),
       ),
     ),
+    button({ variant: "secondary", full: true, onClick: () => ctx.navigate("/review", { tab: "wrong" }) }, icon("rotate-ccw", "h-4 w-4"), "복습함에서 오답 복습하기"),
   );
 }
 
@@ -184,7 +186,7 @@ function renderStats(m, ctx, charts) {
       card({ label: "복습할 오답", value: `${m.wrongWordCount}개`, hint: "마지막 결과가 오답", iconName: "rotate-ccw", tone: "wrong" }),
     ),
     renderTrend(m.trend, charts),
-    renderFrequentWrong(m.frequent),
+    renderFrequentWrong(m.frequent, ctx),
     renderWeekly(m, charts),
     h(
       "section",

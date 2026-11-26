@@ -30,7 +30,7 @@ class ExplorePanel {
     this.filter = { category: "all", level: "all" };
     this.busyId = null;
     this.chips = h("div", { class: "space-y-2" });
-    this.cards = h("div", { class: "space-y-3" });
+    this.cards = h("div", { class: "grid grid-cols-1 gap-3 sm:grid-cols-2" });
     const title = h("h1", { class: "text-title tracking-tight text-zinc-900" }, "단어장 탐색");
     const add = button({ variant: "secondary", onClick: () => this.editVocabulary() }, icon("plus", "h-4 w-4"), "새 단어장");
     this.element = h("div", { class: "stack pb-4" }, h("div", { class: "flex items-center justify-between gap-2" }, title, add), this.chips, this.cards);
@@ -45,7 +45,7 @@ class ExplorePanel {
     );
     clear(this.cards);
     const shown = filterVocabularies(this.catalog, this.filter);
-    if (shown.length === 0) this.cards.append(h("p", { class: "surface p-6 text-center text-sm text-zinc-600" }, "조건에 맞는 단어장이 없어요."));
+    if (shown.length === 0) this.cards.append(h("p", { class: "card sm:col-span-2 text-center text-sm text-zinc-600" }, "조건에 맞는 단어장이 없어요."));
     for (const vocabulary of shown) this.cards.append(this.card(vocabulary));
     refreshIcons();
   }
@@ -67,24 +67,32 @@ class ExplorePanel {
     const entry = wordSheetEntry(vocabulary);
     return h(
       "article",
-      { class: `card vocab-card rise-in tone-accent space-y-3${c.isActive ? " vocab-card--active" : ""}` },
+      { class: `card vocab-card rise-in tone-accent flex flex-col justify-between gap-3${c.isActive ? " vocab-card--active" : ""}` },
       h(
         "div",
-        { class: "flex items-start gap-3" },
-        iconBadge("book-open"),
-        h("div", { class: "min-w-0 flex-1" }, h("h2", { class: "text-base font-bold text-zinc-900" }, c.title), h("p", { class: "text-xs text-zinc-500" }, c.metaText)),
-        c.isActive ? h("span", { class: "shrink-0 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-600" }, "학습 중") : null,
+        { class: "space-y-3" },
+        h(
+          "div",
+          { class: "flex items-start gap-3" },
+          iconBadge("book-open"),
+          h("div", { class: "min-w-0 flex-1" }, h("h2", { class: "text-base font-bold text-zinc-900" }, c.title), h("p", { class: "text-xs text-zinc-500" }, c.metaText)),
+          c.isActive ? h("span", { class: "shrink-0 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-600" }, "학습 중") : null,
+        ),
+        c.description ? h("p", { class: "text-sm text-zinc-700" }, c.description) : null,
       ),
-      c.description ? h("p", { class: "text-sm text-zinc-700" }, c.description) : null,
-      progressRow(c.progressPercent, `${c.title} 진행률`),
-      h("p", { class: "text-xs text-zinc-500" }, c.progressText),
       h(
         "div",
-        { class: "vocab-actions" },
-        button({ variant: actions.preview, onClick: () => openWordSheet(vocabulary, { onWordsChanged: () => this.refresh() }) }, icon(entry.icon, "h-4 w-4"), entry.label),
-        c.isActive ? button({ variant: actions.main, onClick: () => this.ctx.navigate("/") }, icon("check", "h-4 w-4"), "홈에서 학습") : button({ variant: actions.main, disabled: this.busyId !== null || !c.canStudy, onClick: () => this.activate(vocabulary) }, c.canStudy ? "이 단어장으로 학습" : "단어를 추가해 주세요"),
+        { class: "space-y-3" },
+        progressRow(c.progressPercent, `${c.title} 진행률`),
+        h("p", { class: "text-xs text-zinc-500" }, c.progressText),
+        h(
+          "div",
+          { class: "vocab-actions" },
+          button({ variant: actions.preview, onClick: () => openWordSheet(vocabulary, { onWordsChanged: () => this.refresh() }) }, icon(entry.icon, "h-4 w-4"), entry.label),
+          c.isActive ? button({ variant: actions.main, onClick: () => this.ctx.navigate("/") }, icon("check", "h-4 w-4"), "홈에서 학습") : button({ variant: actions.main, disabled: this.busyId !== null || !c.canStudy, onClick: () => this.activate(vocabulary) }, c.canStudy ? "이 단어장으로 학습" : "단어를 추가해 주세요"),
+        ),
+        canEditContent(vocabulary) ? this.ownerActions(vocabulary) : null,
       ),
-      canEditContent(vocabulary) ? this.ownerActions(vocabulary) : null,
     );
   }
 
