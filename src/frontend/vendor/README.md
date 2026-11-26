@@ -12,6 +12,7 @@
 | Tailwind CSS (Play CDN 스크립트) | 3.4.17 | `tailwindcss-3.4.17.js` | `https://cdn.tailwindcss.com` (2026-11-24 기준 3.4.17 로 연결) | MIT |
 | SweetAlert2 | 11.10.5 | `sweetalert2-11.10.5/` | jsDelivr `npm/sweetalert2@11.10.5/dist` | MIT |
 | Lucide (UMD) | 0.460.0 | `lucide-0.460.0/` | unpkg `lucide@0.460.0/dist/umd` | ISC |
+| Chart.js (UMD) | 4.6.2 | `chart.js-4.6.2/` | npm `chart.js@4.6.2` 의 `dist/chart.umd.js` (2026-11-26, 배포본 sha512 대조) | MIT (`LICENSE.md`) |
 | Pretendard Variable (동적 서브셋, woff2 92조각) | 1.3.9 | `fonts/pretendard-1.3.9/` | jsDelivr `gh/orioncactus/pretendard@v1.3.9` | SIL OFL 1.1 (`LICENSE.txt`) |
 | Paperlogy Bold | 1.0 | `fonts/Paperlogy-7Bold.woff2` | jsDelivr `gh/projectnoonnu/2408-3@1.0` | **확인 필요** (배포 전 후속 과제 ⑦) |
 

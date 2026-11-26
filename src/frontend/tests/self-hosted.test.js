@@ -42,6 +42,7 @@ test("index.html: 외부 자원 대신 vendor/ 경로를 버전과 함께 참조
     "vendor/sweetalert2-11.10.5/sweetalert2.min.css",
     "vendor/sweetalert2-11.10.5/sweetalert2.all.min.js",
     "vendor/lucide-0.460.0/lucide.min.js",
+    "vendor/chart.js-4.6.2/chart.umd.js",
     "vendor/fonts/pretendard-1.3.9/pretendardvariable-dynamic-subset.css",
     "vendor/fonts/Paperlogy-7Bold.woff2",
   ]) {
@@ -68,7 +69,7 @@ test("Pretendard CSS 의 url() 은 모두 vendor 안에 실제로 있는 woff2 �
 
 test("vendor/README.md 에 자원별 출처·버전·라이선스를 적어 둔다", () => {
   const doc = read("vendor/README.md");
-  for (const name of ["Tailwind", "SweetAlert2", "Lucide", "Pretendard", "Paperlogy"]) {
+  for (const name of ["Tailwind", "SweetAlert2", "Lucide", "Chart\\.js", "Pretendard", "Paperlogy"]) {
     assert.match(doc, new RegExp(name), `${name} 항목`);
   }
   assert.match(doc, /MIT/);
