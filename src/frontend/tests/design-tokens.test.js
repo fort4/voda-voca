@@ -122,6 +122,12 @@ test(".btn 은 44px 터치 타깃을 보장하고 눌림(3D pressed) 상호작�
   assert.match(active, /translateY\(2px\)/);
 });
 
+test(".chip(필터 칩)은 44×44px 터치 타깃을 보장한다 (REQ-114)", () => {
+  const base = css.match(/\n\.chip\s*\{([^}]*)\}/)?.[1] ?? "";
+  assert.match(base, /min-height:\s*44px/);
+  assert.match(base, /min-width:\s*44px/);
+});
+
 test("buttonClass: 기존 variant 이름을 모두 .btn 규격으로 돌려준다 (button() 시그니처 호환)", () => {
   for (const variant of ["primary", "secondary", "danger", "ghost", "danger-soft"]) {
     const cls = buttonClass({ variant });

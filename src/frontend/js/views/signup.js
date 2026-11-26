@@ -171,7 +171,7 @@ export function signupView(root, { navigate }) {
         "p",
         { class: "text-center text-sm text-zinc-500" },
         "이미 계정이 있나요? ",
-        h("a", { href: "#/login", class: "focus-ring inline-flex min-h-[44px] items-center font-semibold text-indigo-600 hover:text-indigo-700" }, "로그인"),
+        h("a", { href: "#/login", class: "focus-ring inline-flex min-h-[44px] min-w-[44px] items-center justify-center font-semibold text-indigo-600 hover:text-indigo-700" }, "로그인"),
       ),
     ),
   );

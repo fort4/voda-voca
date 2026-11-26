@@ -96,3 +96,12 @@ test("확인 버튼의 이름은 '중복 확인'이다 ('사용 가능 확인'�
     assert.doesNotMatch(read(file), /사용 가능 확인/, file);
   }
 });
+
+test("가입·로그인 화면을 오가는 링크는 44×44px 터치 타깃이다 (REQ-114)", () => {
+  for (const [file, href] of [["js/views/signup.js", "#/login"], ["js/views/login.js", "#/signup"]]) {
+    const link = read(file).split("\n").find((line) => line.includes(`h("a", { href: "${href}"`)) ?? "";
+    for (const cls of ["min-h-[44px]", "min-w-[44px]", "justify-center"]) {
+      assert.ok(link.includes(cls), `${file} 링크에 ${cls} 가 없다`);
+    }
+  }
+});
