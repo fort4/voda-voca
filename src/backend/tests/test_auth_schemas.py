@@ -122,4 +122,4 @@ def test_login_request_is_permissive_so_unknown_nicknames_get_401() -> None:
 
 
 def test_user_out_exposes_nickname_but_not_password_hash() -> None:
-    assert set(UserOut.model_fields) == {"id", "nickname", "is_admin", "created_at"}
+    assert set(UserOut.model_fields) == {"id", "nickname", "created_at"}

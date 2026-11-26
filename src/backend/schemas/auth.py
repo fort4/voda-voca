@@ -102,7 +102,6 @@ class UserOut(BaseModel):
 
     id: int
     nickname: str
-    is_admin: bool
     created_at: datetime
 
     @field_serializer("created_at")

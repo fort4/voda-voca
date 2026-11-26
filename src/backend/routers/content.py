@@ -1,5 +1,5 @@
-# 2026-11-26 - voda-voca - 관리 라우터: 관리자 단어장과 단어의 생성·수정·삭제, CSV 일괄 등록 (관리자만, REQ-159~162)
-# 파일 위치: src/backend/routers/admin.py
+# 2026-11-26 - voda-voca - 개인 단어장 라우터: 본인 단어장과 단어의 생성·수정·삭제, CSV 일괄 등록 (REQ-170, 171)
+# 파일 위치: src/backend/routers/content.py
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -8,17 +8,17 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.core.deps import get_admin_user
+from backend.core.deps import get_current_user
 from backend.db.session import get_db_session
 from backend.models import User
 from backend.routers.vocabulary import VOCABULARY_NOT_FOUND, word_out
-from backend.schemas.admin import VocabularyCreate, VocabularyUpdate, WordImportOut, WordInput
+from backend.schemas.content import VocabularyCreate, VocabularyUpdate, WordImportOut, WordInput
 from backend.schemas.vocabulary import VocabularyOut, VocabularyWordOut
-from backend.services import admin_content, csv_import, system_vocab
+from backend.services import csv_import, system_vocab, user_content
 from backend.services.errors import VocabularyNotFoundError, WordNotFoundError
 
-# 라우터 전체에 관리자 검사를 건다. 새 경로를 더해도 검사가 빠지지 않는다.
-router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(get_admin_user)])
+# 모든 경로가 로그인한 사용자를 요구한다. 소유자 확인은 서비스가 한다.
+router = APIRouter(prefix="/api", tags=["content"], dependencies=[Depends(get_current_user)])
 
 
 @asynccontextmanager
@@ -30,13 +30,13 @@ async def _http_errors() -> AsyncIterator[None]:
         raise VOCABULARY_NOT_FOUND from exc
     except WordNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="단어를 찾을 수 없습니다.") from exc
-    except admin_content.SeedReadOnlyError as exc:
+    except user_content.SeedReadOnlyError as exc:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="표준 단어장의 내용은 수정하거나 삭제할 수 없습니다.",
             headers={"X-Error-Code": "SEED_READ_ONLY"},
         ) from exc
-    except admin_content.DuplicateTermError as exc:
+    except user_content.DuplicateTermError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="이 단어장에 이미 있는 표제어입니다.",
@@ -47,10 +47,10 @@ async def _http_errors() -> AsyncIterator[None]:
 @router.post("/vocabularies", status_code=status.HTTP_201_CREATED, response_model=VocabularyOut)
 async def create_vocabulary(
     body: VocabularyCreate,
-    user: User = Depends(get_admin_user),
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session),
 ) -> VocabularyOut:
-    vocabulary = await admin_content.create_vocabulary(db, body)
+    vocabulary = await user_content.create_vocabulary(db, user.id, body)
     return await system_vocab.vocabulary_entry(db, user, vocabulary)
 
 
@@ -58,28 +58,35 @@ async def create_vocabulary(
 async def update_vocabulary(
     vocabulary_id: int,
     body: VocabularyUpdate,
-    user: User = Depends(get_admin_user),
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session),
 ) -> VocabularyOut:
     async with _http_errors():
-        vocabulary = await admin_content.update_vocabulary(db, vocabulary_id, body)
+        vocabulary = await user_content.update_vocabulary(db, user.id, vocabulary_id, body)
     return await system_vocab.vocabulary_entry(db, user, vocabulary)
 
 
 @router.delete("/vocabularies/{vocabulary_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_vocabulary(vocabulary_id: int, db: AsyncSession = Depends(get_db_session)) -> None:
+async def delete_vocabulary(
+    vocabulary_id: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
+) -> None:
     async with _http_errors():
-        await admin_content.delete_vocabulary(db, vocabulary_id)
+        await user_content.delete_vocabulary(db, user.id, vocabulary_id)
 
 
 @router.post(
     "/vocabularies/{vocabulary_id}/words", status_code=status.HTTP_201_CREATED, response_model=VocabularyWordOut
 )
 async def add_word(
-    vocabulary_id: int, body: WordInput, db: AsyncSession = Depends(get_db_session)
+    vocabulary_id: int,
+    body: WordInput,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
 ) -> VocabularyWordOut:
     async with _http_errors():
-        word = await admin_content.add_word(db, vocabulary_id, body)
+        word = await user_content.add_word(db, user.id, vocabulary_id, body)
     return word_out(word, bookmarked=False)
 
 
@@ -110,10 +117,16 @@ async def _read_csv_body(request: Request) -> bytes:
 
 @router.post("/vocabularies/{vocabulary_id}/words/import", response_model=WordImportOut)
 async def import_words(
-    vocabulary_id: int, request: Request, db: AsyncSession = Depends(get_db_session)
+    vocabulary_id: int,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
 ) -> WordImportOut | JSONResponse:
     """본문은 CSV 파일 원문이다 (multipart 가 아니다)."""
-    # 권한 확인 조회가 SQLite 쓰기 잠금(BEGIN IMMEDIATE)을 잡고 있다. 느린 업로드가 다른 쓰기를 막지 않게 먼저 놓는다.
+    user_id = user.id
+    async with _http_errors():
+        await user_content.ensure_can_import(db, user_id, vocabulary_id)
+    # 위의 조회가 SQLite 쓰기 잠금(BEGIN IMMEDIATE)을 잡고 있다. 느린 업로드가 다른 쓰기를 막지 않게 먼저 놓는다.
     await db.commit()
     data = await _read_csv_body(request)
     try:
@@ -126,7 +139,7 @@ async def import_words(
             headers={"X-Error-Code": "CSV_INVALID"},
         )
     async with _http_errors():
-        result = await admin_content.import_words(db, vocabulary_id, words)
+        result = await user_content.import_words(db, user_id, vocabulary_id, words)
     return WordImportOut(created=result.created, skipped=result.skipped)
 
 
@@ -134,15 +147,19 @@ async def import_words(
 async def update_word(
     word_id: int,
     body: WordInput,
-    user: User = Depends(get_admin_user),
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session),
 ) -> VocabularyWordOut:
     async with _http_errors():
-        word = await admin_content.update_word(db, word_id, body)
+        word = await user_content.update_word(db, user.id, word_id, body)
     return word_out(word, bookmarked=await system_vocab.is_bookmarked(db, user.id, word.id))
 
 
 @router.delete("/words/{word_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_word(word_id: int, db: AsyncSession = Depends(get_db_session)) -> None:
+async def delete_word(
+    word_id: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
+) -> None:
     async with _http_errors():
-        await admin_content.delete_word(db, word_id)
+        await user_content.delete_word(db, user.id, word_id)

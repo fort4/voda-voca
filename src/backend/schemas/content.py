@@ -1,5 +1,5 @@
-# 2026-11-26 - voda-voca - 관리 API 요청 스키마: 단어장 생성·수정, 단어 등록·수정, 일괄 등록 결과 (REQ-160~162)
-# 파일 위치: src/backend/schemas/admin.py
+# 2026-11-26 - voda-voca - 개인 단어장 요청 스키마: 단어장 생성·수정, 단어 등록·수정, 일괄 등록 결과 (REQ-170, 171)
+# 파일 위치: src/backend/schemas/content.py
 
 from typing import Annotated
 
@@ -9,6 +9,7 @@ from pydantic import BaseModel, BeforeValidator, Field, StringConstraints, field
 TITLE_MAX = 100
 DESCRIPTION_MAX = 255
 CATEGORY_MAX = 50
+DEFAULT_CATEGORY = "PERSONAL"  # 분류를 고르지 않은 개인 단어장
 TERM_MAX = 100
 MEANING_MAX = 200
 EXAMPLE_MAX = 500
@@ -36,8 +37,8 @@ Example = Annotated[Annotated[str, Field(max_length=EXAMPLE_MAX)] | None, Before
 class VocabularyCreate(BaseModel):
     title: Title
     description: Description = None
-    category: Category
-    level: int = Field(ge=1, le=5)
+    category: Category = DEFAULT_CATEGORY
+    level: int = Field(default=1, ge=1, le=5)
 
 
 class VocabularyUpdate(BaseModel):
@@ -70,7 +71,7 @@ class WordInput(BaseModel):
 
 
 class WordImportOut(BaseModel):
-    """CSV 일괄 등록 결과 (REQ-162)."""
+    """CSV 일괄 등록 결과 (REQ-171)."""
 
     created: int = Field(description="새로 등록한 단어 수")
     skipped: int = Field(description="이미 있거나 파일 안에서 겹쳐 건너뛴 행 수")

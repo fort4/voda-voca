@@ -1,8 +1,9 @@
-# 2026-11-26 - voda-voca - 관리자 단어 통합 테스트: 등록·수정·삭제, 중복 표제어, 표준 단어 보호, 단어 수와 이력 (REQ-161)
-# 파일 위치: src/backend/tests/test_admin_word_api.py
+# 2026-11-26 - voda-voca - 개인 단어 통합 테스트: 등록·수정·삭제, 소유자 확인, 중복 표제어, 표준 단어 보호, 단어 수와 이력 (#39, REQ-170)
+# 파일 위치: src/backend/tests/test_user_word_api.py
 
 import asyncio
 from collections.abc import AsyncIterator
+from dataclasses import dataclass
 
 import httpx
 import pytest
@@ -12,12 +13,7 @@ from sqlalchemy import func, select
 from backend.db.session import get_session_factory
 from backend.main import app
 from backend.models import Bookmark, StudyLog, SystemVocabulary, SystemWord, UserWordProgress
-from backend.tests.helpers import (
-    admin_token,
-    auth_headers,
-    delete_admin_content,
-    signup_and_login,
-)
+from backend.tests.helpers import auth_headers, signup_and_login, user_id_for_token
 
 
 @pytest_asyncio.fixture
@@ -27,11 +23,26 @@ async def client() -> AsyncIterator[httpx.AsyncClient]:
         yield c
 
 
-@pytest_asyncio.fixture(autouse=True)
-async def _clean_admin() -> AsyncIterator[None]:
-    await delete_admin_content()
-    yield
-    await delete_admin_content()
+@dataclass
+class Owner:
+    token: str
+    user_id: int
+
+
+@pytest_asyncio.fixture
+async def owner(client: httpx.AsyncClient) -> Owner:
+    _, token = await signup_and_login(client)
+    return Owner(token, await user_id_for_token(client, token))
+
+
+@pytest_asyncio.fixture
+async def make_mine(owner: Owner, make_vocabulary):
+    """owner 의 개인 단어장을 만든다."""
+
+    async def _make(terms):
+        return await make_vocabulary(terms, owner_id=owner.user_id)
+
+    return _make
 
 
 def word(**overrides) -> dict:
@@ -40,7 +51,7 @@ def word(**overrides) -> dict:
 
 async def post_word(client: httpx.AsyncClient, token: str, vocabulary_id: int, **overrides) -> httpx.Response:
     return await client.post(
-        f"/api/admin/vocabularies/{vocabulary_id}/words", json=word(**overrides), headers=auth_headers(token)
+        f"/api/vocabularies/{vocabulary_id}/words", json=word(**overrides), headers=auth_headers(token)
     )
 
 
@@ -66,46 +77,68 @@ async def count(model, *conditions) -> int:
         return await db.scalar(select(func.count()).select_from(model).where(*conditions))
 
 
+CHANGES = [
+    ("POST", "/api/vocabularies/{vocabulary_id}/words"),
+    ("PUT", "/api/words/{word_id}"),
+    ("DELETE", "/api/words/{word_id}"),
+]
+
+
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("method", "url"),
-    [("POST", "/api/admin/vocabularies/1/words"), ("PUT", "/api/admin/words/1"), ("DELETE", "/api/admin/words/1")],
-)
-async def test_only_the_admin_may_manage_words(client: httpx.AsyncClient, method: str, url: str) -> None:
-    _, normal = await signup_and_login(client)
+@pytest.mark.parametrize(("method", "url"), CHANGES)
+async def test_changing_words_requires_login(client: httpx.AsyncClient, make_mine, method: str, url: str) -> None:
+    vocab = await make_mine(["apple"])
     before = await count(SystemWord)
 
-    anonymous = await client.request(method, url, json=word())
-    forbidden = await client.request(method, url, json=word(), headers=auth_headers(normal))
+    response = await client.request(
+        method, url.format(vocabulary_id=vocab.id, word_id=vocab.word_ids["apple"]), json=word()
+    )
 
-    assert (anonymous.status_code, forbidden.status_code) == (401, 403)
+    assert response.status_code == 401
     assert await count(SystemWord) == before
 
 
 @pytest.mark.asyncio
-async def test_add_to_a_standard_vocabulary_appends_at_the_end_and_updates_the_count(
-    client: httpx.AsyncClient, make_vocabulary
+@pytest.mark.parametrize(("method", "url"), CHANGES)
+async def test_someone_elses_words_look_missing(client: httpx.AsyncClient, make_mine, method: str, url: str) -> None:
+    vocab = await make_mine(["apple"])
+    _, other = await signup_and_login(client)
+    headers = auth_headers(other)
+
+    hidden = await client.request(
+        method, url.format(vocabulary_id=vocab.id, word_id=vocab.word_ids["apple"]), json=word(), headers=headers
+    )
+    missing = await client.request(
+        method, url.format(vocabulary_id=999999999, word_id=999999999), json=word(), headers=headers
+    )
+
+    assert (hidden.status_code, hidden.json()) == (404, missing.json())
+    assert await count(SystemWord, SystemWord.vocabulary_id == vocab.id, SystemWord.meaning == "apple의 뜻") == 1
+
+
+@pytest.mark.asyncio
+async def test_add_appends_at_the_end_and_updates_the_count(
+    client: httpx.AsyncClient, owner: Owner, make_mine
 ) -> None:
-    vocab = await make_vocabulary(["apple", "banana"])
-    token = await admin_token(client)
+    vocab = await make_mine(["apple", "banana"])
+    token = owner.token
 
     created = await add(client, token, vocab.id, term="  ladle ", meaning=" 국자 ")
 
-    assert (created["term"], created["meaning"], created["source"]) == ("ladle", "국자", "admin")
+    assert (created["term"], created["meaning"], created["source"]) == ("ladle", "국자", "user")
     assert (created["phonetic"], created["pos"], created["bookmarked"]) == (None, None, False)
     body = await listing(client, token, vocab.id)
     assert [i["term"] for i in body["items"]] == ["apple", "banana", "ladle"]
-    assert [i["source"] for i in body["items"]] == ["seed", "seed", "admin"]
     assert body["total"] == await total_words(vocab.id) == 3
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("blank", [None, "", "   "])
 async def test_without_an_example_the_translation_is_not_stored(
-    client: httpx.AsyncClient, make_vocabulary, blank
+    client: httpx.AsyncClient, owner: Owner, make_mine, blank
 ) -> None:
-    vocab = await make_vocabulary(["apple"])
-    token = await admin_token(client)
+    vocab = await make_mine(["apple"])
+    token = owner.token
 
     created = await add(client, token, vocab.id, example=blank, example_meaning="남으면 안 되는 뜻")
 
@@ -120,9 +153,9 @@ async def test_without_an_example_the_translation_is_not_stored(
         {"example": "e" * 501}, {"example_meaning": "e" * 501},
     ],
 )
-async def test_invalid_values_are_rejected(client: httpx.AsyncClient, make_vocabulary, overrides: dict) -> None:
-    vocab = await make_vocabulary(["apple"])
-    token = await admin_token(client)
+async def test_invalid_values_are_rejected(client: httpx.AsyncClient, owner: Owner, make_mine, overrides: dict) -> None:
+    vocab = await make_mine(["apple"])
+    token = owner.token
 
     response = await post_word(client, token, vocab.id, **overrides)
 
@@ -133,10 +166,10 @@ async def test_invalid_values_are_rejected(client: httpx.AsyncClient, make_vocab
 @pytest.mark.asyncio
 @pytest.mark.parametrize("duplicate", ["Café", "CAFE", " cafe "])
 async def test_duplicate_term_ignores_case_and_accents(
-    client: httpx.AsyncClient, make_vocabulary, duplicate: str
+    client: httpx.AsyncClient, owner: Owner, make_mine, duplicate: str
 ) -> None:
-    vocab = await make_vocabulary(["cafe"])
-    token = await admin_token(client)
+    vocab = await make_mine(["cafe"])
+    token = owner.token
 
     response = await post_word(client, token, vocab.id, term=duplicate)
 
@@ -146,10 +179,10 @@ async def test_duplicate_term_ignores_case_and_accents(
 
 
 @pytest.mark.asyncio
-async def test_the_same_term_is_allowed_in_another_vocabulary(client: httpx.AsyncClient, make_vocabulary) -> None:
-    first = await make_vocabulary(["apple"])
-    second = await make_vocabulary(["banana"])
-    token = await admin_token(client)
+async def test_the_same_term_is_allowed_in_another_vocabulary(client: httpx.AsyncClient, owner: Owner, make_mine) -> None:
+    first = await make_mine(["apple"])
+    second = await make_mine(["banana"])
+    token = owner.token
 
     await add(client, token, second.id, term="apple")
 
@@ -157,9 +190,9 @@ async def test_the_same_term_is_allowed_in_another_vocabulary(client: httpx.Asyn
 
 
 @pytest.mark.asyncio
-async def test_concurrent_duplicate_adds_create_one_word(client: httpx.AsyncClient, make_vocabulary) -> None:
-    vocab = await make_vocabulary(["apple"])
-    token = await admin_token(client)
+async def test_concurrent_duplicate_adds_create_one_word(client: httpx.AsyncClient, owner: Owner, make_mine) -> None:
+    vocab = await make_mine(["apple"])
+    token = owner.token
 
     responses = await asyncio.gather(*(post_word(client, token, vocab.id, term=t) for t in ("Café", "cafe", "CAFE")))
 
@@ -168,23 +201,23 @@ async def test_concurrent_duplicate_adds_create_one_word(client: httpx.AsyncClie
 
 
 @pytest.mark.asyncio
-async def test_unknown_vocabulary_or_word_is_404(client: httpx.AsyncClient) -> None:
-    token = await admin_token(client)
+async def test_unknown_vocabulary_or_word_is_404(client: httpx.AsyncClient, owner: Owner) -> None:
+    token = owner.token
 
     assert (await post_word(client, token, 999999999)).status_code == 404
-    put = await client.put("/api/admin/words/999999999", json=word(), headers=auth_headers(token))
-    delete_ = await client.delete("/api/admin/words/999999999", headers=auth_headers(token))
+    put = await client.put("/api/words/999999999", json=word(), headers=auth_headers(token))
+    delete_ = await client.delete("/api/words/999999999", headers=auth_headers(token))
     assert (put.status_code, delete_.status_code) == (404, 404)
 
 
 @pytest.mark.asyncio
-async def test_update_replaces_an_admin_word_and_keeps_its_id(client: httpx.AsyncClient, make_vocabulary) -> None:
-    vocab = await make_vocabulary(["apple"])
-    token = await admin_token(client)
+async def test_update_replaces_a_word_and_keeps_its_id(client: httpx.AsyncClient, owner: Owner, make_mine) -> None:
+    vocab = await make_mine(["apple"])
+    token = owner.token
     created = await add(client, token, vocab.id)
 
     response = await client.put(
-        f"/api/admin/words/{created['word_id']}",
+        f"/api/words/{created['word_id']}",
         json={"term": "Ladle", "meaning": "큰 국자", "example": None},
         headers=auth_headers(token),
     )
@@ -196,13 +229,13 @@ async def test_update_replaces_an_admin_word_and_keeps_its_id(client: httpx.Asyn
 
 
 @pytest.mark.asyncio
-async def test_update_to_another_words_term_is_409(client: httpx.AsyncClient, make_vocabulary) -> None:
-    vocab = await make_vocabulary(["apple"])
-    token = await admin_token(client)
+async def test_update_to_another_words_term_is_409(client: httpx.AsyncClient, owner: Owner, make_mine) -> None:
+    vocab = await make_mine(["apple"])
+    token = owner.token
     created = await add(client, token, vocab.id)
 
     response = await client.put(
-        f"/api/admin/words/{created['word_id']}", json=word(term="APPLE"), headers=auth_headers(token)
+        f"/api/words/{created['word_id']}", json=word(term="APPLE"), headers=auth_headers(token)
     )
 
     assert response.status_code == 409
@@ -210,27 +243,30 @@ async def test_update_to_another_words_term_is_409(client: httpx.AsyncClient, ma
 
 
 @pytest.mark.asyncio
-async def test_standard_words_cannot_be_changed_or_deleted(client: httpx.AsyncClient, make_vocabulary) -> None:
+async def test_standard_words_cannot_be_added_changed_or_deleted(
+    client: httpx.AsyncClient, owner: Owner, make_vocabulary
+) -> None:
     vocab = await make_vocabulary(["apple"])
-    token = await admin_token(client)
+    token = owner.token
     word_id = vocab.word_ids["apple"]
 
-    update = await client.put(f"/api/admin/words/{word_id}", json=word(), headers=auth_headers(token))
-    delete_ = await client.delete(f"/api/admin/words/{word_id}", headers=auth_headers(token))
+    added = await post_word(client, token, vocab.id)
+    update = await client.put(f"/api/words/{word_id}", json=word(), headers=auth_headers(token))
+    delete_ = await client.delete(f"/api/words/{word_id}", headers=auth_headers(token))
 
-    for response in (update, delete_):
+    for response in (added, update, delete_):
         assert response.status_code == 403
         assert response.headers["X-Error-Code"] == "SEED_READ_ONLY"
     assert [i["meaning"] for i in (await listing(client, token, vocab.id))["items"]] == ["apple의 뜻"]
 
 
 @pytest.mark.asyncio
-async def test_delete_removes_the_word_with_everyones_records(client: httpx.AsyncClient, make_vocabulary) -> None:
-    vocab = await make_vocabulary(["a1", "a2", "a3"])
-    token = await admin_token(client)
+async def test_delete_removes_the_word_with_its_records(client: httpx.AsyncClient, owner: Owner, make_mine) -> None:
+    vocab = await make_mine(["a1", "a2", "a3"])
+    token = owner.token
     created = await add(client, token, vocab.id)
     word_id = created["word_id"]
-    _, learner = await signup_and_login(client)
+    learner = token
     await client.post(
         "/api/users/me/active-vocabulary", json={"vocabulary_id": vocab.id}, headers=auth_headers(learner)
     )
@@ -248,7 +284,7 @@ async def test_delete_removes_the_word_with_everyones_records(client: httpx.Asyn
     assert first.status_code == 200, first.text
     assert await count(StudyLog, StudyLog.word_id == word_id) == 1
 
-    response = await client.delete(f"/api/admin/words/{word_id}", headers=auth_headers(token))
+    response = await client.delete(f"/api/words/{word_id}", headers=auth_headers(token))
 
     assert response.status_code == 204, response.text
     for model in (StudyLog, Bookmark, UserWordProgress):
@@ -257,11 +293,11 @@ async def test_delete_removes_the_word_with_everyones_records(client: httpx.Asyn
 
 
 @pytest.mark.asyncio
-async def test_answering_a_deleted_word_in_a_running_session_is_409(client: httpx.AsyncClient, make_vocabulary) -> None:
-    vocab = await make_vocabulary(["a1"])
-    token = await admin_token(client)
+async def test_answering_a_deleted_word_in_a_running_session_is_409(client: httpx.AsyncClient, owner: Owner, make_mine) -> None:
+    vocab = await make_mine(["a1"])
+    token = owner.token
     created = await add(client, token, vocab.id)
-    _, learner = await signup_and_login(client)
+    learner = token
     await client.post(
         "/api/users/me/active-vocabulary", json={"vocabulary_id": vocab.id}, headers=auth_headers(learner)
     )
@@ -269,7 +305,7 @@ async def test_answering_a_deleted_word_in_a_running_session_is_409(client: http
         await client.post("/api/study/sessions", json={"mode": "flashcard"}, headers=auth_headers(learner))
     ).json()
     question = next(i for i in session["items"] if i["word_id"] == created["word_id"])
-    await client.delete(f"/api/admin/words/{created['word_id']}", headers=auth_headers(token))
+    await client.delete(f"/api/words/{created['word_id']}", headers=auth_headers(token))
 
     response = await client.post(
         f"/api/study/sessions/{session['session_id']}/answer",

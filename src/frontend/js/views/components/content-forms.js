@@ -1,13 +1,12 @@
 /*
- * 2026-11-26 - voda-voca - 관리자 입력 모달: 단어장·단어 추가와 수정, CSV 일괄 등록, 삭제 확인 (SweetAlert2, REQ-160~162)
- * 파일 위치: src/frontend/js/views/components/admin-forms.js
+ * 2026-11-26 - voda-voca - 개인 단어장 입력 모달: 단어장·단어 추가와 수정, CSV 일괄 등록, 삭제 확인 (SweetAlert2, REQ-170, 171)
+ * 파일 위치: src/frontend/js/views/components/content-forms.js
  */
 
 import {
-  ADMIN_LIMITS,
+  CONTENT_LIMITS,
   CSV_IMPORT,
-  VOCABULARY_CATEGORIES,
-  adminFailureMessage,
+  contentFailureMessage,
   csvFileError,
   deleteVocabularyPrompt,
   deleteWordPrompt,
@@ -15,28 +14,20 @@ import {
   importResultText,
   vocabularyForm,
   wordForm,
-} from "../../core/admin-model.js";
+} from "../../core/content-model.js";
 import { api } from "../../core/api.js";
 import { h } from "../../core/dom.js";
 import { INPUT_CLASS, field } from "../../core/form.js";
 import { confirmDialog, toast } from "../../core/toast.js";
 
-const LEVELS = [1, 2, 3, 4, 5];
-
 /** 모달 안의 글자 입력. 값 길이는 서버 한도에서 막는다. */
 function textInput(name, label, value = "") {
-  return field({ id: `admin-${name}`, label, value: value ?? "", maxlength: ADMIN_LIMITS[name], autocomplete: "off" });
-}
-
-function selectInput(name, label, options) {
-  const id = `admin-${name}`;
-  const input = h("select", { id, class: INPUT_CLASS }, options.map(([value, text]) => h("option", { value }, text)));
-  return { wrap: h("div", { class: "space-y-1" }, h("label", { for: id, class: "block text-sm font-medium text-zinc-700" }, label), input), input };
+  return field({ id: `content-${name}`, label, value: value ?? "", maxlength: CONTENT_LIMITS[name], autocomplete: "off" });
 }
 
 /**
  * 입력 모달. 저장에 실패하면 모달을 연 채 이유를 보인다.
- * @param {{title: string, fields: Record<string, {wrap: HTMLElement, input: HTMLInputElement|HTMLSelectElement, setError?: (m: string|null) => void}>,
+ * @param {{title: string, fields: Record<string, {wrap: HTMLElement, input: HTMLInputElement, setError?: (m: string|null) => void}>,
  *          check: (values: Record<string, string>) => {errors: Record<string, string>, body: object},
  *          send: (body: object) => Promise<any>}} options
  * @returns {Promise<any|null>} 저장한 서버 응답. 취소하면 null
@@ -62,7 +53,7 @@ async function openForm({ title, fields, check, send }) {
       try {
         return await send(body);
       } catch (error) {
-        Swal.showValidationMessage(adminFailureMessage(error));
+        Swal.showValidationMessage(contentFailureMessage(error));
         return false;
       }
     },
@@ -71,35 +62,29 @@ async function openForm({ title, fields, check, send }) {
 }
 
 /**
- * 새 단어장 또는 관리자 단어장 수정.
+ * 새 개인 단어장 또는 내 단어장 수정.
  * @param {{id: number, title: string, description: string|null}} [vocabulary] 있으면 수정
  */
 export async function openVocabularyForm(vocabulary) {
   const creating = !vocabulary;
-  const fields = {
-    title: textInput("title", "제목", vocabulary?.title),
-    description: textInput("description", "설명 (선택)", vocabulary?.description),
-  };
-  if (creating) {
-    fields.category = selectInput("category", "분류", VOCABULARY_CATEGORIES.map((c) => [c.value, c.label]));
-    fields.category.input.value = "ETC";
-    fields.level = selectInput("level", "레벨", LEVELS.map((level) => [String(level), `Lv.${level}`]));
-  }
   const saved = await openForm({
     title: creating ? "새 단어장" : "단어장 수정",
-    fields,
-    check: (values) => vocabularyForm(values, { creating }),
+    fields: {
+      title: textInput("title", "제목", vocabulary?.title),
+      description: textInput("description", "설명 (선택)", vocabulary?.description),
+    },
+    check: vocabularyForm,
     send: (body) =>
       creating
-        ? api("/admin/vocabularies", { method: "POST", body })
-        : api(`/admin/vocabularies/${vocabulary.id}`, { method: "PATCH", body }),
+        ? api("/vocabularies", { method: "POST", body })
+        : api(`/vocabularies/${vocabulary.id}`, { method: "PATCH", body }),
   });
   if (saved) toast(creating ? "단어장을 만들었어요" : "단어장을 고쳤어요");
   return saved;
 }
 
 /**
- * 단어 추가 또는 관리자 단어 수정.
+ * 단어 추가 또는 내 단어 수정.
  * @param {{vocabularyId: number, word?: {word_id: number, term: string, meaning: string, example: string|null, example_meaning: string|null}}} options
  */
 export async function openWordForm({ vocabularyId, word }) {
@@ -114,8 +99,8 @@ export async function openWordForm({ vocabularyId, word }) {
     check: wordForm,
     send: (body) =>
       word
-        ? api(`/admin/words/${word.word_id}`, { method: "PUT", body })
-        : api(`/admin/vocabularies/${vocabularyId}/words`, { method: "POST", body }),
+        ? api(`/words/${word.word_id}`, { method: "PUT", body })
+        : api(`/vocabularies/${vocabularyId}/words`, { method: "POST", body }),
   });
   if (saved) toast(word ? "단어를 고쳤어요" : `'${saved.term}' 단어를 추가했어요`);
   return saved;
@@ -129,7 +114,7 @@ export async function openWordForm({ vocabularyId, word }) {
 export async function openImportForm({ vocabularyId }) {
   const Swal = globalThis.Swal;
   if (!Swal) return null;
-  const input = /** @type {HTMLInputElement} */ (h("input", { id: "admin-csv", type: "file", accept: ".csv,text/csv", class: INPUT_CLASS }));
+  const input = /** @type {HTMLInputElement} */ (h("input", { id: "content-csv", type: "file", accept: ".csv,text/csv", class: INPUT_CLASS }));
   const problem = h("div", { class: "hidden max-h-40 space-y-1 overflow-y-auto break-words text-sm text-red-600", role: "alert" });
   // 서버 문구에는 파일의 열 이름이 섞일 수 있어 글자 노드로만 넣는다
   const showProblem = (message, rows = []) => {
@@ -149,7 +134,7 @@ export async function openImportForm({ vocabularyId }) {
       return false;
     }
     try {
-      return await api(`/admin/vocabularies/${vocabularyId}/words/import`, { method: "POST", body: data, contentType: CSV_IMPORT.contentType });
+      return await api(`/vocabularies/${vocabularyId}/words/import`, { method: "POST", body: data, contentType: CSV_IMPORT.contentType });
     } catch (error) {
       const { message, rows } = importFailure(error);
       showProblem(message, rows);
@@ -161,9 +146,9 @@ export async function openImportForm({ vocabularyId }) {
     html: h(
       "div",
       { class: "space-y-3 text-left" },
-      h("p", { class: "text-sm text-zinc-600" }, "첫 줄은 열 이름입니다. term, meaning 은 필수이고 example, example_meaning 은 선택이에요."),
+      h("p", { class: "text-sm text-zinc-600" }, "첫 줄은 열 이름입니다. 영단어,뜻 (또는 term,meaning)은 필수이고 예문, 예문 뜻 열은 선택이에요."),
       h("p", { class: "text-sm text-zinc-600" }, `UTF-8 파일, 한 번에 ${CSV_IMPORT.maxRows}행·${CSV_IMPORT.maxBytes / 1024}KB 까지. 이미 있는 표제어는 건너뛰어요.`),
-      h("div", { class: "space-y-1" }, h("label", { for: "admin-csv", class: "block text-sm font-medium text-zinc-700" }, "CSV 파일"), input),
+      h("div", { class: "space-y-1" }, h("label", { for: "content-csv", class: "block text-sm font-medium text-zinc-700" }, "CSV 파일"), input),
       problem,
     ),
     showCancelButton: true,
@@ -187,7 +172,7 @@ async function confirmAndDelete(prompt, path) {
   try {
     await api(path, { method: "DELETE" });
   } catch (error) {
-    toast(adminFailureMessage(error), "error");
+    toast(contentFailureMessage(error), "error");
     return false;
   }
   toast("삭제했어요");
@@ -196,10 +181,10 @@ async function confirmAndDelete(prompt, path) {
 
 /** @param {{word_id: number, term: string}} word */
 export function confirmDeleteWord(word) {
-  return confirmAndDelete(deleteWordPrompt(word), `/admin/words/${word.word_id}`);
+  return confirmAndDelete(deleteWordPrompt(word), `/words/${word.word_id}`);
 }
 
 /** @param {{id: number, title: string, total_words: number}} vocabulary */
 export function confirmDeleteVocabulary(vocabulary) {
-  return confirmAndDelete(deleteVocabularyPrompt(vocabulary), `/admin/vocabularies/${vocabulary.id}`);
+  return confirmAndDelete(deleteVocabularyPrompt(vocabulary), `/vocabularies/${vocabulary.id}`);
 }

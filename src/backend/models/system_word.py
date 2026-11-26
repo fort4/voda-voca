@@ -8,7 +8,7 @@ from backend.models.base import NOCASE, SOURCE_SEED, Base
 
 
 class SystemWord(Base):
-    """표준 단어(시드)와 관리자가 등록한 단어. 이름은 기존 words 와 같게 유지한다 (term, meaning, example, example_meaning).
+    """표준 단어(시드)와 개인 단어장의 단어. 이름은 기존 words 와 같게 유지한다 (term, meaning, example, example_meaning).
 
     phonetic(미국식 IPA, 슬래시 없음)은 v2.2 부터 시드로 채우고 API 로 내보낸다. pos(품사, 영문 소문자)는 v2.2 신규
     단어장(exam-core-200, business-practical-200)부터 시드로 채우고 API 로 내보낸다(화면이 한글 라벨을 입힌다).
@@ -42,5 +42,5 @@ class SystemWord(Base):
     phonetic: Mapped[str | None] = mapped_column(String(100), nullable=True)
     level: Mapped[int | None] = mapped_column(Integer, nullable=True)
     order_index: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
-    # 'seed'(서버 시드) | 'admin'(관리자 등록). 관리자 등록분만 수정·삭제한다 (REQ-161)
+    # 'seed'(서버 시드) | 'user'(개인 단어장). 수정 권한은 단어장의 소유자로 판정한다 (REQ-170)
     source: Mapped[str] = mapped_column(String(10), nullable=False, server_default=SOURCE_SEED)

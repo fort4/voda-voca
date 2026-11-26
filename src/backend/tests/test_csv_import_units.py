@@ -167,7 +167,36 @@ def test_only_the_first_errors_are_listed_but_all_are_counted() -> None:
 def test_the_row_limit_counts_data_rows_only() -> None:
     body = "".join(f"w{i},뜻\n" for i in range(MAX_ROWS))
 
-    assert MAX_ROWS == 500
-    assert len(parse("term,meaning\n\n" + body + "\n")) == 500
+    assert MAX_ROWS == 3000  # 과제 제공 파일(2,000개)을 한 번에 올릴 수 있어야 한다 (VOCA-FR-003)
+    assert len(parse("term,meaning\n\n" + body + "\n")) == 3000
     message = str(failure("term,meaning\n" + body + "extra,뜻\n"))
-    assert "500" in message and "501" in message
+    assert "3000" in message and "3001" in message
+
+
+# ---------- 한글 열 이름 (과제 제공 파일, #40) ----------
+
+
+def test_the_course_header_is_accepted_with_a_bom() -> None:
+    assert parse("\ufeff영단어,뜻\r\napple,사과\r\n") == [("apple", "사과", None, None)]
+
+
+@pytest.mark.parametrize("header", ["영단어,뜻,예문,예문 뜻", "영단어, 뜻 ,예문,예문뜻", "영단어,meaning,example,예문 뜻"])
+def test_korean_names_work_for_every_column_and_may_be_mixed(header: str) -> None:
+    assert parse(f"{header}\nladle,국자,Use a ladle.,국자를 써.\n") == [("ladle", "국자", "Use a ladle.", "국자를 써.")]
+
+
+@pytest.mark.parametrize(
+    ("header", "hint"),
+    [("영단어,뜻,term", "term"), ("영단어,예문", "meaning"), ("단어,뜻", "단어")],
+)
+def test_wrong_korean_headers_are_rejected(header: str, hint: str) -> None:
+    error = failure(f"{header}\nladle,국자,x\n")
+
+    assert rows_of(error) == [1]
+    assert hint in error.errors[0].message
+
+
+def test_the_header_hint_names_both_formats() -> None:
+    message = str(failure("a,b\nladle,국자\n"))
+
+    assert "영단어,뜻" in message and "term,meaning" in message

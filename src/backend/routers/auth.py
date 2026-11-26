@@ -196,9 +196,6 @@ async def delete_me(
     """회원 탈퇴. 계정과 연관 데이터(단어장, 단어, 북마크, 학습 이력, 세션)를 모두 지우고 쿠키를 만료시킨다.
 
     인증되지 않은 요청은 get_current_user 가 401 로 막는다. 탈퇴 후 같은 쿠키로는 접근할 수 없다.
-    관리자 계정은 탈퇴할 수 없다 (지우면 다음 시작 때 초기 비밀번호로 다시 생긴다).
     """
-    if user.is_admin:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="관리자 계정은 탈퇴할 수 없습니다.")
     await auth_service.delete_account(db, user.id)
     response.delete_cookie(key=SESSION_COOKIE_NAME, **_cookie_options())

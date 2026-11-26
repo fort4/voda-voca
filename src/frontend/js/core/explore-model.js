@@ -4,7 +4,7 @@
  */
 
 /** 서버 카테고리 코드의 표시 이름. 목록에 없는 새 카테고리는 코드를 그대로 보인다 (서버가 자유 문자열을 허용). */
-export const CATEGORY_LABELS = Object.freeze({ ELEMENTARY: "초등", SECONDARY: "중고등", CSAT: "수능", EXAM: "시험", BUSINESS: "비즈니스", ETC: "기타" });
+export const CATEGORY_LABELS = Object.freeze({ ELEMENTARY: "초등", SECONDARY: "중고등", CSAT: "수능", EXAM: "시험", BUSINESS: "비즈니스", ETC: "기타", PERSONAL: "내 단어장" });
 
 const ALL = "all";
 const KO = "ko-KR";
@@ -54,18 +54,23 @@ export function levelOptions(catalog) {
 
 /**
  * 단어장 카드 한 장에 그릴 값.
- * @param {{id: number, title: string, category: string, level: number, description: string|null, total_words: number,
+ * @param {{id: number, title: string, category: string, level: number, description: string|null, total_words: number, is_mine?: boolean,
  *          user_progress: {studied_words: number, memorized_words: number, progress_rate: number, is_active: boolean}}} v
  */
 export function vocabularyCard(v) {
   const p = v.user_progress;
+  const wordCountText = `${v.total_words.toLocaleString(KO)}단어`;
+  // 개인 단어장은 레벨을 고르지 않으므로 보이지 않는다
+  const metaText = [categoryLabel(v.category), v.is_mine ? null : `Lv.${v.level}`, wordCountText].filter(Boolean).join(" · ");
   return {
     id: v.id,
     title: v.title,
     description: v.description || null,
     categoryLabel: categoryLabel(v.category),
     levelLabel: `Lv.${v.level}`,
-    wordCountText: `${v.total_words.toLocaleString(KO)}단어`,
+    wordCountText,
+    metaText,
+    canStudy: v.total_words > 0,
     progressPercent: Math.min(100, Math.max(0, Math.round(p.progress_rate))),
     progressText: `${p.studied_words.toLocaleString(KO)} / ${v.total_words.toLocaleString(KO)} 학습 · ${p.memorized_words.toLocaleString(KO)} 숙련`,
     isActive: p.is_active === true,

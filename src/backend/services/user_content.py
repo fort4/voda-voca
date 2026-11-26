@@ -1,5 +1,5 @@
-# 2026-11-26 - voda-voca - 관리자 콘텐츠 서비스: 관리자 단어장과 단어의 생성·수정·삭제, 일괄 등록. 시드 콘텐츠는 읽기 전용이다 (REQ-160~162)
-# 파일 위치: src/backend/services/admin_content.py
+# 2026-11-26 - voda-voca - 개인 단어장 서비스: 본인 단어장과 단어의 생성·수정·삭제, 일괄 등록. 표준 단어장은 읽기 전용이다 (REQ-170, 171)
+# 파일 위치: src/backend/services/user_content.py
 
 import uuid
 from dataclasses import dataclass
@@ -9,54 +9,54 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.terms import term_key
 from backend.models import SystemVocabulary, SystemWord
-from backend.models.base import SOURCE_ADMIN
-from backend.schemas.admin import VocabularyCreate, VocabularyUpdate, WordInput
+from backend.models.base import SOURCE_USER
+from backend.schemas.content import VocabularyCreate, VocabularyUpdate, WordInput
 from backend.services.errors import VocabularyNotFoundError, WordNotFoundError
 
-ADMIN_SLUG_PREFIX = "admin-"  # 시드 slug 와 겹치지 않게 서버가 붙인다
+USER_SLUG_PREFIX = "user-"  # 시드 slug 와 겹치지 않게 서버가 붙인다
 
 
 class SeedReadOnlyError(Exception):
-    """표준(시드) 콘텐츠는 수정·삭제할 수 없다."""
+    """표준(시드) 단어장은 아무도 고칠 수 없다."""
 
 
 class DuplicateTermError(Exception):
     """같은 단어장에 같은 표제어(대소문자·악센트 무시)가 있다."""
 
 
-async def _get_vocabulary(db: AsyncSession, vocabulary_id: int) -> SystemVocabulary:
+async def _own_vocabulary(db: AsyncSession, user_id: int, vocabulary_id: int) -> SystemVocabulary:
+    """내가 고칠 수 있는 단어장. 남의 것은 없는 것과 같고(404), 표준 단어장은 읽기 전용이다(403)."""
     vocabulary = await db.get(SystemVocabulary, vocabulary_id)
-    if vocabulary is None:
+    if vocabulary is None or vocabulary.owner_id not in (None, user_id):
         raise VocabularyNotFoundError
-    return vocabulary
-
-
-async def _own_vocabulary(db: AsyncSession, vocabulary_id: int) -> SystemVocabulary:
-    vocabulary = await _get_vocabulary(db, vocabulary_id)
-    if vocabulary.source != SOURCE_ADMIN:
+    if vocabulary.owner_id is None:
         raise SeedReadOnlyError
     return vocabulary
 
 
-async def _own_word(db: AsyncSession, word_id: int) -> SystemWord:
+async def _own_word(db: AsyncSession, user_id: int, word_id: int) -> tuple[SystemWord, SystemVocabulary]:
+    """내가 고칠 수 있는 단어와 그 단어장. 남의 단어는 없는 단어와 같다."""
     word = await db.get(SystemWord, word_id)
     if word is None:
         raise WordNotFoundError
-    if word.source != SOURCE_ADMIN:
-        raise SeedReadOnlyError
-    return word
+    try:
+        vocabulary = await _own_vocabulary(db, user_id, word.vocabulary_id)
+    except VocabularyNotFoundError as exc:
+        raise WordNotFoundError from exc
+    return word, vocabulary
 
 
-async def create_vocabulary(db: AsyncSession, data: VocabularyCreate) -> SystemVocabulary:
+async def create_vocabulary(db: AsyncSession, user_id: int, data: VocabularyCreate) -> SystemVocabulary:
     last = await db.scalar(select(func.max(SystemVocabulary.sort_order)))
     vocabulary = SystemVocabulary(
-        slug=f"{ADMIN_SLUG_PREFIX}{uuid.uuid4().hex[:12]}",
+        slug=f"{USER_SLUG_PREFIX}{uuid.uuid4().hex[:12]}",
         title=data.title,
         description=data.description,
         category=data.category,
         level=data.level,
         sort_order=(last or 0) + 1,  # 표준 단어장 뒤에 보인다
-        source=SOURCE_ADMIN,
+        source=SOURCE_USER,
+        owner_id=user_id,
     )
     db.add(vocabulary)
     await db.commit()
@@ -64,8 +64,10 @@ async def create_vocabulary(db: AsyncSession, data: VocabularyCreate) -> SystemV
     return vocabulary
 
 
-async def update_vocabulary(db: AsyncSession, vocabulary_id: int, data: VocabularyUpdate) -> SystemVocabulary:
-    vocabulary = await _own_vocabulary(db, vocabulary_id)
+async def update_vocabulary(
+    db: AsyncSession, user_id: int, vocabulary_id: int, data: VocabularyUpdate
+) -> SystemVocabulary:
+    vocabulary = await _own_vocabulary(db, user_id, vocabulary_id)
     for name in data.model_fields_set:
         setattr(vocabulary, name, getattr(data, name))
     await db.commit()
@@ -73,9 +75,9 @@ async def update_vocabulary(db: AsyncSession, vocabulary_id: int, data: Vocabula
     return vocabulary
 
 
-async def delete_vocabulary(db: AsyncSession, vocabulary_id: int) -> None:
+async def delete_vocabulary(db: AsyncSession, user_id: int, vocabulary_id: int) -> None:
     """단어장을 지운다. DB 의 CASCADE 가 단어, 학습 이력, 진도, 북마크, 학습 세션을 함께 지우고 활성 선택은 비운다."""
-    await _own_vocabulary(db, vocabulary_id)
+    await _own_vocabulary(db, user_id, vocabulary_id)
     await db.execute(delete(SystemVocabulary).where(SystemVocabulary.id == vocabulary_id))
     await db.commit()
 
@@ -106,14 +108,14 @@ async def refresh_total_words(db: AsyncSession, vocabulary: SystemVocabulary) ->
     vocabulary.total_words = int(total or 0)
 
 
-async def add_word(db: AsyncSession, vocabulary_id: int, data: WordInput) -> SystemWord:
-    """단어를 단어장 끝에 더한다. 표준 단어장에도 더할 수 있다."""
-    vocabulary = await _get_vocabulary(db, vocabulary_id)
+async def add_word(db: AsyncSession, user_id: int, vocabulary_id: int, data: WordInput) -> SystemWord:
+    """단어를 내 단어장 끝에 더한다."""
+    vocabulary = await _own_vocabulary(db, user_id, vocabulary_id)
     await _ensure_term_free(db, vocabulary_id, data.term)
     word = SystemWord(
         vocabulary_id=vocabulary_id,
         order_index=await _next_order_index(db, vocabulary_id),
-        source=SOURCE_ADMIN,
+        source=SOURCE_USER,
         **data.model_dump(),
     )
     db.add(word)
@@ -128,9 +130,14 @@ class ImportResult:
     skipped: int  # 이미 있거나 같은 파일에서 앞에 나온 표제어
 
 
-async def import_words(db: AsyncSession, vocabulary_id: int, words: list[WordInput]) -> ImportResult:
-    """여러 단어를 트랜잭션 하나로 단어장 끝에 더한다. 중복 표제어는 건너뛰고 기존 단어를 바꾸지 않는다 (REQ-162)."""
-    vocabulary = await _get_vocabulary(db, vocabulary_id)
+async def ensure_can_import(db: AsyncSession, user_id: int, vocabulary_id: int) -> None:
+    """파일 본문을 받기 전에 소유자를 확인한다."""
+    await _own_vocabulary(db, user_id, vocabulary_id)
+
+
+async def import_words(db: AsyncSession, user_id: int, vocabulary_id: int, words: list[WordInput]) -> ImportResult:
+    """여러 단어를 트랜잭션 하나로 내 단어장 끝에 더한다. 중복 표제어는 건너뛰고 기존 단어를 바꾸지 않는다 (REQ-171)."""
+    vocabulary = await _own_vocabulary(db, user_id, vocabulary_id)
     terms = await db.scalars(select(SystemWord.term).where(SystemWord.vocabulary_id == vocabulary_id))
     taken = {term_key(term) for term in terms}
     order_index = await _next_order_index(db, vocabulary_id)
@@ -144,7 +151,7 @@ async def import_words(db: AsyncSession, vocabulary_id: int, words: list[WordInp
             SystemWord(
                 vocabulary_id=vocabulary_id,
                 order_index=order_index + created,
-                source=SOURCE_ADMIN,
+                source=SOURCE_USER,
                 **data.model_dump(),
             )
         )
@@ -154,8 +161,8 @@ async def import_words(db: AsyncSession, vocabulary_id: int, words: list[WordInp
     return ImportResult(created=created, skipped=len(words) - created)
 
 
-async def update_word(db: AsyncSession, word_id: int, data: WordInput) -> SystemWord:
-    word = await _own_word(db, word_id)
+async def update_word(db: AsyncSession, user_id: int, word_id: int, data: WordInput) -> SystemWord:
+    word, _ = await _own_word(db, user_id, word_id)
     await _ensure_term_free(db, word.vocabulary_id, data.term, except_word_id=word.id)
     for name, value in data.model_dump().items():
         setattr(word, name, value)
@@ -163,10 +170,9 @@ async def update_word(db: AsyncSession, word_id: int, data: WordInput) -> System
     return word
 
 
-async def delete_word(db: AsyncSession, word_id: int) -> None:
-    """단어를 지운다. 모든 사용자의 이 단어 학습 이력, 진도, 북마크가 CASCADE 로 함께 지워진다."""
-    word = await _own_word(db, word_id)
-    vocabulary = await _get_vocabulary(db, word.vocabulary_id)
+async def delete_word(db: AsyncSession, user_id: int, word_id: int) -> None:
+    """단어를 지운다. 이 단어의 학습 이력, 진도, 북마크가 CASCADE 로 함께 지워진다."""
+    word, vocabulary = await _own_word(db, user_id, word_id)
     await db.delete(word)
     await refresh_total_words(db, vocabulary)
     await db.commit()

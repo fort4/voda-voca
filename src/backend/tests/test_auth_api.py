@@ -79,7 +79,7 @@ async def test_signup_takes_nickname_password_and_confirmation_only(client: http
     response = await client.post("/api/auth/signup", json=signup_payload(f"  {nickname}  "))
     assert response.status_code == 201
     body = response.json()
-    assert set(body) == {"id", "nickname", "is_admin", "created_at"}, "이메일 필드가 없어야 한다 (사용자 결정: 닉네임·비밀번호만)"
+    assert set(body) == {"id", "nickname", "created_at"}, "이메일 필드가 없어야 한다 (사용자 결정: 닉네임·비밀번호만)"
     assert body["nickname"] == nickname
     assert body["created_at"].endswith("Z")
     assert "password" not in body and "password_hash" not in body

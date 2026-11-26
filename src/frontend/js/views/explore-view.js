@@ -1,15 +1,14 @@
 /*
- * 2026-11-05 - voda-voca - 탐색 화면: 단어장 카탈로그 열람, 카테고리·레벨 필터, 단어 미리보기, 활성 단어장 변경, 관리자의 단어장 추가·수정·삭제
+ * 2026-11-05 - voda-voca - 탐색 화면: 단어장 카탈로그 열람, 카테고리·레벨 필터, 단어 미리보기, 활성 단어장 변경, 내 단어장 추가·수정·삭제
  * 파일 위치: src/frontend/js/views/explore-view.js
  */
 
-import { canEditContent, wordSheetEntry } from "../core/admin-model.js";
 import { api } from "../core/api.js";
+import { canEditContent, wordSheetEntry } from "../core/content-model.js";
 import { button, clear, h, icon, refreshIcons } from "../core/dom.js";
 import { categoryOptions, filterVocabularies, levelOptions, cardActionVariants, normalizeFilter, vocabularyCard } from "../core/explore-model.js";
-import { getUser } from "../core/state.js";
 import { toast } from "../core/toast.js";
-import { confirmDeleteVocabulary, openVocabularyForm } from "./components/admin-forms.js";
+import { confirmDeleteVocabulary, openVocabularyForm } from "./components/content-forms.js";
 import { mountLoader } from "./components/loader.js";
 import { iconBadge } from "./components/card-heading.js";
 import { progressRow } from "./components/progress-bar.js";
@@ -30,11 +29,10 @@ class ExplorePanel {
     this.ctx = ctx;
     this.filter = { category: "all", level: "all" };
     this.busyId = null;
-    this.user = getUser();
     this.chips = h("div", { class: "space-y-2" });
     this.cards = h("div", { class: "space-y-3" });
     const title = h("h1", { class: "text-title tracking-tight text-zinc-900" }, "단어장 탐색");
-    const add = this.user?.is_admin ? button({ variant: "secondary", onClick: () => this.editVocabulary() }, icon("plus", "h-4 w-4"), "새 단어장") : null;
+    const add = button({ variant: "secondary", onClick: () => this.editVocabulary() }, icon("plus", "h-4 w-4"), "새 단어장");
     this.element = h("div", { class: "stack pb-4" }, h("div", { class: "flex items-center justify-between gap-2" }, title, add), this.chips, this.cards);
     this.paint();
   }
@@ -66,7 +64,7 @@ class ExplorePanel {
   card(vocabulary) {
     const c = vocabularyCard(vocabulary);
     const actions = cardActionVariants(c);
-    const entry = wordSheetEntry(this.user);
+    const entry = wordSheetEntry(vocabulary);
     return h(
       "article",
       { class: `card vocab-card rise-in tone-accent space-y-3${c.isActive ? " vocab-card--active" : ""}` },
@@ -74,7 +72,7 @@ class ExplorePanel {
         "div",
         { class: "flex items-start gap-3" },
         iconBadge("book-open"),
-        h("div", { class: "min-w-0 flex-1" }, h("h2", { class: "text-base font-bold text-zinc-900" }, c.title), h("p", { class: "text-xs text-zinc-500" }, `${c.categoryLabel} · ${c.levelLabel} · ${c.wordCountText}`)),
+        h("div", { class: "min-w-0 flex-1" }, h("h2", { class: "text-base font-bold text-zinc-900" }, c.title), h("p", { class: "text-xs text-zinc-500" }, c.metaText)),
         c.isActive ? h("span", { class: "shrink-0 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-600" }, "학습 중") : null,
       ),
       c.description ? h("p", { class: "text-sm text-zinc-700" }, c.description) : null,
@@ -84,14 +82,14 @@ class ExplorePanel {
         "div",
         { class: "vocab-actions" },
         button({ variant: actions.preview, onClick: () => openWordSheet(vocabulary, { onWordsChanged: () => this.refresh() }) }, icon(entry.icon, "h-4 w-4"), entry.label),
-        c.isActive ? button({ variant: actions.main, onClick: () => this.ctx.navigate("/") }, icon("check", "h-4 w-4"), "홈에서 학습") : button({ variant: actions.main, disabled: this.busyId !== null, onClick: () => this.activate(vocabulary) }, "이 단어장으로 학습"),
+        c.isActive ? button({ variant: actions.main, onClick: () => this.ctx.navigate("/") }, icon("check", "h-4 w-4"), "홈에서 학습") : button({ variant: actions.main, disabled: this.busyId !== null || !c.canStudy, onClick: () => this.activate(vocabulary) }, c.canStudy ? "이 단어장으로 학습" : "단어를 추가해 주세요"),
       ),
-      canEditContent(this.user, vocabulary) ? this.adminActions(vocabulary) : null,
+      canEditContent(vocabulary) ? this.ownerActions(vocabulary) : null,
     );
   }
 
-  /** 관리자가 만든 단어장에만 붙는 수정·삭제 줄. */
-  adminActions(vocabulary) {
+  /** 내 단어장에만 붙는 수정·삭제 줄. */
+  ownerActions(vocabulary) {
     return h(
       "div",
       { class: "grid grid-cols-2 gap-2", role: "group", "aria-label": `${vocabulary.title} 관리` },
@@ -108,7 +106,7 @@ class ExplorePanel {
     if (await confirmDeleteVocabulary(vocabulary)) await this.refresh();
   }
 
-  /** 관리 작업 뒤 목록과 단어 수를 다시 받는다. */
+  /** 단어장·단어를 바꾼 뒤 목록과 단어 수를 다시 받는다. */
   async refresh() {
     try {
       this.catalog = await api("/vocabularies");

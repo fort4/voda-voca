@@ -9,10 +9,9 @@ import { passwordChangeErrors, passwordChangeFailure, profileView } from "../js/
 
 const ok = { current: "old-password-1", next: "new-password-2", confirm: "new-password-2" };
 
-test("profileView: 닉네임, 첫 글자, 역할, 가입일(한국 날짜)", () => {
-  const view = profileView({ nickname: "voca", is_admin: false, created_at: "2026-11-25T16:00:00Z" });
-  assert.deepEqual(view, { nickname: "voca", initial: "V", role: "학습자", joined: "2026-11-26" });
-  assert.equal(profileView({ nickname: "admin", is_admin: true, created_at: "2026-11-26T00:00:00Z" }).role, "관리자");
+test("profileView: 닉네임, 첫 글자, 가입일(한국 날짜)", () => {
+  const view = profileView({ nickname: "voca", created_at: "2026-11-25T16:00:00Z" });
+  assert.deepEqual(view, { nickname: "voca", initial: "V", joined: "2026-11-26" });
 });
 
 test("passwordChangeErrors: 모두 맞으면 오류가 없다", () => {

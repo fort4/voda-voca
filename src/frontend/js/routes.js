@@ -7,7 +7,7 @@
 const REQUIRED_VIEWS = ["login", "signup", "home", "explore", "session", "review", "stats", "mypage"];
 
 /**
- * 개인 단어장·단어 편집·CSV 업로드 계열 라우트는 중앙 제공형 전환으로 폐기되어 여기에 없다.
+ * 개인 단어장·단어 편집·CSV 등록은 별도 라우트 없이 탐색 화면과 단어 시트에서 한다.
  * 화면 함수는 app.js 가 주입한다 (이 모듈은 DOM 이나 API 에 의존하지 않는다).
  * @param {Record<string, (root: HTMLElement, ctx: object) => (void|(() => void))>} views
  * @returns {Array<{pattern: string, access: "any"|"user"|"guest", view: Function}>}

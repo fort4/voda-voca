@@ -10,14 +10,13 @@ import { passwordConfirmState, validatePassword } from "./validate.js";
 const FIELD_INPUT = { current_password: "current", new_password: "next", new_password_confirm: "confirm" };
 
 /**
- * @param {{nickname: string, is_admin?: boolean, created_at: string}} user
- * @returns {{nickname: string, initial: string, role: string, joined: string}}
+ * @param {{nickname: string, created_at: string}} user
+ * @returns {{nickname: string, initial: string, joined: string}}
  */
 export function profileView(user) {
   return {
     nickname: user.nickname,
     initial: Array.from(user.nickname)[0]?.toUpperCase() ?? "?",
-    role: user.is_admin ? "관리자" : "학습자",
     joined: kstDateKey(user.created_at),
   };
 }

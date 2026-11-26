@@ -1,17 +1,16 @@
 /*
- * 2026-11-05 - voda-voca - 단어 미리보기 바텀시트: 단어장의 단어를 페이지씩 보여 주고 표제어·뜻으로 검색하며 단어를 북마크한다. 관리자는 단어를 추가·수정·삭제하고 CSV 로 일괄 등록한다 (Esc·바깥 탭·✕ 로 닫기)
+ * 2026-11-05 - voda-voca - 단어 미리보기 바텀시트: 단어장의 단어를 페이지씩 보여 주고 표제어·뜻으로 검색하며 단어를 북마크한다. 내 단어장이면 단어를 추가·수정·삭제하고 CSV 로 일괄 등록한다 (Esc·바깥 탭·✕ 로 닫기)
  * 파일 위치: src/frontend/js/views/components/word-sheet.js
  */
 
-import { canEditContent, wordSheetEntry } from "../../core/admin-model.js";
 import { api } from "../../core/api.js";
 import { createBookmarkStore } from "../../core/bookmark-store.js";
+import { canEditContent, wordSheetEntry } from "../../core/content-model.js";
 import { button, h, icon, refreshIcons } from "../../core/dom.js";
 import { INPUT_CLASS } from "../../core/form.js";
-import { getUser } from "../../core/state.js";
 import { toast } from "../../core/toast.js";
 import { SEARCH_DEBOUNCE_MS, SEARCH_MAX_LENGTH, createWordPager, pagerFooter } from "../../core/word-search-model.js";
-import { confirmDeleteWord, openImportForm, openWordForm } from "./admin-forms.js";
+import { confirmDeleteWord, openImportForm, openWordForm } from "./content-forms.js";
 import { bookmarkButton } from "./bookmark-button.js";
 import { phoneticLine } from "./phonetic-line.js";
 import { posTag } from "./pos-tag.js";
@@ -19,12 +18,12 @@ import { posTag } from "./pos-tag.js";
 const PAGE_SIZE = 30;
 
 /**
- * @param {{id: number, title: string}} vocabulary
- * @param {{onWordsChanged?: () => void}} [options] 관리자가 단어를 바꾼 뒤 부른다 (단어 수 갱신)
+ * @param {{id: number, title: string, is_mine?: boolean}} vocabulary
+ * @param {{onWordsChanged?: () => void}} [options] 단어를 바꾼 뒤 부른다 (단어 수 갱신)
  * @returns {void}
  */
 export function openWordSheet(vocabulary, { onWordsChanged = () => {} } = {}) {
-  const user = getUser();
+  const editable = canEditContent(vocabulary);
   const previousFocus = document.activeElement;
   const list = h("div", { class: "space-y-2" });
   const footer = h("div", { class: "pt-2", "aria-live": "polite" });
@@ -39,7 +38,7 @@ export function openWordSheet(vocabulary, { onWordsChanged = () => {} } = {}) {
       if (event.type === "reset") list.replaceChildren();
       if (event.type === "page") {
         bookmarks.seed(event.added);
-        list.append(...event.added.map((word) => wordRow(word, bookmarkFor(word), canEditContent(user, word) ? adminActions(word) : null)));
+        list.append(...event.added.map((word) => wordRow(word, bookmarkFor(word), editable ? ownerActions(word) : null)));
       }
       paintFooter();
       refreshIcons();
@@ -52,8 +51,8 @@ export function openWordSheet(vocabulary, { onWordsChanged = () => {} } = {}) {
     onWordsChanged();
   }
 
-  /** 관리자 등록 단어의 수정·삭제 버튼. */
-  function adminActions(word) {
+  /** 내 단어의 수정·삭제 버튼. */
+  function ownerActions(word) {
     const iconButton = (name, props) => h("button", { type: "button", class: "btn btn-ghost btn-icon focus-ring", ...props }, icon(name, "h-5 w-5"));
     return [
       iconButton("pencil", { "aria-label": `${word.term} 수정`, onclick: async () => (await openWordForm({ vocabularyId: vocabulary.id, word })) && afterChange() }),
@@ -61,7 +60,7 @@ export function openWordSheet(vocabulary, { onWordsChanged = () => {} } = {}) {
     ];
   }
 
-  const addButtons = user?.is_admin
+  const addButtons = editable
     ? h(
         "div",
         { class: "grid grid-cols-2 gap-2" },
@@ -116,7 +115,7 @@ export function openWordSheet(vocabulary, { onWordsChanged = () => {} } = {}) {
 
   const panel = h(
     "div",
-    { class: "surface w-full max-w-lg overflow-y-auto rounded-b-none p-4", role: "dialog", "aria-modal": "true", "aria-label": `${vocabulary.title} ${wordSheetEntry(user).label}`, style: "max-height: 80dvh; padding-bottom: max(1rem, env(safe-area-inset-bottom))" },
+    { class: "surface w-full max-w-lg overflow-y-auto rounded-b-none p-4", role: "dialog", "aria-modal": "true", "aria-label": `${vocabulary.title} ${wordSheetEntry(vocabulary).label}`, style: "max-height: 80dvh; padding-bottom: max(1rem, env(safe-area-inset-bottom))" },
     h("div", { class: "mb-3 flex items-center justify-between gap-2" }, h("h2", { class: "min-w-0 truncate text-lg font-bold text-zinc-900" }, vocabulary.title), button({ variant: "ghost", "aria-label": "닫기", onClick: close }, icon("x", "h-5 w-5"))),
     h("div", { class: "mb-3 space-y-2" }, searchInput, addButtons),
     list,
@@ -133,7 +132,7 @@ export function openWordSheet(vocabulary, { onWordsChanged = () => {} } = {}) {
 /**
  * @param {{term: string, phonetic?: string|null, pos?: string|null, meaning: string, example: string|null}} word
  * @param {HTMLButtonElement} bookmark 행 오른쪽의 북마크 토글
- * @param {HTMLElement[]|null} actions 관리자 버튼 (없으면 null)
+ * @param {HTMLElement[]|null} actions 수정·삭제 버튼 (없으면 null)
  */
 function wordRow(word, bookmark, actions) {
   return h(

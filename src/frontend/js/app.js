@@ -18,7 +18,6 @@ import { signupView } from "./views/signup.js";
 import { exploreView } from "./views/explore-view.js";
 import { homeView } from "./views/home-view.js";
 import { myPageView } from "./views/mypage-view.js";
-import { profileView } from "./core/mypage-model.js";
 import { reviewView } from "./views/review-view.js";
 import { statsView } from "./views/stats-view.js";
 import { studySessionView } from "./views/study-session-view.js";
@@ -121,7 +120,6 @@ function openAccountMenu(anchor) {
         "div",
         { class: "min-w-0" },
         h("p", { class: "truncate text-sm font-semibold text-zinc-900" }, user.nickname),
-        h("span", { class: "chip-sm" }, profileView(user).role),
       ),
     ),
     h("div", { class: "dropdown-divider" }),

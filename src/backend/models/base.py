@@ -30,6 +30,7 @@ class Base(DeclarativeBase):
     """모든 ORM 모델의 베이스. `Base.metadata` 가 Alembic autogenerate 의 기준이다."""
 
 
-# 표준 콘텐츠의 출처 (system_vocabularies.source, system_words.source). 관리자 등록분만 수정·삭제할 수 있다 (REQ-160, 161).
+# 콘텐츠의 출처 (system_vocabularies.source, system_words.source). 수정 권한은 출처가 아니라 단어장의 소유자(owner_id)로 판정한다.
+# 옛 DB 에는 표준 단어장에 더해진 "admin" 단어가 남아 있을 수 있으며 표준 콘텐츠로 다룬다.
 SOURCE_SEED = "seed"
-SOURCE_ADMIN = "admin"
+SOURCE_USER = "user"

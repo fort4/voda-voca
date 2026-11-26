@@ -28,7 +28,7 @@ export function myPageView(root, { withdraw }) {
       h("h1", { class: "text-title tracking-tight text-zinc-900" }, "마이페이지"),
       profileCard(profileView(user)),
       passwordCard(user),
-      user.is_admin ? null : withdrawCard(withdraw), // 관리자 계정은 탈퇴할 수 없다 (서버도 403)
+      withdrawCard(withdraw),
     ),
   );
 }
@@ -42,7 +42,7 @@ function profileCard(view) {
     h(
       "div",
       { class: "min-w-0" },
-      h("p", { class: "flex flex-wrap items-center gap-2" }, h("span", { class: "break-all text-base font-bold text-zinc-900" }, view.nickname), h("span", { class: "chip-sm" }, view.role)),
+      h("p", { class: "break-all text-base font-bold text-zinc-900" }, view.nickname),
       view.joined ? h("p", { class: "text-xs text-zinc-500" }, `가입일 ${view.joined}`) : null,
     ),
   );
@@ -59,7 +59,7 @@ function withdrawCard(withdraw) {
   );
 }
 
-/** @param {{nickname: string, is_admin?: boolean}} user */
+/** @param {{nickname: string}} user */
 function passwordCard(user) {
   const current = passwordField({ id: "current-password", label: "현재 비밀번호", autocomplete: "current-password" });
   const next = passwordField({
@@ -144,7 +144,6 @@ function passwordCard(user) {
     "section",
     { class: "card space-y-4" },
     cardHeading({ iconName: "lock", title: "비밀번호 변경" }),
-    user.is_admin ? h("p", { class: "text-sm text-zinc-700" }, "처음 받은 비밀번호를 그대로 쓰고 있다면 지금 바꿔 주세요.") : null,
     h("p", { class: "text-xs text-zinc-500" }, "바꾸면 다른 기기에서 로그인한 상태는 해제됩니다."),
     form,
   );

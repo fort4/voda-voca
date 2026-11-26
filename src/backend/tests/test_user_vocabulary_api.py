@@ -1,7 +1,8 @@
-# 2026-11-26 - voda-voca - 관리자 단어장 통합 테스트: 생성·수정·삭제, 권한, 표준 단어장 보호, 삭제 시 연쇄 정리 (REQ-160)
-# 파일 위치: src/backend/tests/test_admin_vocabulary_api.py
+# 2026-11-26 - voda-voca - 개인 단어장 통합 테스트: 생성·수정·삭제, 소유자 확인, 표준 단어장 보호, 삭제 시 연쇄 정리 (#39, REQ-170)
+# 파일 위치: src/backend/tests/test_user_vocabulary_api.py
 
 from collections.abc import AsyncIterator
+from dataclasses import dataclass
 
 import httpx
 import pytest
@@ -11,15 +12,9 @@ from sqlalchemy import func, select
 from backend.db.session import get_session_factory
 from backend.main import app
 from backend.models import QuizSession, StudyLog, SystemVocabulary, SystemWord, User
-from backend.tests.helpers import (
-    admin_token,
-    auth_headers,
-    delete_admin_content,
-    signup_and_login,
-    user_id_for_token,
-)
+from backend.tests.helpers import auth_headers, signup_and_login, user_id_for_token
 
-URL = "/api/admin/vocabularies"
+URL = "/api/vocabularies"
 
 
 @pytest_asyncio.fixture
@@ -29,11 +24,16 @@ async def client() -> AsyncIterator[httpx.AsyncClient]:
         yield c
 
 
-@pytest_asyncio.fixture(autouse=True)
-async def _clean_admin() -> AsyncIterator[None]:
-    await delete_admin_content()
-    yield
-    await delete_admin_content()
+@dataclass
+class Owner:
+    token: str
+    user_id: int
+
+
+@pytest_asyncio.fixture
+async def owner(client: httpx.AsyncClient) -> Owner:
+    _, token = await signup_and_login(client)
+    return Owner(token, await user_id_for_token(client, token))
 
 
 def payload(**overrides) -> dict:
@@ -61,48 +61,66 @@ async def count(model, *conditions) -> int:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("method", "url", "body"),
-    [
-        ("POST", URL, payload()),
-        ("PATCH", f"{URL}/1", {"title": "x"}),
-        ("DELETE", f"{URL}/1", None),
-    ],
+    ("method", "suffix", "body"),
+    [("POST", "", payload()), ("PATCH", "/{id}", {"title": "x"}), ("DELETE", "/{id}", None)],
 )
-async def test_only_the_admin_may_manage_vocabularies(client: httpx.AsyncClient, method: str, url: str, body) -> None:
-    _, normal = await signup_and_login(client)
+async def test_changing_vocabularies_requires_login(
+    client: httpx.AsyncClient, owner: Owner, method: str, suffix: str, body
+) -> None:
+    created = await create(client, owner.token)
     before = await count(SystemVocabulary)
 
-    anonymous = await client.request(method, url, json=body)
-    forbidden = await client.request(method, url, json=body, headers=auth_headers(normal))
+    response = await client.request(method, URL + suffix.format(id=created["id"]), json=body)
 
-    assert (anonymous.status_code, forbidden.status_code) == (401, 403)
+    assert response.status_code == 401
     assert await count(SystemVocabulary) == before
 
 
 @pytest.mark.asyncio
-async def test_create_returns_an_empty_admin_vocabulary_visible_to_everyone(client: httpx.AsyncClient) -> None:
-    token = await admin_token(client)
-    created = await create(client, token, title="  우리 반 단어  ", description="   ")
+@pytest.mark.parametrize(("method", "body"), [("PATCH", {"title": "x"}), ("DELETE", None)])
+async def test_someone_elses_vocabulary_looks_missing(
+    client: httpx.AsyncClient, owner: Owner, method: str, body
+) -> None:
+    created = await create(client, owner.token)
+    _, other = await signup_and_login(client)
+
+    hidden = await client.request(method, f"{URL}/{created['id']}", json=body, headers=auth_headers(other))
+    missing = await client.request(method, f"{URL}/999999999", json=body, headers=auth_headers(other))
+
+    assert (hidden.status_code, hidden.json()) == (404, missing.json())
+    assert await count(SystemVocabulary, SystemVocabulary.id == created["id"], SystemVocabulary.title == "우리 반 단어") == 1
+
+
+@pytest.mark.asyncio
+async def test_create_returns_an_empty_vocabulary_that_only_the_owner_sees(
+    client: httpx.AsyncClient, owner: Owner
+) -> None:
+    created = await create(client, owner.token, title="  우리 반 단어  ", description="   ")
 
     assert (created["title"], created["description"], created["category"], created["level"]) == (
         "우리 반 단어", None, "ETC", 2,
     )
-    assert (created["source"], created["total_words"]) == ("admin", 0)
-    assert created["slug"].startswith("admin-")
-    _, normal = await signup_and_login(client)
-    listed = (await client.get("/api/vocabularies", headers=auth_headers(normal))).json()
+    assert (created["source"], created["total_words"], created["is_mine"]) == ("user", 0, True)
+    assert created["slug"].startswith("user-")
+    listed = (await client.get(URL, headers=auth_headers(owner.token))).json()
     assert listed[-1]["id"] == created["id"], "표준 단어장 뒤에 보인다"
-    chosen = await client.post(
-        "/api/users/me/active-vocabulary", json={"vocabulary_id": created["id"]}, headers=auth_headers(normal)
-    )
-    assert chosen.status_code == 200
+    _, other = await signup_and_login(client)
+    theirs = (await client.get(URL, headers=auth_headers(other))).json()
+    assert created["id"] not in [v["id"] for v in theirs]
 
 
 @pytest.mark.asyncio
-async def test_two_vocabularies_with_the_same_title_get_different_slugs(client: httpx.AsyncClient) -> None:
-    token = await admin_token(client)
+async def test_only_the_title_is_required(client: httpx.AsyncClient, owner: Owner) -> None:
+    response = await client.post(URL, json={"title": "내 단어"}, headers=auth_headers(owner.token))
 
-    first, second = await create(client, token), await create(client, token)
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert (body["category"], body["level"], body["description"]) == ("PERSONAL", 1, None)
+
+
+@pytest.mark.asyncio
+async def test_two_vocabularies_with_the_same_title_get_different_slugs(client: httpx.AsyncClient, owner: Owner) -> None:
+    first, second = await create(client, owner.token), await create(client, owner.token)
 
     assert first["slug"] != second["slug"]
 
@@ -115,18 +133,18 @@ async def test_two_vocabularies_with_the_same_title_get_different_slugs(client: 
         {"category": " "}, {"category": "c" * 51}, {"level": 0}, {"level": 6},
     ],
 )
-async def test_create_rejects_invalid_values(client: httpx.AsyncClient, overrides: dict) -> None:
-    token = await admin_token(client)
+async def test_create_rejects_invalid_values(client: httpx.AsyncClient, owner: Owner, overrides: dict) -> None:
+    token = owner.token
 
     response = await client.post(URL, json=payload(**overrides), headers=auth_headers(token))
 
     assert response.status_code == 422, response.text
-    assert await count(SystemVocabulary, SystemVocabulary.source == "admin") == 0
+    assert await count(SystemVocabulary, SystemVocabulary.owner_id == owner.user_id) == 0
 
 
 @pytest.mark.asyncio
-async def test_update_changes_title_and_description_only(client: httpx.AsyncClient) -> None:
-    token = await admin_token(client)
+async def test_update_changes_title_and_description_only(client: httpx.AsyncClient, owner: Owner) -> None:
+    token = owner.token
     created = await create(client, token)
 
     response = await client.patch(
@@ -141,9 +159,11 @@ async def test_update_changes_title_and_description_only(client: httpx.AsyncClie
 
 
 @pytest.mark.asyncio
-async def test_standard_vocabularies_cannot_be_changed_or_deleted(client: httpx.AsyncClient, make_vocabulary) -> None:
+async def test_standard_vocabularies_cannot_be_changed_or_deleted(
+    client: httpx.AsyncClient, owner: Owner, make_vocabulary
+) -> None:
     standard = await make_vocabulary(["a", "b"], title="표준")
-    token = await admin_token(client)
+    token = owner.token
 
     update = await client.patch(f"{URL}/{standard.id}", json={"title": "바꿈"}, headers=auth_headers(token))
     delete_ = await client.delete(f"{URL}/{standard.id}", headers=auth_headers(token))
@@ -155,21 +175,20 @@ async def test_standard_vocabularies_cannot_be_changed_or_deleted(client: httpx.
 
 
 @pytest.mark.asyncio
-async def test_unknown_vocabulary_is_404(client: httpx.AsyncClient) -> None:
-    token = await admin_token(client)
+async def test_unknown_vocabulary_is_404(client: httpx.AsyncClient, owner: Owner) -> None:
+    token = owner.token
 
     assert (await client.patch(f"{URL}/999999999", json={"title": "x"}, headers=auth_headers(token))).status_code == 404
     assert (await client.delete(f"{URL}/999999999", headers=auth_headers(token))).status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_delete_removes_words_history_and_sessions_and_clears_the_active_choice(client: httpx.AsyncClient) -> None:
-    token = await admin_token(client)
+async def test_delete_removes_words_history_and_sessions_and_clears_the_active_choice(client: httpx.AsyncClient, owner: Owner) -> None:
+    token = owner.token
     created = await create(client, token)
     for term in ("one", "two", "three", "four"):
         await add_word(client, token, created["id"], term)
-    _, learner = await signup_and_login(client)
-    learner_id = await user_id_for_token(client, learner)
+    learner, learner_id = token, owner.user_id
     await client.post(
         "/api/users/me/active-vocabulary", json={"vocabulary_id": created["id"]}, headers=auth_headers(learner)
     )
@@ -193,8 +212,8 @@ async def test_delete_removes_words_history_and_sessions_and_clears_the_active_c
 
 
 @pytest.mark.asyncio
-async def test_an_empty_vocabulary_cannot_start_a_session_but_does_not_fail(client: httpx.AsyncClient) -> None:
-    token = await admin_token(client)
+async def test_an_empty_vocabulary_cannot_start_a_session_but_does_not_fail(client: httpx.AsyncClient, owner: Owner) -> None:
+    token = owner.token
     created = await create(client, token)
     await client.post(
         "/api/users/me/active-vocabulary", json={"vocabulary_id": created["id"]}, headers=auth_headers(token)

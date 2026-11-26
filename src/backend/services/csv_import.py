@@ -1,4 +1,4 @@
-# 2026-11-26 - voda-voca - CSV 일괄 등록의 파싱과 검증: 인코딩, 열 이름, 행 검사. DB 를 쓰지 않는다 (REQ-162)
+# 2026-11-26 - voda-voca - CSV 일괄 등록의 파싱과 검증: 인코딩, 열 이름(영문·한글), 행 검사. DB 를 쓰지 않는다 (REQ-171)
 # 파일 위치: src/backend/services/csv_import.py
 
 import csv
@@ -7,21 +7,28 @@ from dataclasses import dataclass
 
 from pydantic import ValidationError
 
-from backend.schemas.admin import WordInput
+from backend.schemas.content import WordInput
 
-MAX_FILE_BYTES = 512 * 1024
-MAX_ROWS = 500  # 열 이름 줄과 빈 줄은 세지 않는다
+# 과제 제공 파일(2,000개)을 한 번에 올릴 수 있게 잡은 상한이다 (VOCA-FR-003).
+MAX_FILE_BYTES = 1024 * 1024
+MAX_ROWS = 3000  # 열 이름 줄과 빈 줄은 세지 않는다
 MAX_REPORTED_ERRORS = 20
 
 REQUIRED_COLUMNS = ("term", "meaning")
 COLUMNS = (*REQUIRED_COLUMNS, "example", "example_meaning")
+# 한글 열 이름은 영문 이름으로 바꿔 읽는다. 과제 제공 파일은 "영단어,뜻" 이다.
+KOREAN_COLUMNS = {"영단어": "term", "뜻": "meaning", "예문": "example", "예문 뜻": "example_meaning", "예문뜻": "example_meaning"}
 
 _LABELS = {"term": "표제어", "meaning": "뜻", "example": "예문", "example_meaning": "예문 뜻"}
 _EMPTY_MESSAGES = {"term": "표제어가 비어 있습니다.", "meaning": "뜻이 비어 있습니다."}
+_REQUIRED_NAMES = {"term": "영단어(term)", "meaning": "뜻(meaning)"}
 _SHOWN_NAME_MAX = 30  # 오류 문구에 옮겨 적는 열 이름 길이
 
 ENCODING_MESSAGE = "UTF-8 파일이 아닙니다. 엑셀에서는 'CSV UTF-8(쉼표로 분리)' 형식으로 저장해 주세요."
-HEADER_MESSAGE = f"첫 줄의 열 이름이 올바르지 않습니다. {','.join(COLUMNS)} 형식으로 작성해 주세요."
+HEADER_MESSAGE = (
+    f"첫 줄의 열 이름이 올바르지 않습니다. 영단어,뜻,예문,예문 뜻 또는 {','.join(COLUMNS)} 형식으로 작성해 주세요. "
+    "예문과 예문 뜻 열은 없어도 됩니다."
+)
 NO_ROWS_MESSAGE = "등록할 단어가 없는 파일입니다."
 QUOTE_MESSAGE = "CSV 형식이 올바르지 않습니다. 큰따옴표의 짝을 확인해 주세요."
 
@@ -92,7 +99,8 @@ def _read_rows(text: str) -> list[tuple[int, list[str]]]:
 
 
 def _columns(row: int, header: list[str]) -> list[str]:
-    names = [cell.strip().lower() for cell in header]
+    written = [cell.strip().lower() for cell in header]
+    names = [KOREAN_COLUMNS.get(name, name) for name in written]
     problem = None
     for index, name in enumerate(names):
         if not name:
@@ -105,7 +113,7 @@ def _columns(row: int, header: list[str]) -> list[str]:
             break
     missing = [name for name in REQUIRED_COLUMNS if name not in names]
     if missing:
-        problem = f"필수 열이 없습니다: {', '.join(missing)}"
+        problem = f"필수 열이 없습니다: {', '.join(_REQUIRED_NAMES[name] for name in missing)}"
     if problem:
         raise CsvImportError(HEADER_MESSAGE, [RowError(row, problem)])
     return names
