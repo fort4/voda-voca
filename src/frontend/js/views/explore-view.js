@@ -68,7 +68,7 @@ class ExplorePanel {
     const entry = wordSheetEntry(this.user);
     return h(
       "article",
-      { class: "card rise-in space-y-3" },
+      { class: "card vocab-card rise-in space-y-3" },
       h("div", { class: "flex items-start justify-between gap-2" }, h("h2", { class: "min-w-0 text-base font-bold text-zinc-900" }, c.title), c.isActive ? h("span", { class: "shrink-0 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-600" }, "학습 중") : null),
       h("p", { class: "text-xs text-zinc-500" }, `${c.categoryLabel} · ${c.levelLabel} · ${c.wordCountText}`),
       c.description ? h("p", { class: "text-sm text-zinc-700" }, c.description) : null,

@@ -273,6 +273,22 @@ a:focus-visible,
 .card-interactive:hover { border-color: var(--border-strong); box-shadow: var(--shadow-raised); transform: translateY(-1px); }
 .card-interactive:active { transform: scale(0.99); box-shadow: var(--shadow-card); }
 
+/* 단어장 카드(탐색): 그림자 없는 플랫 스타일. 경계는 1px 회색 테두리, 호버는 테두리·배경색으로만 알린다.
+ * .btn 의 상태 규칙을 이기도록 .vocab-card 를 앞에 붙인다. 키보드 포커스 외곽선(outline)은 그대로 둔다. */
+.vocab-card,
+.vocab-card:hover,
+.vocab-card:focus-within,
+.vocab-card:active { box-shadow: none; }
+.vocab-card { border: 1px solid var(--border); transition: border-color 150ms ease, background-color 150ms ease; }
+.vocab-card:hover { border-color: var(--border-strong); }
+.vocab-card .btn,
+.vocab-card .btn:hover:not(:disabled),
+.vocab-card .btn:focus,
+.vocab-card .btn:active:not(:disabled) { box-shadow: none; }
+.vocab-card .btn { border: 1px solid var(--border); transition: background-color 150ms ease, border-color 150ms ease; }
+.vocab-card .btn:hover:not(:disabled) { border-color: var(--border-strong); }
+.vocab-card .btn:active:not(:disabled) { transform: none; }
+
 /* 칩: 필터처럼 누르는 알약(.chip, aria-pressed 로 선택 표시)과 라벨처럼 보여 주기만 하는 작은 알약(.chip-sm) */
 .chip {
   display: inline-flex;
