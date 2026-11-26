@@ -133,7 +133,7 @@ async def _delete_test_vocabularies() -> None:
 
 @pytest_asyncio.fixture
 async def make_vocabulary() -> AsyncIterator[Callable[..., Awaitable[TestVocabulary]]]:
-    """표준 단어장을 만드는 팩토리. 단어는 term 목록으로 주고, 뜻과 예문은 term 에서 만든다.
+    """표준 단어장(owner_id 를 주면 그 사용자의 개인 단어장)을 만드는 팩토리. 단어는 term 목록으로 주고, 뜻과 예문은 term 에서 만든다.
 
     사용: vocab = await make_vocabulary(["apple", "banana", "cherry", "date"])
     발음기호가 필요하면 phonetics={"apple": "ˈæpəl"} 처럼 term → IPA 로 준다 (없으면 NULL).
@@ -149,11 +149,13 @@ async def make_vocabulary() -> AsyncIterator[Callable[..., Awaitable[TestVocabul
         level: int = 1,
         phonetics: Mapping[str, str] | None = None,
         parts_of_speech: Mapping[str, str] | None = None,
+        owner_id: int | None = None,
     ) -> TestVocabulary:
         slug = f"{TEST_VOCABULARY_SLUG_PREFIX}{uuid.uuid4().hex[:10]}"
         async with get_session_factory()() as session:
             vocabulary = SystemVocabulary(
-                slug=slug, title=title, category=category, level=level, total_words=len(terms)
+                slug=slug, title=title, category=category, level=level, total_words=len(terms),
+                owner_id=owner_id, source="seed" if owner_id is None else "user",
             )
             session.add(vocabulary)
             await session.flush()
@@ -167,6 +169,7 @@ async def make_vocabulary() -> AsyncIterator[Callable[..., Awaitable[TestVocabul
                     phonetic=(phonetics or {}).get(term),
                     pos=(parts_of_speech or {}).get(term),
                     order_index=index,
+                    source="seed" if owner_id is None else "user",
                 )
                 for index, term in enumerate(terms)
             ]

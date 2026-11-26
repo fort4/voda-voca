@@ -39,7 +39,7 @@ def owned(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _ok(*_args: object) -> None:
         return None
 
-    monkeypatch.setattr(bookmark_service, "_ensure_word_exists", _ok)
+    monkeypatch.setattr(bookmark_service, "_ensure_word_visible", _ok)
 
 
 @pytest.mark.asyncio

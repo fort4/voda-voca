@@ -21,7 +21,8 @@ class VocabularyOut(BaseModel):
     level: int
     description: str | None
     total_words: int
-    source: str = Field(description="'seed'(표준) 또는 'admin'(관리자 단어장). 관리자 화면이 수정 가능 여부를 가린다")
+    source: str = Field(description="'seed'(표준) 또는 'user'(개인 단어장)")
+    is_mine: bool = Field(description="내 개인 단어장인지. true 면 수정·삭제할 수 있다 (REQ-169)")
     user_progress: UserProgressOut
 
 
@@ -35,7 +36,7 @@ class VocabularyWordOut(BaseModel):
     example_meaning: str | None
     phonetic: str | None = Field(default=None, description="미국식 IPA (슬래시 없음). 화면이 /…/ 를 입힌다. 없으면 null")
     pos: str | None = Field(default=None, description="품사(영문 소문자, 예: noun). 화면이 한글 라벨을 입힌다. 없으면 null")
-    source: str = Field(description="'seed'(표준) 또는 'admin'(관리자 등록)")
+    source: str = Field(description="'seed'(표준) 또는 'user'(개인 단어장에 등록)")
     bookmarked: bool
 
 

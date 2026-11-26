@@ -4,7 +4,7 @@
 from sqlalchemy import Integer, case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import Bookmark, SystemVocabulary, SystemWord, User, UserWordProgress
+from backend.models import Bookmark, SystemVocabulary, SystemWord, User, UserWordProgress, visible_to
 from backend.schemas.vocabulary import UserProgressOut, VocabularyOut
 from backend.services.errors import VocabularyNotFoundError
 
@@ -23,6 +23,7 @@ def _entry(
         description=vocabulary.description,
         total_words=total,
         source=vocabulary.source,
+        is_mine=vocabulary.owner_id is not None,  # 목록·조회가 보이는 것만 돌려주므로 소유자가 있으면 본인 것이다
         user_progress=UserProgressOut(
             studied_words=studied,
             memorized_words=memorized,
@@ -51,8 +52,8 @@ async def _progress_by_vocabulary(
 async def list_vocabularies(
     db: AsyncSession, user: User, category: str | None, level: int | None
 ) -> list[VocabularyOut]:
-    """카탈로그. sort_order, id 순이며 category, level 로 거를 수 있다."""
-    query = select(SystemVocabulary).order_by(SystemVocabulary.sort_order, SystemVocabulary.id)
+    """카탈로그: 표준 단어장과 내 개인 단어장. sort_order, id 순이며 category, level 로 거를 수 있다."""
+    query = select(SystemVocabulary).where(visible_to(user.id)).order_by(SystemVocabulary.sort_order, SystemVocabulary.id)
     if category is not None:
         query = query.where(SystemVocabulary.category == category)
     if level is not None:
@@ -75,9 +76,10 @@ async def is_bookmarked(db: AsyncSession, user_id: int, word_id: int) -> bool:
     return found.scalar_one_or_none() is not None
 
 
-async def get_vocabulary(db: AsyncSession, vocabulary_id: int) -> SystemVocabulary:
+async def get_vocabulary(db: AsyncSession, vocabulary_id: int, user_id: int) -> SystemVocabulary:
+    """이 사용자에게 보이는 단어장. 남의 개인 단어장은 없는 것과 같게 VocabularyNotFoundError 다."""
     vocabulary = (
-        await db.execute(select(SystemVocabulary).where(SystemVocabulary.id == vocabulary_id))
+        await db.execute(select(SystemVocabulary).where(SystemVocabulary.id == vocabulary_id, visible_to(user_id)))
     ).scalar_one_or_none()
     if vocabulary is None:
         raise VocabularyNotFoundError
@@ -102,7 +104,7 @@ async def list_words(
     db: AsyncSession, user_id: int, vocabulary_id: int, page: int, size: int, query: str | None = None
 ) -> tuple[list[tuple[SystemWord, bool]], int]:
     """단어장의 단어를 order_index 순으로 한 페이지. (단어, 내 북마크 여부) 목록과 (검색 조건에 맞는) 전체 수를 돌려준다."""
-    await get_vocabulary(db, vocabulary_id)
+    await get_vocabulary(db, vocabulary_id, user_id)
     conditions = _word_conditions(vocabulary_id, query)
     total = (await db.execute(select(func.count()).select_from(SystemWord).where(*conditions))).scalar_one()
     flag = Bookmark.id.is_not(None).label("bookmarked")
@@ -119,7 +121,7 @@ async def list_words(
 
 async def set_active_vocabulary(db: AsyncSession, user: User, vocabulary_id: int) -> VocabularyOut:
     """활성 단어장을 바꾸고 그 단어장의 카탈로그 항목(내 진행률 포함)을 돌려준다. 같은 값이면 그대로 성공한다."""
-    vocabulary = await get_vocabulary(db, vocabulary_id)
+    vocabulary = await get_vocabulary(db, vocabulary_id, user.id)
     user.active_vocabulary_id = vocabulary.id
     await db.commit()
     return await vocabulary_entry(db, user, vocabulary)

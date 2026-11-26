@@ -15,6 +15,7 @@ from sqlalchemy.exc import IntegrityError
 
 from backend.core.config import get_settings
 from backend.db import session as session_module
+from backend.db.schema_compare import include_object
 from backend.models import AuthSession, Base, User
 
 pytestmark = pytest.mark.no_db  # 임시 SQLite 파일만 쓴다. DB 서버가 필요 없다.
@@ -177,7 +178,7 @@ def test_migration_upgrade_on_empty_db_matches_models(monkeypatch: pytest.Monkey
     engine = sa.create_engine(f"sqlite:///{db_file}")
     with engine.connect() as conn:
         diff = compare_metadata(
-            MigrationContext.configure(conn, opts={"compare_type": True}), Base.metadata
+            MigrationContext.configure(conn, opts={"compare_type": True, "include_object": include_object}), Base.metadata
         )
     engine.dispose()
     get_settings.cache_clear()

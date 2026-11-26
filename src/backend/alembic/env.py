@@ -17,6 +17,7 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from backend.core.config import get_settings  # noqa: E402
+from backend.db.schema_compare import include_object  # noqa: E402
 from backend.db.session import dispose_engine, get_engine  # noqa: E402
 from backend.models import Base  # noqa: E402
 
@@ -39,6 +40,7 @@ def run_migrations_offline() -> None:
         dialect_opts={"paramstyle": "named"},
         compare_type=True,
         render_as_batch=True,
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -51,6 +53,7 @@ def do_run_migrations(connection: Connection) -> None:
         target_metadata=target_metadata,
         compare_type=True,
         render_as_batch=True,  # SQLite 는 ALTER 가 제한적이라 테이블 재작성(batch)으로 변경한다
+        include_object=include_object,
     )
 
     with context.begin_transaction():

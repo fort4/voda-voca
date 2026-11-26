@@ -7,7 +7,7 @@ from backend.models.bookmark import Bookmark
 from backend.models.session import AuthSession
 from backend.models.quiz_session import QuizSession
 from backend.models.study_log import StudyLog
-from backend.models.system_vocabulary import SystemVocabulary
+from backend.models.system_vocabulary import SystemVocabulary, visible_to
 from backend.models.system_word import SystemWord
 from backend.models.user import User
 from backend.models.user_word_progress import UserWordProgress
@@ -22,4 +22,5 @@ __all__ = [
     "SystemWord",
     "User",
     "UserWordProgress",
+    "visible_to",
 ]

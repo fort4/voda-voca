@@ -6,17 +6,21 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.db.errors import is_foreign_key_violation, is_unique_violation
-from backend.models import Bookmark, SystemVocabulary, SystemWord
+from backend.models import Bookmark, SystemVocabulary, SystemWord, visible_to
 from backend.services.errors import WordNotFoundError
 
 
 
-async def _ensure_word_exists(db: AsyncSession, word_id: int) -> None:
-    """표준 단어가 있는지 확인한다. 표준 단어는 모든 사용자가 공유하므로 소유권 검사는 없다.
+async def _ensure_word_visible(db: AsyncSession, user_id: int, word_id: int) -> None:
+    """이 사용자에게 보이는 단어(표준 또는 내 개인 단어장)인지 확인한다.
 
-    없는 단어는 WordNotFoundError (404) 가 된다.
+    없는 단어와 남의 단어는 똑같이 WordNotFoundError (404) 가 된다.
     """
-    result = await db.execute(select(SystemWord.id).where(SystemWord.id == word_id))
+    result = await db.execute(
+        select(SystemWord.id)
+        .join(SystemVocabulary, SystemVocabulary.id == SystemWord.vocabulary_id)
+        .where(SystemWord.id == word_id, visible_to(user_id))
+    )
     if result.scalar_one_or_none() is None:
         raise WordNotFoundError
 
@@ -27,7 +31,7 @@ async def set_bookmark(db: AsyncSession, user_id: int, word_id: int) -> None:
     동시에 두 요청이 들어와도 (user_id, word_id) 유니크 제약이 행을 하나만 허용하고,
     뒤의 요청은 중복 위반을 받아 성공으로 처리된다.
     """
-    await _ensure_word_exists(db, word_id)
+    await _ensure_word_visible(db, user_id, word_id)
     db.add(Bookmark(user_id=user_id, word_id=word_id))
     try:
         await db.commit()

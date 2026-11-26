@@ -63,7 +63,7 @@ async def test_catalog_lists_the_seeded_vocabularies_in_order(client: httpx.Asyn
     slugs = [i["slug"] for i in items]
     assert slugs[:3] == ["beginner-200", "intermediate-200", "advanced-200"]
     first = items[0]
-    assert set(first) == {"id", "slug", "title", "category", "level", "description", "total_words", "source", "user_progress"}
+    assert set(first) == {"id", "slug", "title", "category", "level", "description", "total_words", "source", "is_mine", "user_progress"}
     assert (first["category"], first["level"], first["total_words"]) == ("ELEMENTARY", 1, 200)
     assert set(first["user_progress"]) == {"studied_words", "memorized_words", "progress_rate", "is_active"}
 

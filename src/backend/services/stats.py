@@ -11,7 +11,7 @@ from datetime import date, datetime, time, timedelta
 from sqlalchemy import Date, Integer, case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import Bookmark, QuizSession, StudyLog, SystemVocabulary, SystemWord, User, UserWordProgress
+from backend.models import Bookmark, QuizSession, StudyLog, SystemVocabulary, SystemWord, User, UserWordProgress, visible_to
 from backend.models.study_log import STUDY_MODE_QUIZ
 from backend.schemas.study import (
     DailyScoreOut,
@@ -135,14 +135,15 @@ async def _weekly(db: AsyncSession, user_id: int, today: date) -> list[DayActivi
 
 
 async def _vocabulary_progress(db: AsyncSession, user_id: int) -> list[VocabularyProgressOut]:
-    """표준 단어장별 진행률: 한 번이라도 맞힌 단어 수 / 단어 수. 맞힌 뒤 틀려도 학습한 단어로 센다.
+    """단어장별 진행률: 한 번이라도 맞힌 단어 수 / 단어 수. 맞힌 뒤 틀려도 학습한 단어로 센다.
 
-    표준 단어장은 모든 사용자가 공유하므로 전체 목록(sort_order, id 순)을 보여 주고, 맞힌 수만 사용자별로 센다.
+    표준 단어장과 내 개인 단어장(sort_order, id 순)을 보여 주고, 맞힌 수는 사용자별로 센다.
     """
     sizes = (
         await db.execute(
             select(SystemVocabulary.id, func.count(SystemWord.id))
             .outerjoin(SystemWord, SystemWord.vocabulary_id == SystemVocabulary.id)
+            .where(visible_to(user_id))
             .group_by(SystemVocabulary.id, SystemVocabulary.sort_order)
             .order_by(SystemVocabulary.sort_order, SystemVocabulary.id)
         )
@@ -173,6 +174,11 @@ async def _day_progress(db: AsyncSession, user_id: int, now: datetime) -> DayPro
     """학습 중인 단어장의 지금 일차와 그 일차에 학습한 단어 수 (REQ-165, VOCA-FR-031)."""
     user = await db.get(User, user_id)
     if user is None or user.active_vocabulary_id is None:
+        return None
+    visible = await db.scalar(
+        select(SystemVocabulary.id).where(SystemVocabulary.id == user.active_vocabulary_id, visible_to(user_id))
+    )
+    if visible is None:
         return None
     day, words = await current_day(db, user_id, user.active_vocabulary_id, user.daily_goal, now)
     return DayProgressOut(vocabulary_id=user.active_vocabulary_id, day=day, words=words)

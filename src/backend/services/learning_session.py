@@ -7,7 +7,7 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import Bookmark, QuizSession, SystemVocabulary, SystemWord, User, UserWordProgress
+from backend.models import Bookmark, QuizSession, SystemVocabulary, SystemWord, User, UserWordProgress, visible_to
 from backend.models.quiz_session import QUIZ_SOURCE_BOOKMARKS, QUIZ_SOURCE_DUE, QUIZ_SOURCE_VOCABULARY, QUIZ_SOURCE_WRONG
 from backend.models.study_log import STUDY_MODE_FLASHCARD, STUDY_MODE_QUIZ
 from backend.schemas.learning_session import (
@@ -56,15 +56,22 @@ class NoVocabularyError(StudyError):
 
 
 async def _active_vocabulary(db: AsyncSession, user: User) -> SystemVocabulary:
-    """사용자의 활성 단어장. 비어 있으면 첫 번째 표준 단어장(sort_order, id 순)을 활성으로 저장한다."""
+    """사용자의 활성 단어장. 비어 있거나 볼 수 없으면 첫 번째 표준 단어장(sort_order, id 순)을 활성으로 저장한다."""
     if user.active_vocabulary_id is not None:
         found = (
-            await db.execute(select(SystemVocabulary).where(SystemVocabulary.id == user.active_vocabulary_id))
+            await db.execute(
+                select(SystemVocabulary).where(SystemVocabulary.id == user.active_vocabulary_id, visible_to(user.id))
+            )
         ).scalar_one_or_none()
         if found is not None:
             return found
     default = (
-        await db.execute(select(SystemVocabulary).order_by(SystemVocabulary.sort_order, SystemVocabulary.id).limit(1))
+        await db.execute(
+            select(SystemVocabulary)
+            .where(SystemVocabulary.owner_id.is_(None))
+            .order_by(SystemVocabulary.sort_order, SystemVocabulary.id)
+            .limit(1)
+        )
     ).scalar_one_or_none()
     if default is None:
         raise NoVocabularyError
