@@ -17,6 +17,7 @@ import { themeToggleView } from "./core/preferences-model.js";
 import { signupView } from "./views/signup.js";
 import { exploreView } from "./views/explore-view.js";
 import { homeView } from "./views/home-view.js";
+import { landingView } from "./views/landing-view.js";
 import { myPageView } from "./views/mypage-view.js";
 import { rankingView } from "./views/ranking-view.js";
 import { reviewView } from "./views/review-view.js";
@@ -205,7 +206,7 @@ async function logout() {
   renderUserbar();
   renderTabbar();
   toast("로그아웃되었습니다.", "info");
-  router.navigate("/login");
+  router.navigate("/");
 }
 
 /**
@@ -274,7 +275,7 @@ function onSessionExpired() {
 const routes = buildRoutes({
   login: loginView,
   signup: signupView,
-  home: homeView,
+  home: (root, ctx) => (getUser() ? homeView(root, ctx) : landingView(root, ctx)),
   explore: exploreView,
   session: studySessionView,
   review: reviewView,

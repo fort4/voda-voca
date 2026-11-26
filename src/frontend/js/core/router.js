@@ -102,7 +102,7 @@ export function createRouter({ routes, root, getUser, onNotFound, afterRender = 
     }
     const user = getUser();
     const { route, params } = match;
-    if (route.access === "user" && !user) {
+    if (route.access === "user" && !user && path !== "/") {
       replace("/login", { next: path + (Object.keys(query).length ? `?${new URLSearchParams(query)}` : "") });
       return;
     }

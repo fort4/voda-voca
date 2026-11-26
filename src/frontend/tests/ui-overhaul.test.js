@@ -80,7 +80,7 @@ test("A: 마이페이지 비밀번호 변경 카드도 의미 색(tone-accent)�
 test("카드 상단에 색 강조선을 두지 않는다 (사용자 지시)", () => {
   assert.doesNotMatch(css, /card-hero/);
   assert.doesNotMatch(css, /\.card[^{}]*\{[^}]*border-top[^;}]*var\(--(tone|accent)/);
-  for (const file of ["js/views/home-view.js", "js/views/review-view.js", "js/views/login.js", "js/views/signup.js"]) {
+  for (const file of ["js/views/home-view.js", "js/views/review-view.js", "js/views/login.js", "js/views/signup.js", "js/views/landing-view.js"]) {
     assert.doesNotMatch(read(file), /card-hero/, file);
   }
 });
