@@ -9,7 +9,7 @@ import { h, icon } from "../../core/dom.js";
 
 /**
  * 누르면 텍스트를 읽어 주는 아이콘 버튼. 재생 중에는 같은 key 의 버튼만 강조된다.
- * 소리는 반드시 이 버튼의 클릭 핸들러 안에서만 낸다 (브라우저 자동재생 제한: 제스처 밖 호출은 not-allowed).
+ * 버튼의 소리는 클릭 핸들러 안에서 낸다 (브라우저 자동재생 제한). 퀴즈 채점 직후의 자동 발음은 core/answer-speech.js 가 맡는다.
  * @param {{text: string, kind?: "word" | "sentence", key: string, label?: string}} opts
  * @returns {HTMLButtonElement}
  */

@@ -3,6 +3,7 @@
  * 파일 위치: src/frontend/js/views/study-session-view.js
  */
 
+import { createAnswerSpeech } from "../core/answer-speech.js";
 import { api } from "../core/api.js";
 import { button, clear, h, kbdHint, notice, refreshIcons, skeleton } from "../core/dom.js";
 import { createSessionDriver } from "../core/session-driver.js";
@@ -45,6 +46,8 @@ export function studySessionView(root, ctx) {
   let shownCombo = 0;
   // 완료 팡파레는 세션당 한 번만
   let completedSessionId = null;
+  // 퀴즈는 채점 직후 정답 영단어를 읽어 준다
+  const answerSpeech = createAnswerSpeech();
   // 북마크: 사용자가 바꾼 값은 화면이 다시 그려져도 남도록 세션 화면 단위로 보관한다
   const bookmarks = createBookmarkStore({ api });
   const bookmarkFor = (item) =>
@@ -62,16 +65,21 @@ export function studySessionView(root, ctx) {
         flipKey = key;
         flipped = false;
         leaving = null;
+        answerSpeech.cancel();
         stopSpeaking(); // 문항이 바뀌면 이전 문항의 발음을 끊는다
       }
-      if (action.type === ACTION.NEXT || action.type === ACTION.ABORT) stopSpeaking(); // 시트를 닫거나 세션을 중단할 때
+      if (action.type === ACTION.NEXT || action.type === ACTION.ABORT) {
+        answerSpeech.cancel();
+        stopSpeaking(); // 시트를 닫거나 세션을 중단할 때
+      }
       if (state.error) leaving = null; // 전송 실패 시 카드를 다시 보여 준다
-      playCueFor(state, action);
+      const playedCue = playCueFor(state, action);
       // 나가는 카드는 연출이 끝날 때까지 그대로 두고, 끝나면 서버 응답을 기다리지 않고 다음 카드를 미리 보여 준다
       clearTimeout(paintTimer);
       const remaining = leaving ? leaving.until - Date.now() : 0;
       if (remaining > 0) paintTimer = setTimeout(() => paint(driver.getState()), remaining);
       else paint(state);
+      answerSpeech.play(state, action, playedCue); // 화면(발음 버튼)을 그린 뒤에 예약한다
       // 플래시카드는 시트 없이 바로 다음 카드로 간다 (속도 우선)
       if (state.phase === PHASE.FEEDBACK_SHOWING && state.mode === "flashcard") {
         // 나가는 연출이 끝난 뒤에 다음 카드로 넘어가 화면이 끊기지 않게 한다
@@ -84,6 +92,7 @@ export function studySessionView(root, ctx) {
   /**
    * 효과음은 정책 함수(soundCueFor)가 정한다: 정답·마일스톤·오답(퀴즈만)·완료(정상 완주+정답 1개 이상).
    * 소리는 사용자가 답을 누르거나 결과를 보는 흐름 안에서만 난다.
+   * @returns {string | null} 실제로 소리를 낸 큐 이름
    */
   function playCueFor(state, action) {
     let cue = null;
@@ -94,7 +103,7 @@ export function studySessionView(root, ctx) {
       const summary = summaryOf(state);
       cue = soundCueFor({ type: "complete", aborted: summary.aborted, answered: summary.answered, correct: summary.correct });
     }
-    if (cue) playCue(cue);
+    return cue && playCue(cue) ? cue : null;
   }
 
   /** 상태 머신 액션과 화면 전용 행동을 한 곳에서 처리한다. */
@@ -118,6 +127,10 @@ export function studySessionView(root, ctx) {
         return;
       case VIEW_ACTION.GO_REVIEW:
         ctx.navigate("/review");
+        return;
+      case ACTION.SUBMIT_ANSWER:
+        answerSpeech.unlock(); // 클릭·키 입력 안에서 준비해야 채점 뒤 자동 발음이 막히지 않는다
+        driver.dispatch(action);
         return;
       case ACTION.EVALUATE_FLASHCARD:
         startLeaving(action.known);
@@ -353,6 +366,7 @@ export function studySessionView(root, ctx) {
     document.removeEventListener("keydown", onKeydown);
     clearTimeout(advanceTimer);
     clearTimeout(paintTimer);
+    answerSpeech.cancel();
     stopSpeaking(); // 화면을 떠나면 발음도 멈춘다
     driver.dispose();
   };

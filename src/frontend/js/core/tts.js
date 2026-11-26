@@ -84,6 +84,7 @@ export function createSpeaker({
   let current = null;
   let notifier = notify;
   let noticeShown = false;
+  let primed = false;
 
   const supported = () => Boolean(synth) && typeof UtteranceCtor === "function";
 
@@ -177,6 +178,7 @@ export function createSpeaker({
       current = utterance;
       setState({ status: "speaking", key }); // 옵티미스틱: onstart 를 기다리지 않아 연타해도 깜박이지 않는다
       synth.speak(utterance);
+      primed = true;
       return true;
     } catch (error) {
       current = null;
@@ -234,6 +236,25 @@ export function createSpeaker({
     /** 예문을 읽는다 (속도 0.85). @param {string} text @param {string} [key] */
     speakSentence: (text, key = null) => start(text, { rate: SENTENCE_RATE }, key),
 
+    /**
+     * 사용자 제스처 안에서 소리 없는 발화를 한 번 보내, 이후 제스처 밖의 재생(채점 뒤 자동 발음)을 허용받는다.
+     * iOS Safari 는 첫 발화가 제스처 안에 있어야 한다. 재생 상태는 바꾸지 않는다.
+     * @returns {boolean} 이번에 보냈는지
+     */
+    prime() {
+      if (primed || !supported()) return false;
+      try {
+        const utterance = new UtteranceCtor("");
+        utterance.volume = 0;
+        synth.speak(utterance);
+        primed = true;
+        return true;
+      } catch (error) {
+        warn("음성 재생을 준비하지 못했습니다.", error);
+        return false;
+      }
+    },
+
     stop,
     /** stop 의 이전 이름 (기존 호출처 호환) */
     cancel: stop,
@@ -262,6 +283,7 @@ export const speakWord = (text, key) => speaker.speakWord(text, key);
 /** @param {string} text @param {string} [key] @returns {boolean} */
 export const speakSentence = (text, key) => speaker.speakSentence(text, key);
 export const stopSpeaking = () => speaker.stop();
+export const primeSpeech = () => speaker.prime();
 /** @param {(state: SpeakingState) => void} listener @returns {() => void} */
 export const subscribeSpeaking = (listener) => speaker.subscribe(listener);
 export const getSpeakingState = () => speaker.getState();

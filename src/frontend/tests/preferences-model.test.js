@@ -23,6 +23,12 @@ test("효과음: 켜져 있으면 checked 와 bell-ring, 꺼져 있으면 bell-o
   assert.equal(on.label, "효과음");
 });
 
+test("효과음 설명은 퀴즈 자동 발음이 이 스위치를 따르고 발음 듣기 버튼은 별개임을 알린다", () => {
+  const [sound] = preferenceRows({ muted: false, theme: "light" });
+  assert.match(sound.description, /퀴즈 자동 발음/);
+  assert.match(sound.description, /발음 듣기 버튼은 별개/);
+});
+
 test("다크 모드: dark 일 때만 checked, 아이콘은 현재 상태(moon/sun)를 보여 준다", () => {
   const [, dark] = preferenceRows({ muted: false, theme: "dark" });
   const [, light] = preferenceRows({ muted: false, theme: "light" });
