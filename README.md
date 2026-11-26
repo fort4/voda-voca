@@ -226,14 +226,14 @@ Docker 도 DB 서버도 필요 없습니다. 테스트가 임시 SQLite 파일�
 - **푸시 전 마이그레이션 검사**: `.venv/bin/alembic -c src/backend/alembic.ini check` 가 `No new upgrade operations detected.` 를 내야 합니다 (모델은 바꿨는데 마이그레이션을 빼먹은 경우를 잡습니다).
 - 개발 중에는 지금 작업하는 테스트만 돌립니다 (예: `.venv/bin/python -m pytest -q src/backend/tests/test_bookmark_api.py`).
 
-### 4.2 프론트엔드 (node --test, 694건)
+### 4.2 프론트엔드 (node --test, 696건)
 ```bash
 cd src/frontend
 npm test            # 또는: node --test tests/
 ```
 - 외부 패키지를 설치하지 않습니다. 순수 로직(API 클라이언트, 라우터, 세션 러너, 콤보, 사운드, 저장소, 뷰모델)과, 화면 배선·디자인 토큰·다크 모드 누락을 소스 수준에서 검사하는 테스트를 돌립니다.
-- 최근 검증 결과: 694 passed (2026-11-26).
-- 누적 검증: 백엔드 982건 통과(6 skip), 프론트엔드 694건 통과.
+- 최근 검증 결과: 696 passed (2026-11-26).
+- 누적 검증: 백엔드 982건 통과(6 skip), 프론트엔드 696건 통과.
 
 ### 4.3 문법 검사 (프론트엔드)
 ```bash
