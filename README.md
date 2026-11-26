@@ -13,7 +13,7 @@
 
 | 항목 | 내용 |
 | :--- | :--- |
-| 앱 | 보다보카: 표준 단어장 5종(1,000단어)으로 퀴즈·플래시카드 학습, 간격 반복 복습, 북마크, 학습 통계 |
+| 앱 | 보다보카: 표준 단어장 5종(1,000단어)으로 퀴즈·플래시카드 학습, 간격 반복 복습, 북마크, 학습 통계, 학습 순위 |
 | DB | **SQLite** (`DB_PATH`, 기본 `/data/voca.db`, WAL). 시작할 때 테이블을 자동 생성하고 빈 DB 에서 시작한다 (VOCA-NFR-003) |
 | 서버 규격 | 루트 `Dockerfile`, `0.0.0.0:8080`, UID 10001, 쓰기는 `/data`·`/tmp` 만, 실행 중 인터넷 불필요, 점검 워크플로 `.github/workflows/docker-check.yml` 통과 |
 | 실행 | `docker build -t voca-app . && docker run -p 8080:8080 -e SECRET_KEY=change-me -v voca-data:/data voca-app` → http://localhost:8080 (자세한 방법은 §3) |
@@ -38,7 +38,7 @@
 | 통계 | VOCA-FR-031 | ✅ (홈에 현재 일차, 암기 단어 수 / 전체) |
 | 통계 | VOCA-FR-032, 033 | ✅ (회차별·날짜별 정답률, 오답 횟수 상위 N) |
 | 로그인 (도전) | VOCA-FR-041, 042, 043 | ✅ |
-| 다른 계정 이력 (도전) | VOCA-FR-051~053 | ➖ |
+| 다른 계정 이력 (도전) | VOCA-FR-051~053 | ✅ (공개한 사용자의 순위, 기본 비공개, 조회 전용) |
 | 설정 (도전) | VOCA-FR-062 | ✅ |
 | 설정 (도전) | VOCA-FR-061 | 🟡 (학습 개수만) |
 | 비기능 | VOCA-NFR-001~005 | ✅ |
@@ -99,13 +99,13 @@ voda-voca/
 ├── .github/workflows/       docker-check.yml (과제 점검 워크플로, 수정하지 않음)
 ├── src/
 │   ├── backend/             FastAPI 애플리케이션
-│   │   ├── routers/         auth, content, vocabulary, bookmark, study, study_session, user_settings
+│   │   ├── routers/         auth, content, vocabulary, bookmark, study, study_session, user_settings, ranking
 │   │   ├── core/            설정, 요청 제한, 표제어 정규화 등 공통 코드
 │   │   ├── db/              SQLite 연결과 세션
-│   │   ├── services/        인증, 표준 단어장, 개인 단어장·단어와 CSV 등록, 학습 세션(출제·채점), 통계, 진행도·일차, 시드 로더
+│   │   ├── services/        인증, 표준 단어장, 개인 단어장·단어와 CSV 등록, 학습 세션(출제·채점), 통계, 학습 순위, 진행도·일차, 시드 로더
 │   │   ├── schemas/         Pydantic 요청·응답 모델
 │   │   ├── models/          SQLAlchemy 모델 (user, system_vocabulary, system_word, bookmark, study_log, quiz_session, user_word_progress, session)
-│   │   ├── alembic/         마이그레이션 (SQLite, 리비전 0001~0005)
+│   │   ├── alembic/         마이그레이션 (SQLite, 리비전 0001~0006)
 │   │   ├── data/seeds/      표준 단어장 시드 (vocabularies.json, words/*.json 5종)
 │   │   └── tests/           pytest 테스트 (통합 + 단위)
 │   └── frontend/            정적 프론트엔드 (FastAPI 가 같은 출처로 서빙)
@@ -114,8 +114,8 @@ voda-voca/
 │       ├── vendor/          자체 호스팅 외부 자원 (Tailwind, SweetAlert2, Lucide, Chart.js, 서체; 출처·라이선스는 vendor/README.md)
 │       ├── js/app.js        부트스트랩, 라우트, 하단 탭바, 계정 드롭다운
 │       ├── js/core/         API 클라이언트, 라우터, DOM, 세션 러너·드라이버, 콤보, 사운드, 테마, TTS, 차트,
-│       │                    설정·북마크 저장소, 복습함·통계·환경 설정 뷰모델, 토스트
-│       ├── js/views/        홈, 탐색, 학습 세션, 복습함, 통계, 로그인·가입, 마이페이지, 학습 설정·환경 설정 모달
+│       │                    설정·북마크 저장소, 복습함·통계·순위·환경 설정 뷰모델, 토스트
+│       ├── js/views/        홈, 탐색, 학습 세션, 복습함, 통계·순위, 로그인·가입, 마이페이지, 학습 설정·환경 설정 모달
 │       ├── js/views/components/  북마크 버튼, 해설 시트, 단어 시트, 품사 태그, 발음기호, 발음 버튼, 차트 패널, 카드 제목 등
 │       └── tests/           node --test 단위 테스트
 ├── .env.example             환경 변수 템플릿 (.env 는 커밋하지 않는다)
@@ -215,25 +215,25 @@ curl http://localhost:8080/health
 
 ## 4. 테스트 실행
 
-### 4.1 백엔드 (pytest, 949건)
+### 4.1 백엔드 (pytest, 988건)
 Docker 도 DB 서버도 필요 없습니다. 테스트가 임시 SQLite 파일을 만들어 마이그레이션과 시드를 적용합니다.
 ```bash
 .venv/bin/python -m pytest -q
 ```
 - 통합 테스트는 세션 단위 임시 SQLite 파일에 연결하며 개발자의 실제 DB(`DB_PATH`)는 건드리지 않습니다. 테스트 계정은 `tvoda-` 접두사를 씁니다.
 - 최근 검증 결과: 944 passed, 5 skipped (2026-11-26, 약 1~2분). 커버리지는 99%(2026-11-26 측정)입니다 (`--cov=backend`, 설정은 `.coveragerc`).
-- **DB 없이 빠르게**: 순수 단위 테스트에는 `no_db` 표시가 붙어 있어 `.venv/bin/python -m pytest -q -m no_db` (401건, 약 12초)로 돌립니다. 새 순수 단위 테스트에는 `pytestmark = pytest.mark.no_db` 를 붙이세요 (표시가 거짓이면 `test_no_db_guard.py` 가 실패합니다).
+- **DB 없이 빠르게**: 순수 단위 테스트에는 `no_db` 표시가 붙어 있어 `.venv/bin/python -m pytest -q -m no_db` (412건, 약 15초)로 돌립니다. 새 순수 단위 테스트에는 `pytestmark = pytest.mark.no_db` 를 붙이세요 (표시가 거짓이면 `test_no_db_guard.py` 가 실패합니다).
 - **푸시 전 마이그레이션 검사**: `.venv/bin/alembic -c src/backend/alembic.ini check` 가 `No new upgrade operations detected.` 를 내야 합니다 (모델은 바꿨는데 마이그레이션을 빼먹은 경우를 잡습니다).
 - 개발 중에는 지금 작업하는 테스트만 돌립니다 (예: `.venv/bin/python -m pytest -q src/backend/tests/test_bookmark_api.py`).
 
-### 4.2 프론트엔드 (node --test, 665건)
+### 4.2 프론트엔드 (node --test, 681건)
 ```bash
 cd src/frontend
 npm test            # 또는: node --test tests/
 ```
 - 외부 패키지를 설치하지 않습니다. 순수 로직(API 클라이언트, 라우터, 세션 러너, 콤보, 사운드, 저장소, 뷰모델)과, 화면 배선·디자인 토큰·다크 모드 누락을 소스 수준에서 검사하는 테스트를 돌립니다.
-- 최근 검증 결과: 665 passed (2026-11-26).
-- 누적 검증: 백엔드 944건 통과(5 skip), 프론트엔드 665건 통과.
+- 최근 검증 결과: 681 passed (2026-11-26).
+- 누적 검증: 백엔드 982건 통과(6 skip), 프론트엔드 681건 통과.
 
 ### 4.3 문법 검사 (프론트엔드)
 ```bash
@@ -293,9 +293,10 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 - **틀린 단어**는 단어별 **마지막 결과가 오답**인 단어입니다. 다시 맞히면 목록에서 빠집니다.
 - 해당 목록의 단어가 **4개 이상**이면 [복습 시작]이 켜지고, 그 단어들로 같은 학습 세션(퀴즈 또는 플래시카드)을 시작합니다. 복습은 활성 단어장을 바꾸지 않습니다.
 
-### 5.5 통계 (REQ-131~133, REQ-154, REQ-155)
+### 5.5 통계와 순위 (REQ-131~133, REQ-154, REQ-155, REQ-172, REQ-173)
 - 누적 정답률, 연속 학습일(한국 날짜 기준), 전체 단어, 복습할 오답, 최근 7일 학습 단어 수 막대 차트(오늘 강조), 단어장별 숙련도 진행률을 보여 줍니다. 전체 이력 기준이며 서버가 집계합니다.
 - **시험 성적 추이**(회차별 선 그래프·날짜별 막대)와 **자주 틀리는 단어** 상위 10개를 보여 줍니다. 끝까지 푼 퀴즈만 회차로 셉니다. 차트는 누르거나 좌우 화살표로 값을 읽고 "표로 보기" 로도 볼 수 있습니다.
+- **학습 순위**(통계 화면의 `순위` 전환): 학습한 단어 수, 최근 7일 푼 단어 수, 최근 7일 학습일로 비교합니다. **기본은 비공개**이며 마이페이지의 "순위에 공개"를 켠 사용자만 닉네임과 지표가 보입니다. 단어장과 단어는 보이지 않습니다 (REQ-172, 173).
 
 ### 5.6 계정 메뉴, 학습 설정, 환경 설정 (REQ-134, REQ-147, REQ-149)
 - 닉네임 칩을 누르면 칩 아래에 메뉴가 뜹니다. 바깥을 누르거나 Esc로 닫습니다.
@@ -325,6 +326,7 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 | 북마크 | `PUT·DELETE /bookmarks/{word_id}`, `GET /bookmarks` |
 | 복습·통계 | `GET /study/wrong-words`, `GET /study/frequent-wrong`, `GET /study/score-trend`, `GET /study/stats`, `GET /study/logs` |
 | 사용자 설정 | `GET·PATCH /users/me/settings` |
+| 학습 순위 | `GET /ranking`, `GET·PUT /users/me/ranking-visibility` |
 | 개인 단어장 | `POST /vocabularies`, `PATCH·DELETE /vocabularies/{id}`, `POST /vocabularies/{id}/words`, `POST /vocabularies/{id}/words/import`, `PUT·DELETE /words/{id}` |
 
 ---
@@ -335,6 +337,7 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 - 개인 단어장은 소유자만 조회·수정할 수 있고, 남의 단어장·단어 요청은 없는 것과 같은 404 입니다.
 - 모든 SQL 은 파라미터 바인딩을 씁니다. 외래키 강제(`foreign_keys=ON`)와 쓰기 직렬화(`BEGIN IMMEDIATE`)는 연결 단계에서 설정합니다.
 - 북마크, 학습 기록, 진행도, 설정은 사용자별로 격리됩니다.
+- 학습 순위에는 공개를 켠 사용자의 닉네임과 지표만 나옵니다. 다른 사용자의 기록을 바꾸는 API 는 없습니다.
 - 로그인 무차별 대입 방어는 프로세스 메모리에서 동작합니다. 워커를 여러 개 띄우면 한도가 워커마다 따로 적용되므로, 그 경우 공유 저장소가 필요합니다.
 - 프론트엔드는 `innerHTML`을 쓰지 않고 `textContent`로만 텍스트를 넣습니다.
 - 퀴즈 출제 응답에는 정답과 해설이 없고, 답을 제출한 뒤 채점 응답에서만 공개됩니다 (데이터 설계서 D16). 플래시카드는 정답 개념이 없어 뒷면 정보(뜻·예문)가 출제 응답에 함께 실립니다. 퀴즈의 발음기호는 출제 응답에서 서버가 비웁니다.
@@ -343,6 +346,7 @@ for f in js/*.js js/*/*.js js/*/*/*.js tests/*.js; do node --check "$f" || echo 
 
 ## 8. 알려진 제한
 - 진행 중인 세션을 다시 조회하는 API 가 없어 새로고침하면 이어갈 수 없습니다. 이미 푼 문항은 문항마다 서버에 기록되어 통계에 남습니다.
+- 학습 순위는 같은 단어의 반복 풀이는 세지 않지만, 개인 단어장에 쉬운 단어를 대량 등록해 학습하면 올릴 수 있습니다.
 - 효과음 설정과 다크 모드 선택은 **브라우저별**로 저장되어 다른 기기와 공유되지 않습니다. 학습 설정(문항 수·목표)은 서버에 저장됩니다.
 - 효과음은 브라우저 정책에 따라 첫 사용자 동작 뒤부터 날 수 있습니다. 발음 듣기는 브라우저에 영어 음성이 없으면 동작하지 않습니다.
 - 모바일 실제 기기에서의 시각 점검(360px 레이아웃, 다크 모드의 북마크 색, 발음기호 글리프)은 자동 테스트로 확인할 수 없어 수동 점검 대상입니다.
