@@ -1,4 +1,4 @@
-# 2026-11-02 - voda-voca - study_logs 테이블 모델 (문항별 학습 이력, REQ-016, D4)
+# 2026-11-02 - voda-voca - study_logs 테이블 모델 (문항별 학습 이력, REQ-016, D4. 일차 REQ-165)
 # 파일 위치: src/backend/models/study_log.py
 
 from datetime import datetime
@@ -45,6 +45,8 @@ class StudyLog(Base):
     # 문항 단위 방향·형식 (VOCA-FR-026). 섞기 세션도 이 문항의 실제 방향을 적는다. 플래시카드는 기본값이다.
     direction: Mapped[str] = mapped_column(String(10), nullable=False, server_default="en_to_ko")
     format: Mapped[str] = mapped_column(String(10), nullable=False, server_default="choice")
+    # 몇 일차 학습인지 (REQ-165, VOCA-FR-014). 단어가 속한 단어장 기준이다. 0004 이전의 기록은 NULL 이다.
+    study_day: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=UTC_NOW_DEFAULT
     )

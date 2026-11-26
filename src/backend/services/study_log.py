@@ -1,4 +1,4 @@
-# 2026-11-05 - voda-voca - 답 기록의 단일 진입점: study_logs 에 이력을 더하고 user_word_progress 를 함께 갱신한다 (이슈 #3, #15, #17)
+# 2026-11-05 - voda-voca - 답 기록의 단일 진입점: study_logs 에 이력(일차 포함)을 더하고 user_word_progress 를 함께 갱신한다 (이슈 #3, #15, #17, #33)
 # 파일 위치: src/backend/services/study_log.py
 
 from datetime import datetime
@@ -7,9 +7,10 @@ from sqlalchemy import select
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import StudyLog, UserWordProgress
+from backend.models import StudyLog, SystemWord, User, UserWordProgress
 from backend.models.study_log import STUDY_MODE_QUIZ
 from backend.services.progress import ProgressState, apply_result
+from backend.services.study_day import current_day
 
 
 def progress_state_of(row: UserWordProgress) -> ProgressState:
@@ -35,7 +36,7 @@ async def record_result(
     direction: str = "en_to_ko",
     fmt: str = "choice",
 ) -> ProgressState:
-    """답 1건을 기록한다: 학습 이력 한 줄과 사용자×단어 진행도(숙련 판정)를 같은 트랜잭션에 반영한다 (커밋은 호출자).
+    """답 1건을 기록한다: 학습 이력 한 줄(몇 일차인지 포함, REQ-165)과 사용자×단어 진행도(숙련 판정)를 같은 트랜잭션에 반영한다 (커밋은 호출자).
 
     답을 기록하는 모든 경로(옛 퀴즈 API, 새 세션 API)가 이 함수를 거친다. 호출자는 같은 문항을 두 번 기록하지 않아야
     한다 (세션의 answers 가 멱등을 보장한다). 숙련 규칙은 services/progress.py 의 apply_result 가 가진다.
@@ -44,7 +45,22 @@ async def record_result(
     모든 트랜잭션이 BEGIN IMMEDIATE 로 시작해 쓰기가 한 번에 하나씩 처리되므로(db/session.py), 같은 사용자·단어에 대한
     동시 기록도 순서대로 정확히 센다.
     """
-    db.add(StudyLog(user_id=user_id, word_id=word_id, is_correct=is_correct, mode=mode, direction=direction, format=fmt))
+    # 일차는 이 이력을 더하기 전의 기록으로 정한다. 시각은 일차 판정과 같은 now 를 적는다.
+    vocabulary_id = await db.scalar(select(SystemWord.vocabulary_id).where(SystemWord.id == word_id))
+    goal = await db.scalar(select(User.daily_goal).where(User.id == user_id))
+    study_day, _ = await current_day(db, user_id, vocabulary_id, goal, now)
+    db.add(
+        StudyLog(
+            user_id=user_id,
+            word_id=word_id,
+            is_correct=is_correct,
+            mode=mode,
+            direction=direction,
+            format=fmt,
+            study_day=study_day,
+            created_at=now,
+        )
+    )
     await db.execute(
         sqlite_insert(UserWordProgress)
         .values(user_id=user_id, word_id=word_id)

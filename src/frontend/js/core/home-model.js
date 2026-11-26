@@ -1,5 +1,5 @@
 /*
- * 2026-11-05 - voda-voca - 홈 화면 뷰모델: 활성 단어장 요약, 오늘 목표·남은 문항(사용자 설정), 학습 시작 경로, 마지막 모드 기억 (DOM 없는 순수 로직)
+ * 2026-11-05 - voda-voca - 홈 화면 뷰모델: 활성 단어장 요약, 오늘 목표·남은 문항(사용자 설정), 일차 진도와 암기 단어 수(REQ-165), 학습 시작 경로, 마지막 모드 기억 (DOM 없는 순수 로직)
  * 파일 위치: src/frontend/js/core/home-model.js
  */
 
@@ -18,7 +18,8 @@ const normalizeMode = (mode) => (mode === "flashcard" ? "flashcard" : "quiz");
 /**
  * 홈이 그릴 값.
  * @param {{active: null|{title: string, total_words: number, user_progress: {studied_words: number, progress_rate: number}},
- *          stats: null|{streak_days: number, weekly: Array<{count: number, is_today: boolean}>}}} input
+ *          stats: null|{streak_days: number, weekly: Array<{count: number, is_today: boolean}>,
+ *                       day_progress?: null|{vocabulary_id: number, day: number, words: number}}}} input
  *   stats 가 null 이면 아직 못 받은 것이다 (목표 영역은 값 없음으로 둔다).
  */
 export function homeModel({ active, stats, settings = FALLBACK_SETTINGS }) {
@@ -40,7 +41,20 @@ export function homeModel({ active, stats, settings = FALLBACK_SETTINGS }) {
     goalPercent: todayCount === null ? 0 : Math.min(100, Math.round((todayCount / goal) * 100)),
     goalReached: todayCount !== null && todayCount >= goal,
     streakText: streak > 0 ? `${streak}일 연속` : null,
+    studyDay: studyDay(active, stats?.day_progress, goal),
+    memorizedText: active ? `암기 ${progress.memorized_words.toLocaleString(KO)} / ${active.total_words.toLocaleString(KO)}단어` : null,
   };
+}
+
+/**
+ * 학습 중인 단어장의 일차 표시. 학습량은 지금 설정을 따른다.
+ * @returns {null|{label: string, detail: string}} 값이 없거나 다른 단어장의 것(단어장을 막 바꾼 경우)이면 null
+ */
+function studyDay(active, progress, goal) {
+  if (!active || !progress || progress.vocabulary_id !== active.id) return null;
+  const { day, words } = progress;
+  const detail = words >= goal ? `학습량을 채웠어요 (${words} / ${goal}단어). 다음 학습일에 ${day + 1}일차` : `이번 일차 ${words} / ${goal}단어`;
+  return { label: `${day}일차`, detail };
 }
 
 /**

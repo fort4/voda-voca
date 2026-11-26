@@ -1,5 +1,5 @@
 /*
- * 2026-11-05 - voda-voca - 홈 화면: 활성 단어장, 오늘 목표·남은 문항, 학습 시작(퀴즈/플래시카드) (목표·시작 문구는 학습 설정을 따름, REQ-147)
+ * 2026-11-05 - voda-voca - 홈 화면: 활성 단어장과 일차 진도, 오늘 목표·남은 문항, 학습 시작(퀴즈/플래시카드) (목표·시작 문구는 학습 설정을 따름, REQ-147)
  * 파일 위치: src/frontend/js/views/home-view.js
  */
 
@@ -72,12 +72,18 @@ function renderHome(data, ctx, { mode, setMode, quizOptions, setQuizOptions }) {
     h(
       "section",
       { class: "card rise-in space-y-3" },
-      h("p", { class: "text-sm font-medium text-zinc-500" }, "학습 중인 단어장"),
+      h(
+        "div",
+        { class: "flex items-center justify-between gap-2" },
+        h("p", { class: "text-sm font-medium text-zinc-500" }, "학습 중인 단어장"),
+        m.studyDay ? h("span", { class: "shrink-0 rounded-full bg-indigo-50 px-2.5 py-1 text-sm font-semibold text-indigo-600" }, m.studyDay.label) : null,
+      ),
       m.hasActive
         ? [
             h("h1", { class: "text-heading tracking-tight text-zinc-900" }, m.vocabularyTitle),
             progressBar(m.progressPercent, "단어장 진행률"),
-            h("p", { class: "text-sm text-zinc-600" }, m.progressText),
+            h("p", { class: "text-sm text-zinc-600" }, `${m.progressText} · ${m.memorizedText}`),
+            m.studyDay ? h("p", { class: "text-sm text-zinc-600" }, m.studyDay.detail) : null,
           ]
         : [h("h1", { class: "text-heading tracking-tight text-zinc-900" }, "단어장을 골라 주세요"), h("p", { class: "text-sm text-zinc-600" }, m.emptyHint)],
       button({ variant: "ghost", onClick: () => ctx.navigate("/explore") }, icon("search", "h-4 w-4"), m.hasActive ? "단어장 바꾸기" : "단어장 고르기"),

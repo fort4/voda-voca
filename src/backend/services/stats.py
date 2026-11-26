@@ -1,4 +1,4 @@
-# 2026-11-05 - voda-voca - 학습 통계 집계: 누적 정답률, 연속 학습일, 최근 7일 활동, 표준 단어장 진행률, 오답 단어 (이슈 #3)
+# 2026-11-05 - voda-voca - 학습 통계 집계: 누적 정답률, 연속 학습일, 최근 7일 활동, 표준 단어장 진행률, 오답 단어, 일차 진도 (이슈 #3, #33)
 # 파일 위치: src/backend/services/stats.py
 """모든 학습 지표를 study_logs 에서 읽는 시점에 집계한다. 최근 N건 제한은 없다.
 
@@ -11,11 +11,12 @@ from datetime import date, datetime, time, timedelta
 from sqlalchemy import Date, Integer, case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import Bookmark, QuizSession, StudyLog, SystemVocabulary, SystemWord, UserWordProgress
+from backend.models import Bookmark, QuizSession, StudyLog, SystemVocabulary, SystemWord, User, UserWordProgress
 from backend.models.study_log import STUDY_MODE_QUIZ
 from backend.schemas.study import (
     DailyScoreOut,
     DayActivityOut,
+    DayProgressOut,
     FrequentWrongOut,
     ScoreTrendOut,
     SessionScoreOut,
@@ -23,6 +24,7 @@ from backend.schemas.study import (
     VocabularyProgressOut,
 )
 from backend.services.srs import KST_OFFSET  # 학습일 경계(한국 시각 자정) 상수는 srs 와 공유한다
+from backend.services.study_day import current_day
 
 WEEK_DAYS = 7
 STREAK_LOOKBACK_DAYS = 3700  # 연속 학습일을 거슬러 볼 최대 일수 (약 10년). 날짜 하나가 한 행이라 가볍다
@@ -167,6 +169,15 @@ async def _vocabulary_progress(db: AsyncSession, user_id: int) -> list[Vocabular
     return result
 
 
+async def _day_progress(db: AsyncSession, user_id: int, now: datetime) -> DayProgressOut | None:
+    """학습 중인 단어장의 지금 일차와 그 일차에 학습한 단어 수 (REQ-165, VOCA-FR-031)."""
+    user = await db.get(User, user_id)
+    if user is None or user.active_vocabulary_id is None:
+        return None
+    day, words = await current_day(db, user_id, user.active_vocabulary_id, user.daily_goal, now)
+    return DayProgressOut(vocabulary_id=user.active_vocabulary_id, day=day, words=words)
+
+
 async def get_study_stats(db: AsyncSession, user_id: int, now: datetime) -> StudyStatsOut:
     """대시보드·이력·퀴즈 설정 화면이 쓰는 학습 지표 전체."""
     today = kst_today(now)
@@ -182,6 +193,7 @@ async def get_study_stats(db: AsyncSession, user_id: int, now: datetime) -> Stud
         vocabulary_progress=progress,
         wrong_word_count=len(await wrong_word_ids(db, user_id)),
         due_review_count=await due_review_count(db, user_id, now),
+        day_progress=await _day_progress(db, user_id, now),
     )
 
 

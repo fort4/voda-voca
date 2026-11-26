@@ -35,6 +35,14 @@ class VocabularyProgressOut(BaseModel):
     percent: int = Field(description="learned_words / word_count (0~100, 반올림)")
 
 
+class DayProgressOut(BaseModel):
+    """학습 중인 단어장의 일차 진도 (REQ-165)."""
+
+    vocabulary_id: int
+    day: int = Field(description="지금 일차. 학습량을 채우고 날짜가 바뀌면 다음 일차다")
+    words: int = Field(description="이 일차에 학습한 서로 다른 단어 수")
+
+
 class StudyStatsOut(BaseModel):
     """학습 지표 전체. 모두 전체 이력 기준이며 최근 N건 제한이 없다."""
 
@@ -47,6 +55,7 @@ class StudyStatsOut(BaseModel):
     vocabulary_progress: list[VocabularyProgressOut]
     wrong_word_count: int = Field(description="오답 복습 대상 단어 수 (단어별 마지막 결과가 오답)")
     due_review_count: int = Field(default=0, description="오늘 복습할 단어 수 (SRS 복습 예정 시각이 지금 이전인 단어)")
+    day_progress: DayProgressOut | None = Field(default=None, description="학습 중인 단어장의 일차 진도. 고른 단어장이 없으면 null")
 
 
 # --- 학습 이력 (REQ-016) ---
