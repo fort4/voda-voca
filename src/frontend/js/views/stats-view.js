@@ -12,6 +12,7 @@ import { cardHeading, iconBadge } from "./components/card-heading.js";
 import { browserChartSet, chartPanel } from "./components/chart-panel.js";
 import { progressBar } from "./components/progress-bar.js";
 import { mountLoader } from "./components/loader.js";
+import { statsSwitch } from "./components/stats-switch.js";
 
 /**
  * 단어장 제목은 있으면 좋은 정보라 카탈로그 실패는 무시한다.
@@ -38,8 +39,10 @@ async function loadStats() {
  */
 export function statsView(root, ctx) {
   const charts = browserChartSet();
-  const dispose = mountLoader(root, loadStats, (m) => {
-    root.append(renderStats(m, ctx, charts));
+  const body = h("div");
+  root.append(statsSwitch("stats"), body); // 전환은 불러오는 중이나 기록이 없을 때도 보인다
+  const dispose = mountLoader(body, loadStats, (m) => {
+    body.append(renderStats(m, ctx, charts));
     charts.mount(); // 캔버스가 문서에 붙은 뒤에 그려야 크기를 읽는다
   });
   return () => {

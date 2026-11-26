@@ -18,6 +18,7 @@ from backend.db.session import dispose_engine, get_db_session
 from backend.routers.auth import router as auth_router
 from backend.routers.bookmark import router as bookmark_router
 from backend.routers.content import router as content_router
+from backend.routers.ranking import router as ranking_router
 from backend.routers.study import router as study_router
 from backend.routers.study_session import router as study_session_router
 from backend.routers.user_settings import router as user_settings_router
@@ -40,6 +41,7 @@ app.include_router(content_router)
 app.include_router(bookmark_router)
 app.include_router(study_router)
 app.include_router(study_session_router)
+app.include_router(ranking_router)
 app.include_router(vocabulary_router)
 app.include_router(me_vocabulary_router)
 app.include_router(user_settings_router)

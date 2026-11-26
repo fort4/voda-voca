@@ -18,6 +18,7 @@ import { signupView } from "./views/signup.js";
 import { exploreView } from "./views/explore-view.js";
 import { homeView } from "./views/home-view.js";
 import { myPageView } from "./views/mypage-view.js";
+import { rankingView } from "./views/ranking-view.js";
 import { reviewView } from "./views/review-view.js";
 import { statsView } from "./views/stats-view.js";
 import { studySessionView } from "./views/study-session-view.js";
@@ -277,6 +278,7 @@ const routes = buildRoutes({
   session: studySessionView,
   review: reviewView,
   stats: statsView,
+  ranking: rankingView,
   mypage: (root, ctx) => myPageView(root, { ...ctx, withdraw }),
 });
 

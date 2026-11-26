@@ -36,7 +36,7 @@ def kst_today(now: datetime) -> date:
     return (now + KST_OFFSET).date()
 
 
-def _kst_day_of(column):
+def kst_day_of(column):
     """UTC 로 저장된 시각 컬럼을 한국 날짜(DATE)로 바꾸는 SQL 식 (SQLite date() 에 +9 시간 보정을 준다)."""
     return func.date(column, "+9 hours", type_=Date)
 
@@ -101,7 +101,7 @@ async def _answer_totals(db: AsyncSession, user_id: int) -> tuple[int, int]:
 
 async def _streak_days(db: AsyncSession, user_id: int, today: date) -> int:
     """오늘부터 거꾸로 학습한 날이 끊기지 않은 일수. 오늘 아직 안 풀었으면 어제부터 센다."""
-    day = _kst_day_of(StudyLog.created_at)
+    day = kst_day_of(StudyLog.created_at)
     rows = await db.execute(
         select(day)
         .where(StudyLog.user_id == user_id, StudyLog.created_at >= datetime.combine(today - timedelta(days=STREAK_LOOKBACK_DAYS), time.min) - KST_OFFSET)
@@ -120,7 +120,7 @@ async def _streak_days(db: AsyncSession, user_id: int, today: date) -> int:
 async def _weekly(db: AsyncSession, user_id: int, today: date) -> list[DayActivityOut]:
     """오늘을 포함한 최근 7일의 날짜별 학습 단어 수(같은 단어를 여러 번 풀어도 1). 오래된 날부터."""
     first = today - timedelta(days=WEEK_DAYS - 1)
-    day = _kst_day_of(StudyLog.created_at)
+    day = kst_day_of(StudyLog.created_at)
     rows = await db.execute(
         select(day, func.count(func.distinct(StudyLog.word_id)))
         .where(StudyLog.user_id == user_id, StudyLog.created_at >= datetime.combine(first, time.min) - KST_OFFSET)
@@ -311,7 +311,7 @@ async def get_score_trend(db: AsyncSession, user_id: int, now: datetime, session
     ]
 
     first = kst_today(now) - timedelta(days=days - 1)
-    day = _kst_day_of(StudyLog.created_at)
+    day = kst_day_of(StudyLog.created_at)
     right = func.sum(case((StudyLog.is_correct.is_(True), 1), else_=0), type_=Integer)
     daily_rows = await db.execute(
         select(day, func.count(), right)

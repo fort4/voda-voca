@@ -3,7 +3,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String, UniqueConstraint, text
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.models.base import NOCASE, UTC_NOW_DEFAULT, Base, utcnow
@@ -34,6 +34,8 @@ class User(Base):
     quiz_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("10"))
     flashcard_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("10"))
     daily_goal: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("10"))
+    # 학습 순위에 내 닉네임과 지표를 보일지 (REQ-173, VOCA-FR-052). 기본은 비공개다.
+    ranking_public: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("0"))
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=UTC_NOW_DEFAULT
     )

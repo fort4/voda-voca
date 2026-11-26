@@ -1,5 +1,5 @@
 /*
- * 2026-11-26 - voda-voca - 마이페이지 화면: 계정 정보, 비밀번호 변경, 회원 탈퇴 (계정 메뉴에서 연다, REQ-122, REQ-159, REQ-164)
+ * 2026-11-26 - voda-voca - 마이페이지 화면: 계정 정보, 순위 공개 설정, 비밀번호 변경, 회원 탈퇴 (계정 메뉴에서 연다, REQ-122, REQ-164, REQ-173)
  * 파일 위치: src/frontend/js/views/mypage-view.js
  */
 
@@ -7,6 +7,7 @@ import { api } from "../core/api.js";
 import { button, h } from "../core/dom.js";
 import { alertBox, passwordField } from "../core/form.js";
 import { passwordChangeErrors, passwordChangeFailure, profileView } from "../core/mypage-model.js";
+import { RANKING_VISIBILITY_NOTE, createRankingVisibility } from "../core/ranking-model.js";
 import { getUser } from "../core/state.js";
 import { toast } from "../core/toast.js";
 import { passwordConfirmState } from "../core/validate.js";
@@ -27,6 +28,7 @@ export function myPageView(root, { withdraw }) {
       { class: "stack pb-4" },
       h("h1", { class: "text-title tracking-tight text-zinc-900" }, "마이페이지"),
       profileCard(profileView(user)),
+      rankingCard(),
       passwordCard(user),
       withdrawCard(withdraw),
     ),
@@ -45,6 +47,45 @@ function profileCard(view) {
       h("p", { class: "break-all text-base font-bold text-zinc-900" }, view.nickname),
       view.joined ? h("p", { class: "text-xs text-zinc-500" }, `가입일 ${view.joined}`) : null,
     ),
+  );
+}
+
+/** 순위 공개 스위치. 누르는 즉시 저장한다 (REQ-173). */
+function rankingCard() {
+  const status = h("span", { class: "block text-xs text-zinc-500", "aria-live": "polite" }, "불러오는 중");
+  const row = /** @type {HTMLButtonElement} */ (
+    h(
+      "button",
+      { type: "button", role: "switch", "aria-checked": "false", class: "pref-row focus-ring min-h-[44px]", disabled: true, onclick: onToggle },
+      h("span", { class: "min-w-0 flex-1" }, h("span", { class: "block text-body font-semibold text-zinc-900" }, "순위에 공개"), status),
+      h("span", { class: "switch-track", "aria-hidden": "true" }, h("span", { class: "switch-thumb" })),
+    )
+  );
+  const visibility = createRankingVisibility({ api, onChange: paint });
+
+  /** @param {{value: boolean|null, busy: boolean, failed: boolean}} state */
+  function paint({ value, busy, failed }) {
+    // 저장 중에는 비활성화하지 않는다 (키보드 포커스를 잃는다). 중복 입력은 저장소가 무시한다.
+    row.disabled = value === null && !failed;
+    row.setAttribute("aria-checked", String(value === true));
+    row.setAttribute("aria-busy", String(busy));
+    if (failed) status.textContent = "설정을 불러오지 못했어요. 눌러서 다시 시도해 주세요.";
+    else if (value === null) status.textContent = "불러오는 중";
+    else status.textContent = value ? "공개 중이에요" : "비공개예요";
+  }
+
+  async function onToggle() {
+    if (!(await visibility.toggle())) toast("저장하지 못했어요. 다시 시도해 주세요.", "error");
+  }
+
+  visibility.load();
+  return h(
+    "section",
+    { class: "card tone-accent space-y-3" },
+    cardHeading({ iconName: "trophy", title: "학습 순위" }),
+    h("p", { class: "text-xs text-zinc-500" }, RANKING_VISIBILITY_NOTE),
+    row,
+    h("a", { href: "#/stats/ranking", class: "focus-ring inline-flex min-h-[44px] items-center rounded-xl text-sm font-semibold text-indigo-600" }, "순위 보기"),
   );
 }
 

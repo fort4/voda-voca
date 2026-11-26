@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { matchRoute } from "../js/core/router.js";
 import { buildRoutes } from "../js/routes.js";
 
-const NAMES = ["login", "signup", "home", "explore", "session", "review", "stats", "mypage"];
+const NAMES = ["login", "signup", "home", "explore", "session", "review", "stats", "ranking", "mypage"];
 const views = Object.fromEntries(NAMES.map((name) => [name, () => name]));
 const routes = buildRoutes(views);
 
@@ -24,6 +24,7 @@ test("학습 중심 라우트가 모두 등록되어 있고 로그인이 필요�
   assert.deepEqual(hit("/study/session"), { view: "session", access: "user" });
   assert.deepEqual(hit("/review"), { view: "review", access: "user" });
   assert.deepEqual(hit("/stats"), { view: "stats", access: "user" });
+  assert.deepEqual(hit("/stats/ranking"), { view: "ranking", access: "user" });
   assert.deepEqual(hit("/mypage"), { view: "mypage", access: "user" });
 });
 
