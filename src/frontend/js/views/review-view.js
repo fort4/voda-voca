@@ -120,12 +120,17 @@ class ReviewPanel {
     return { element, prev, next, label };
   }
 
+  /** 보고 있는 탭의 목록이 비었을 때의 안내와 홈으로 가는 버튼. 홈에서 학습해야 두 목록이 채워진다. */
+  emptyCard() {
+    const message = this.active === "bookmarks" ? "북마크한 단어가 없어요. 학습 중 ★ 를 눌러 모아 보세요." : "틀린 단어가 없어요. 잘하고 있어요!";
+    return h("div", { class: "card flex flex-col items-center gap-3 text-center" }, h("p", { class: "text-sm text-zinc-600" }, message), button({ variant: "secondary", onClick: () => this.ctx.navigate("/") }, "홈으로"));
+  }
+
   /** 보고 있는 탭의 목록과 쪽 상태만 다시 그린다. */
   paintList() {
     const { items, busy } = this.lists[this.active].state;
-    const empty = this.active === "bookmarks" ? "북마크한 단어가 없어요. 학습 중 ★ 를 눌러 모아 보세요." : "틀린 단어가 없어요. 잘하고 있어요!";
     this.listElement.setAttribute("aria-busy", String(busy));
-    this.listElement.replaceChildren(...(items.length === 0 ? [h("p", { class: "card text-center text-sm text-zinc-600" }, empty)] : items.map((item) => this.row(bookmarkRow(item)))));
+    this.listElement.replaceChildren(...(items.length === 0 ? [this.emptyCard()] : items.map((item) => this.row(bookmarkRow(item)))));
     if (!this.pager) return;
     const model = pagerModel(this.lists[this.active].state);
     // disabled 는 포커스를 잃게 하므로 aria-disabled 로 잠근다. 잠긴 동안의 누름은 목록 상태 관리가 무시한다.

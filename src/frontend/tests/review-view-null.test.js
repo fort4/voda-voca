@@ -26,3 +26,12 @@ test("복습함은 통계의 오늘 복습 개수로 SRS 카드를 그리고 due
   assert.match(source, /openSession\(.*"due"\)/);
   assert.match(source, /due_review_count/);
 });
+
+test("빈 목록에는 안내 문장 아래에 홈으로 가는 secondary 버튼을 둔다 (UI/UX §3.4, REQ-018·129)", () => {
+  const paintList = source.slice(source.indexOf("  paintList() {"), source.indexOf("  /** 다른 탭의 늦은 응답은"));
+  assert.match(paintList, /items\.length === 0 \? \[this\.emptyCard\(\)\]/, "목록이 비었을 때만 그린다");
+  const card = source.slice(source.indexOf("  emptyCard() {"), source.indexOf("  paintList() {"));
+  assert.match(card, /북마크한 단어가 없어요/);
+  assert.match(card, /틀린 단어가 없어요/);
+  assert.match(card, /button\(\{ variant: "secondary", onClick: \(\) => this\.ctx\.navigate\("\/"\) \}, "홈으로"\)/);
+});
