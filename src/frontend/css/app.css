@@ -222,6 +222,10 @@ a:focus-visible,
   box-shadow: 0 1px 0 var(--btn-edge);
 }
 .btn:disabled { cursor: not-allowed; opacity: 0.5; }
+/* 포커스를 지켜야 하는 잠긴 버튼(쪽 넘기기)은 disabled 대신 aria-disabled 를 쓰고 같은 모양으로 보인다 */
+.btn[aria-disabled="true"] { cursor: not-allowed; opacity: 0.5; }
+.btn[aria-disabled="true"]:hover { background: var(--btn-bg); }
+.btn[aria-disabled="true"]:active { transform: none; box-shadow: 0 3px 0 var(--btn-edge); }
 .btn-full { width: 100%; }
 .btn-lg { min-height: 56px; font-size: var(--fs-lead); }
 /* 콤보 뱃지(v2.2): 진행 헤더 아래 고정 높이 줄. 뱃지가 없어도 높이를 차지해 카드가 밀리지 않는다 */
