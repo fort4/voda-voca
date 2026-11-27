@@ -23,9 +23,9 @@ test("효과음: 켜져 있으면 checked 와 bell-ring, 꺼져 있으면 bell-o
   assert.equal(on.label, "효과음");
 });
 
-test("효과음 설명은 퀴즈 자동 발음이 이 스위치를 따르고 발음 듣기 버튼은 별개임을 알린다", () => {
+test("효과음 설명은 퀴즈·플래시카드 자동 발음이 이 스위치를 따르고 발음 듣기 버튼은 별개임을 알린다", () => {
   const [sound] = preferenceRows({ muted: false, theme: "light" });
-  assert.match(sound.description, /퀴즈 자동 발음/);
+  assert.match(sound.description, /퀴즈·플래시카드 자동 발음/);
   assert.match(sound.description, /발음 듣기 버튼은 별개/);
 });
 

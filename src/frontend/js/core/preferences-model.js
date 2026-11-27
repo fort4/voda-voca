@@ -13,7 +13,7 @@ export function preferenceRows({ muted, theme }) {
     {
       id: "sound",
       label: "효과음",
-      description: "정답·오답·콤보·완료 소리와 퀴즈 자동 발음을 들려줘요. 발음 듣기 버튼은 별개예요.",
+      description: "정답·오답·콤보·완료 소리와 퀴즈·플래시카드 자동 발음을 들려줘요. 발음 듣기 버튼은 별개예요.",
       checked: !muted,
       icon: muted ? "bell-off" : "bell-ring",
     },

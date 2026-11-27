@@ -1,5 +1,5 @@
 /*
- * 2026-11-26 - voda-voca - 퀴즈 채점 직후 정답 영단어 자동 발음 검사: 대상, 효과음 뒤 재생, 음소거, 취소, iOS 재생 허용 준비
+ * 2026-11-26 - voda-voca - 영단어 자동 발음 검사: 퀴즈 채점 직후(효과음 뒤 재생), 플래시카드 앞→뒤 뒤집기, 음소거, 취소, iOS 재생 허용 준비
  * 파일 위치: src/frontend/tests/answer-speech.test.js
  */
 
@@ -117,4 +117,39 @@ test("세션 화면 배선: 답할 때 준비, 채점 응답에 재생, 다음·
   assert.match(view, /answerSpeech\.play\(state, action, /);
   assert.equal(view.match(/answerSpeech\.cancel\(\);\s*stopSpeaking\(\)/g)?.length, 3, "문항 전환, 다음·중단, 화면 정리");
   assert.match(view, /return \(\) => \{[\s\S]*answerSpeech\.cancel\(\)[\s\S]*driver\.dispose/);
+});
+
+test("플래시카드: 앞면에서 뒷면으로 뒤집으면 기다리지 않고 바로 영단어를 읽는다 (제스처 안에서 재생)", () => {
+  const { speech, spoken, delays } = setup();
+  speech.playOnFlip("apple", true);
+  assert.deepEqual(spoken, [["apple", "word:apple"]]);
+  assert.deepEqual(delays(), [], "예약하지 않는다");
+});
+
+test("플래시카드: 뒷면에서 앞면으로 돌아갈 때는 읽지 않고, 앞에서 뒤집을 때마다 다시 읽는다", () => {
+  const { speech, spoken } = setup();
+  for (const toBack of [true, false, true, false, true]) speech.playOnFlip("apple", toBack);
+  assert.equal(spoken.length, 3);
+});
+
+test("플래시카드: 효과음을 끄면 뒤집어도 읽지 않고, 다시 켜면 읽는다", () => {
+  const { speech, spoken, flags } = setup({ muted: true });
+  speech.playOnFlip("apple", true);
+  assert.deepEqual(spoken, []);
+  flags.muted = false;
+  speech.playOnFlip("apple", true);
+  assert.deepEqual(spoken, [["apple", "word:apple"]]);
+});
+
+test("플래시카드: 영단어가 비어 있으면 읽지 않는다", () => {
+  const { speech, spoken } = setup();
+  for (const term of [undefined, null, "", "   "]) speech.playOnFlip(term, true);
+  assert.deepEqual(spoken, []);
+});
+
+test("세션 화면 배선: 뒤집기는 넘어가는 중이 아닐 때만 처리하고, 뒤집은 방향을 자동 발음에 넘긴다", () => {
+  const view = read("js/views/study-session-view.js");
+  const flip = view.slice(view.indexOf("case VIEW_ACTION.FLIP:"), view.indexOf("case VIEW_ACTION.REQUEST_ABORT:"));
+  assert.match(flip, /if \(leaving\) return;[\s\S]*flipped = !flipped;[\s\S]*answerSpeech\.playOnFlip\(currentItem\(driver\.getState\(\)\)\?\.term, flipped\)/);
+  assert.equal(view.match(/answerSpeech\.playOnFlip\(/g)?.length, 1, "뒤집기 한 곳에서만 부른다");
 });

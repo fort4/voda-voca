@@ -1,5 +1,5 @@
 /*
- * 2026-11-26 - voda-voca - 퀴즈 채점 직후 정답 영단어 자동 발음: 효과음이 끝난 뒤 재생, 효과음을 끄면 함께 끔 (DOM 없는 로직)
+ * 2026-11-26 - voda-voca - 영단어 자동 발음: 퀴즈는 채점 직후 효과음이 끝난 뒤, 플래시카드는 뒷면으로 뒤집을 때. 효과음을 끄면 함께 끔 (DOM 없는 로직)
  * 파일 위치: src/frontend/js/core/answer-speech.js
  */
 
@@ -60,6 +60,17 @@ export function createAnswerSpeech({
         timer = null;
         if (!muted() && !hidden()) speak(term, `word:${term}`); // 기다리는 사이에 끄거나 탭을 벗어났을 수 있다
       }, delay);
+    },
+
+    /**
+     * 플래시카드를 앞면에서 뒷면으로 뒤집으면 영단어를 읽는다. 클릭·키 입력 안에서 부르므로 예약하지 않고 바로 재생한다.
+     * @param {string | null | undefined} term
+     * @param {boolean} toBack 뒤집은 결과가 뒷면인지. 앞면으로 돌아갈 때는 읽지 않는다
+     */
+    playOnFlip(term, toBack) {
+      const word = term?.trim();
+      if (!toBack || !word || muted()) return;
+      speak(word, `word:${word}`);
     },
 
     /** 예약해 둔 발음을 취소한다. */

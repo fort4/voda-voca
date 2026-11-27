@@ -46,7 +46,7 @@ export function studySessionView(root, ctx) {
   let shownCombo = 0;
   // 완료 팡파레는 세션당 한 번만
   let completedSessionId = null;
-  // 퀴즈는 채점 직후 정답 영단어를 읽어 준다
+  // 퀴즈는 채점 직후, 플래시카드는 뒷면으로 뒤집을 때 영단어를 읽어 준다
   const answerSpeech = createAnswerSpeech();
   // 북마크: 사용자가 바꾼 값은 화면이 다시 그려져도 남도록 세션 화면 단위로 보관한다
   const bookmarks = createBookmarkStore({ api });
@@ -113,6 +113,7 @@ export function studySessionView(root, ctx) {
         if (leaving) return; // 넘어가는 중에는 뒤집지 않는다
         flipped = !flipped;
         syncFlashcard();
+        answerSpeech.playOnFlip(currentItem(driver.getState())?.term, flipped);
         return;
       case VIEW_ACTION.REQUEST_ABORT: {
         const ok = await confirmDialog({ title: "학습을 중단할까요?", text: "푼 문항은 이미 저장되어 있어요.", confirmText: "중단" });
