@@ -23,6 +23,24 @@ export function frequentWrongModel(data) {
   };
 }
 
+/** 접힌 상태에서 보이는 개수 */
+const FREQUENT_COLLAPSED = 5;
+
+/**
+ * 자주 틀리는 단어의 접힘·펼침 상태에서 보일 내용. 5개 이하이면 펼칠 것이 없어 toggle 은 null 이다.
+ * @param {ReturnType<typeof frequentWrongModel>} model
+ * @param {boolean} expanded
+ */
+export function frequentWrongListModel(model, expanded) {
+  const items = expanded ? model.items : model.items.slice(0, FREQUENT_COLLAPSED);
+  const toggle = expanded ? { label: "접기", iconName: "chevron-up", expanded: true } : { label: "더 보기", iconName: "chevron-down", expanded: false };
+  return {
+    items,
+    countText: `상위 ${items.length}개`,
+    toggle: model.items.length > FREQUENT_COLLAPSED ? toggle : null,
+  };
+}
+
 /** 직전 회차와의 정답률 차이를 "+25%p" 꼴로. 첫 회차는 비교 대상이 없어 null. */
 function changeText(previous, current) {
   if (previous === null) return null;

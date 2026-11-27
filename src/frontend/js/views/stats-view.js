@@ -4,8 +4,8 @@
  */
 
 import { api } from "../core/api.js";
-import { button, h, icon, notice } from "../core/dom.js";
-import { frequentWrongModel, scoreTrendModel } from "../core/analytics-model.js";
+import { button, h, icon, notice, refreshIcons } from "../core/dom.js";
+import { frequentWrongListModel, frequentWrongModel, scoreTrendModel } from "../core/analytics-model.js";
 import { dailyChartConfig, sessionChartConfig, weeklyChartConfig } from "../core/chart-model.js";
 import { statsPageModel } from "../core/stats-page-model.js";
 import { cardHeading, iconBadge } from "./components/card-heading.js";
@@ -123,30 +123,56 @@ function renderTrend(trend, charts) {
   );
 }
 
+function frequentWrongItem(w) {
+  return h(
+    "li",
+    { class: "flex items-start gap-3" },
+    h("span", { class: w.rank <= 3 ? "rank-badge rank-badge--top" : "rank-badge" }, String(w.rank)),
+    h(
+      "div",
+      { class: "min-w-0 flex-1 space-y-1.5" },
+      h("div", { class: "flex items-baseline justify-between gap-2" }, h("p", { class: "min-w-0 truncate text-sm font-semibold text-zinc-800" }, w.term), h("span", { class: "shrink-0 text-sm text-zinc-500" }, w.countText)),
+      progressBar(w.ratio, `${w.term} 오답 횟수`, "wrong"),
+      h("p", { class: "text-xs text-zinc-500" }, `${w.meaning} · ${w.ratioText}`),
+    ),
+  );
+}
+
+/** 처음에는 접힌 상태다. 펼치기·접기는 개수, 목록, 버튼만 다시 그려 버튼의 포커스를 지킨다. */
 function renderFrequentWrong(frequent, ctx) {
   if (!frequent || frequent.isEmpty) return null;
+  const count = h("span", { class: "text-sm text-zinc-500" });
+  const list = h("ol", { class: "space-y-3" });
+  let expanded = false;
+  const toggleButton = button({
+    variant: "ghost", full: true,
+    onClick: () => {
+      expanded = !expanded;
+      draw();
+      refreshIcons();
+      if (!expanded) toggleButton.scrollIntoView({ block: "nearest" }); // 목록이 줄면 버튼이 화면 위로 밀릴 수 있다
+    },
+  });
+
+  toggleButton.classList.add("scroll-my-24"); // 상단 헤더와 하단 탭바에 가려지지 않게 남기는 여백
+
+  function draw() {
+    const { items, countText, toggle } = frequentWrongListModel(frequent, expanded);
+    count.textContent = countText;
+    list.replaceChildren(...items.map(frequentWrongItem));
+    toggleButton.hidden = !toggle;
+    if (!toggle) return;
+    toggleButton.setAttribute("aria-expanded", String(toggle.expanded));
+    toggleButton.replaceChildren(toggle.label, icon(toggle.iconName, "h-4 w-4"));
+  }
+
+  draw();
   return h(
     "section",
     { class: "card tone-wrong space-y-4" },
-    cardHeading({ iconName: "rotate-ccw", title: "자주 틀리는 단어", aside: h("span", { class: "text-sm text-zinc-500" }, `상위 ${frequent.items.length}개`) }),
-    h(
-      "ol",
-      { class: "space-y-3" },
-      frequent.items.map((w) =>
-        h(
-          "li",
-          { class: "flex items-start gap-3" },
-          h("span", { class: w.rank <= 3 ? "rank-badge rank-badge--top" : "rank-badge" }, String(w.rank)),
-          h(
-            "div",
-            { class: "min-w-0 flex-1 space-y-1.5" },
-            h("div", { class: "flex items-baseline justify-between gap-2" }, h("p", { class: "min-w-0 truncate text-sm font-semibold text-zinc-800" }, w.term), h("span", { class: "shrink-0 text-sm text-zinc-500" }, w.countText)),
-            progressBar(w.ratio, `${w.term} 오답 횟수`, "wrong"),
-            h("p", { class: "text-xs text-zinc-500" }, `${w.meaning} · ${w.ratioText}`),
-          ),
-        ),
-      ),
-    ),
+    cardHeading({ iconName: "rotate-ccw", title: "자주 틀리는 단어", aside: count }),
+    list,
+    toggleButton.hidden ? null : toggleButton,
     button({ variant: "secondary", full: true, onClick: () => ctx.navigate("/review", { tab: "wrong" }) }, icon("rotate-ccw", "h-4 w-4"), "복습함에서 오답 복습하기"),
   );
 }

@@ -6,7 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { frequentWrongModel, scoreTrendModel } from "../js/core/analytics-model.js";
+import { frequentWrongListModel, frequentWrongModel, scoreTrendModel } from "../js/core/analytics-model.js";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
@@ -95,10 +95,55 @@ test("성적 추이: 정답률 소수는 막대에서만 반올림하고 문구�
   assert.equal(model.sessions[0].accuracyText, "66.7%");
 });
 
+const frequentOf = (count) => frequentWrongModel({ items: Array.from({ length: count }, (_, i) => item(i + 1, count - i, count)) });
+
+test("자주 틀리는 단어 접힘: 상위 5개만 보이고 '더 보기'를 준다", () => {
+  const list = frequentWrongListModel(frequentOf(10), false);
+  assert.deepEqual(list.items.map((w) => w.rank), [1, 2, 3, 4, 5]);
+  assert.equal(list.countText, "상위 5개");
+  assert.deepEqual(list.toggle, { label: "더 보기", iconName: "chevron-down", expanded: false });
+});
+
+test("자주 틀리는 단어 펼침: 10개를 보이고 '접기'를 준다", () => {
+  const list = frequentWrongListModel(frequentOf(10), true);
+  assert.equal(list.items.length, 10);
+  assert.equal(list.countText, "상위 10개");
+  assert.deepEqual(list.toggle, { label: "접기", iconName: "chevron-up", expanded: true });
+});
+
+test("자주 틀리는 단어: 6~9개면 펼쳤을 때 개수 문구가 실제 개수다", () => {
+  assert.equal(frequentWrongListModel(frequentOf(7), false).countText, "상위 5개");
+  assert.equal(frequentWrongListModel(frequentOf(7), true).countText, "상위 7개");
+});
+
+test("자주 틀리는 단어: 5개 이하이면 모두 보이고 버튼이 없다", () => {
+  for (const count of [1, 5]) {
+    const list = frequentWrongListModel(frequentOf(count), false);
+    assert.equal(list.items.length, count);
+    assert.equal(list.countText, `상위 ${count}개`);
+    assert.equal(list.toggle, null);
+  }
+});
+
+test("자주 틀리는 단어: 접어도 막대 비율은 전체 최다 오답 기준 그대로다", () => {
+  const model = frequentOf(10);
+  assert.deepEqual(frequentWrongListModel(model, false).items, model.items.slice(0, 5));
+});
+
 test("통계 화면은 성적 추이와 자주 틀리는 단어를 서버에서 받아 보여 준다", () => {
   const src = read("js/views/stats-view.js");
   assert.match(src, /\/study\/score-trend/);
   assert.match(src, /\/study\/frequent-wrong/);
   assert.match(src, /scoreTrendModel\(/);
   assert.match(src, /frequentWrongModel\(/);
+});
+
+test("통계 화면의 자주 틀리는 단어는 펼치기·접기 버튼의 상태를 알리고 아이콘을 다시 그린다", () => {
+  const src = read("js/views/stats-view.js");
+  assert.match(src, /frequentWrongListModel\(/);
+  assert.match(src, /setAttribute\("aria-expanded", String\(toggle\.expanded\)\)/);
+  assert.match(src, /variant: "ghost", full: true/);
+  assert.match(src, /refreshIcons\(\)/);
+  assert.match(src, /scrollIntoView\(\{ block: "nearest" \}\)/);
+  assert.match(src, /classList\.add\("scroll-my-24"\)/); // 상단 헤더와 하단 탭바에 가려지지 않는 여백
 });
